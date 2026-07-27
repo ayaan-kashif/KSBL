@@ -9,8 +9,21 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
+import nextEnv from "@next/env";
+const { loadEnvConfig } = nextEnv;
 
-const prisma = new PrismaClient();
+loadEnvConfig(process.cwd());
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+const pool = new Pool({
+  connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("🌱 Seeding ShelfWatch demo data...");
