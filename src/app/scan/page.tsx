@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import styles from './scan.module.css';
 import { getGeolocation, getScanHistory, ScanHistoryItem, verdictColor } from '@/lib/api';
 
+import { compressImage } from '@/lib/imageCompress';
+
 export default function ScanPage() {
   const router = useRouter();
   const [barcode, setBarcode] = useState('');
@@ -36,26 +38,18 @@ export default function ScanPage() {
     getGeolocation();
   }, []);
 
-  // Convert captured file(s) to base64 and save to sessionStorage, then navigate to /scan/processing
+  // Compress captured file(s) to optimized base64 JPEG and save to sessionStorage, then navigate to /scan/processing
   const submitScan = async (front: File | null, back: File | null, barcodeVal: string) => {
     setScanning(true);
     setError(null);
 
-    const readAsDataUrl = (file: File): Promise<string> =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('Failed to read image file.'));
-        reader.readAsDataURL(file);
-      });
-
     try {
       if (front) {
-        const frontData = await readAsDataUrl(front);
+        const frontData = await compressImage(front);
         sessionStorage.setItem('shelfwatch_captured_image', frontData);
 
         if (back) {
-          const backData = await readAsDataUrl(back);
+          const backData = await compressImage(back);
           sessionStorage.setItem('shelfwatch_captured_image_back', backData);
         } else {
           sessionStorage.removeItem('shelfwatch_captured_image_back');
