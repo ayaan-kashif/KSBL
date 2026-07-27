@@ -5,7 +5,9 @@
   border-radius: 9999px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-body);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 /* Sizes */
@@ -18,36 +20,36 @@
 
 /* Variants */
 .genuine {
-  background: rgba(70, 241, 197, 0.15);
-  color: var(--color-primary);
-  border: 1px solid rgba(70, 241, 197, 0.3);
-  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+  background: rgba(0, 230, 168, 0.12);
+  color: var(--verdict-genuine);
+  border: 1px solid rgba(0, 230, 168, 0.35);
+  box-shadow: 0 0 20px rgba(0, 230, 168, 0.15);
 }
 
 .suspicious {
-  background: rgba(238, 152, 0, 0.15);
-  color: var(--color-secondary);
-  border: 1px solid rgba(255, 185, 95, 0.3);
-  box-shadow: 0 0 20px rgba(238, 152, 0, 0.15);
+  background: rgba(255, 184, 0, 0.12);
+  color: var(--verdict-suspicious);
+  border: 1px solid rgba(255, 184, 0, 0.35);
+  box-shadow: 0 0 20px rgba(255, 184, 0, 0.15);
 }
 
 .counterfeit {
-  background: rgba(255, 180, 171, 0.15);
-  color: var(--color-error);
-  border: 1px solid rgba(255, 180, 171, 0.3);
-  box-shadow: 0 0 20px rgba(255, 180, 171, 0.1);
+  background: rgba(255, 51, 102, 0.12);
+  color: var(--verdict-counterfeit);
+  border: 1px solid rgba(255, 51, 102, 0.35);
+  box-shadow: 0 0 20px rgba(255, 51, 102, 0.15);
 }
 
 .unverified {
-  background: rgba(186, 202, 194, 0.1);
-  color: var(--color-on-surface-variant);
-  border: 1px solid rgba(133, 148, 141, 0.3);
+  background: rgba(154, 161, 185, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid rgba(154, 161, 185, 0.3);
 }
 
 .processing {
-  background: rgba(40, 223, 181, 0.1);
-  color: var(--color-primary-fixed-dim);
-  border: 1px solid rgba(40, 223, 181, 0.2);
+  background: rgba(0, 210, 255, 0.1);
+  color: var(--cyan-glow);
+  border: 1px solid rgba(0, 210, 255, 0.25);
   animation: processingPulse 2s ease-in-out infinite;
 }
 

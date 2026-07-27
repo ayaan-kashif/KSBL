@@ -1,0 +1,109 @@
+.viewport {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  left: 1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .viewport {
+    left: auto;
+    width: 380px;
+  }
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow), var(--inset-glow);
+  pointer-events: auto;
+  animation: slideIn 0.25s ease-out;
+  overflow: hidden;
+}
+
+.toast::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  padding: 1px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.success::before {
+  background: linear-gradient(135deg, rgba(0, 230, 168, 0.7) 0%, rgba(0, 210, 255, 0.5) 100%);
+}
+
+.error::before {
+  background: linear-gradient(135deg, rgba(255, 51, 102, 0.7) 0%, rgba(138, 43, 226, 0.5) 100%);
+}
+
+.info::before {
+  background: var(--liquid-border-grad);
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.success .icon { color: var(--verdict-genuine); }
+.error .icon { color: var(--verdict-counterfeit); }
+.info .icon { color: var(--cyan-glow); }
+
+.message {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.closeBtn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.closeBtn:hover {
+  color: var(--text-primary);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

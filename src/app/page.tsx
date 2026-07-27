@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import styles from './home.module.css';
+import Button from '@/components/Button';
+import MetricCard from '@/components/MetricCard';
 
 export default function HomePage() {
   const [scanCount, setScanCount] = useState(0);
@@ -18,6 +20,13 @@ export default function HomePage() {
     }, 16);
     return () => clearInterval(timer);
   }, []);
+
+  const features = [
+    { icon: 'qr_code_scanner', title: 'Barcode & QR Scan', desc: 'Scan any product barcode in seconds with your phone camera.', color: '#00d2ff' },
+    { icon: 'analytics', title: 'AI Verification', desc: 'Machine learning trained on millions of genuine products.', color: '#8a2be2' },
+    { icon: 'shield', title: 'Real-time Alerts', desc: 'Instant counterfeit detection with audit trail logging.', color: '#ff3366' },
+    { icon: 'translate', title: 'Bilingual UI', desc: 'Full English and Urdu support for all users.', color: '#00e6a8' },
+  ];
 
   return (
     <div className={styles.page}>
@@ -38,7 +47,7 @@ export default function HomePage() {
             <span className="material-symbols-outlined">security</span>
             Admin Portal
           </Link>
-          <Link href="/login" className={styles.loginBtn}>Log In</Link>
+          <Button href="/login" variant="ghost" size="sm">Log In</Button>
         </nav>
       </header>
 
@@ -49,7 +58,7 @@ export default function HomePage() {
           AI-Powered Brand Protection
         </div>
         <h1 className={styles.heroTitle}>
-          Protecting Pakistan's<br />
+          Protecting Pakistan&apos;s<br />
           <span className={styles.heroAccent}>Market Integrity</span>
         </h1>
         <p className={styles.heroSubtitle}>
@@ -58,42 +67,27 @@ export default function HomePage() {
         <p className={styles.heroUrdu}>پاکستانی مارکیٹ میں مصنوعات کی صداقت فوری طور پر تصدیق کریں</p>
 
         <div className={styles.heroCta}>
-          <Link href="/signup" className={styles.primaryBtn}>
-            <span className="material-symbols-outlined">qr_code_scanner</span>
+          <Button href="/signup" variant="primary" size="lg" icon="qr_code_scanner">
             Sign Up &amp; Start Scanning
-          </Link>
-          <Link href="/login" className={styles.secondaryBtn}>
-            <span className="material-symbols-outlined">login</span>
+          </Button>
+          <Button href="/login" variant="ghost" size="lg" icon="login">
             Log In
-          </Link>
+          </Button>
         </div>
+
         {/* Stats Row */}
         <div className={styles.statsRow}>
-          <div className={styles.statCard}>
-            <span className={styles.statValue}>{scanCount.toLocaleString()}</span>
-            <span className={styles.statLabel}>Scans Today</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statValue} style={{ color: 'var(--color-error)' }}>1,247</span>
-            <span className={styles.statLabel}>Fakes Caught</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statValue}>98.6%</span>
-            <span className={styles.statLabel}>Accuracy</span>
-          </div>
+          <MetricCard label="Scans Today" value={scanCount.toLocaleString()} icon="qr_code_scanner" />
+          <MetricCard label="Fakes Caught" value="1,247" icon="gpp_maybe" />
+          <MetricCard label="Accuracy" value="98.6%" icon="verified" />
         </div>
       </main>
 
       {/* Features */}
       <section className={styles.features}>
-        {[
-          { icon: 'qr_code_scanner', title: 'Barcode & QR Scan', desc: 'Scan any product barcode in seconds with your phone camera.', color: 'var(--color-primary)' },
-          { icon: 'analytics', title: 'AI Verification', desc: 'Machine learning trained on millions of genuine products.', color: 'var(--color-secondary)' },
-          { icon: 'shield', title: 'Real-time Alerts', desc: 'Instant counterfeit detection with audit trail logging.', color: 'var(--color-error)' },
-          { icon: 'translate', title: 'Bilingual UI', desc: 'Full English and Urdu support for all users.', color: 'var(--color-primary)' },
-        ].map((f, i) => (
-          <div key={i} className={styles.featureCard}>
-            <div className={styles.featureIcon} style={{ color: f.color, background: f.color + '15' }}>
+        {features.map((f, i) => (
+          <div key={i} className={`liquid-glass ${styles.featureCard}`}>
+            <div className={styles.featureIcon} style={{ color: f.color, background: f.color + '20' }}>
               <span className="material-symbols-outlined">{f.icon}</span>
             </div>
             <h3 className={styles.featureTitle}>{f.title}</h3>
@@ -106,14 +100,13 @@ export default function HomePage() {
       <section className={styles.ctaBanner}>
         <h2 className={styles.ctaTitle}>Ready to verify a product?</h2>
         <p className={styles.ctaDesc}>Point your camera at any product barcode to get an instant authenticity report.</p>
-        <Link href="/scan" className={styles.primaryBtn} style={{ display: 'inline-flex' }}>
-          <span className="material-symbols-outlined">qr_code_scanner</span>
-          Scan Now — It's Free
-        </Link>
+        <Button href="/scan" variant="primary" size="lg" icon="qr_code_scanner">
+          Scan Now — It&apos;s Free
+        </Button>
       </section>
 
       <footer className={styles.footer}>
-        <p>© 2026 ShelfWatch AI · Protecting Pakistan's Markets</p>
+        <p>© 2026 ShelfWatch AI · Protecting Pakistan&apos;s Markets</p>
       </footer>
     </div>
   );

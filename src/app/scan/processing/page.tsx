@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { getGeolocation } from '@/lib/api';
 import styles from './processing.module.css';
+import ProgressBar from '@/components/ProgressBar';
+import Button from '@/components/Button';
 
 interface Step {
   label: string;
@@ -127,6 +128,10 @@ export default function ScanProcessingPage() {
     };
   }, [router]);
 
+  const doneCount = steps.filter((s) => s.state === 'done').length;
+  const hasActive = steps.some((s) => s.state === 'active');
+  const progress = Math.min(100, ((doneCount + (hasActive ? 0.5 : 0)) / steps.length) * 100);
+
   return (
     <div className={styles.page}>
       <header className={styles.appBar}>
@@ -135,31 +140,19 @@ export default function ScanProcessingPage() {
 
       <main className={styles.main}>
         {error ? (
-          <div style={{ textAlign: 'center', padding: '40px 16px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '64px', color: 'var(--color-error)' }}>
+          <div className={styles.errorState}>
+            <span className="material-symbols-outlined" style={{ fontSize: '64px', color: 'var(--verdict-counterfeit)' }}>
               gpp_maybe
             </span>
-            <h2 className={styles.title} style={{ color: 'var(--color-error)', marginTop: '16px' }}>
+            <h2 className={styles.title} style={{ color: 'var(--verdict-counterfeit)', marginTop: '16px' }}>
               Verification Failed
             </h2>
             <p className={styles.subtitle} style={{ marginBottom: '24px' }}>
               {error}
             </p>
-            <Link href="/scan" className={styles.title} style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 24px',
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '8px',
-              color: 'white',
-              textDecoration: 'none',
-              fontWeight: 600,
-            }}>
-              <span className="material-symbols-outlined">arrow_back</span>
+            <Button href="/scan" variant="ghost" icon="arrow_back">
               Try Again
-            </Link>
+            </Button>
           </div>
         ) : (
           <>
@@ -174,6 +167,10 @@ export default function ScanProcessingPage() {
 
             <h2 className={styles.title}>Analyzing Product</h2>
             <p className={styles.subtitle}>AI verification in progress — please wait</p>
+
+            <div className={styles.progressWrap}>
+              <ProgressBar value={progress} label="Verification Progress" />
+            </div>
 
             {/* Scan Steps */}
             <div className={styles.steps}>

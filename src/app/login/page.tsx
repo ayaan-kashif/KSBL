@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './login.module.css';
 import { postLogin } from '@/lib/api';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 
 export default function LoginPage() {
   return (
@@ -53,14 +55,14 @@ function LoginForm() {
           <div className={styles.trustRow}>
             {['24,891 Scans Today', '1,247 Fakes Caught', '98.6% Accuracy'].map((s, i) => (
               <div key={i} className={styles.trustPill}>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary)' }}>verified</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--cyan-glow)' }}>verified</span>
                 {s}
               </div>
             ))}
           </div>
         </div>
 
-        <div className={styles.loginCard}>
+        <div className={`liquid-glass-gradient-border ${styles.loginCard}`}>
           <h2 className={styles.cardTitle}>Customer Login</h2>
           <p className={styles.cardSubtitle}>Sign in to scan products and track your reports</p>
 
@@ -72,64 +74,36 @@ function LoginForm() {
           )}
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.inputGroup}>
-              <label htmlFor="email" className={styles.label}>Email Address</label>
-              <div className={styles.inputWrapper}>
-                <span className={`material-symbols-outlined ${styles.inputIcon}`}>mail</span>
-                <input
-                  id="email"
-                  type="email"
-                  className={styles.input}
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+            <Input
+              label="Email Address"
+              icon="mail"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              label="Password"
+              icon="lock"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
 
-            <div className={styles.inputGroup}>
-              <div className={styles.labelRow}>
-                <label htmlFor="password" className={styles.label}>Password</label>
-              </div>
-              <div className={styles.inputWrapper}>
-                <span className={`material-symbols-outlined ${styles.inputIcon}`}>lock</span>
-                <input
-                  id="password"
-                  type="password"
-                  className={styles.input}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <button type="submit" className={styles.submitBtn} disabled={loading}>
-              {loading ? (
-                <>
-                  <span className={`material-symbols-outlined ${styles.spinIcon}`}>progress_activity</span>
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined">login</span>
-                  Sign In
-                </>
-              )}
-            </button>
+            <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} icon={loading ? undefined : 'login'}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
           </form>
 
           <div className={styles.divider}><span>or</span></div>
 
-          <button className={styles.consumerBtn} onClick={() => router.push('/signup')}>
-            <span className="material-symbols-outlined">person_add</span>
+          <Button variant="ghost" size="lg" fullWidth icon="person_add" onClick={() => router.push('/signup')}>
             Create an Account
-          </button>
+          </Button>
 
-          <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px' }}>
-            <Link href="/settings" style={{ color: 'var(--color-on-surface-variant)' }}>
+          <p className={styles.adminLinkRow}>
+            <Link href="/settings" className={styles.adminLink}>
               Brand agent? Admin Portal →
             </Link>
           </p>

@@ -1,0 +1,61 @@
+.card {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 110px;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.iconWrap {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: var(--liquid-primary-grad);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 18px;
+  color: #ffffff;
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.trendRow {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.trendUp { color: var(--verdict-genuine); }
+.trendDown { color: var(--verdict-counterfeit); }
+.trendFlat { color: var(--text-muted); }
+
+.trendIcon {
+  font-size: 16px;
+}

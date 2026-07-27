@@ -4,9 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './history.module.css';
-import { getMyScanHistory, getMe, postLogout, ScanHistoryItem, CustomerProfile, verdictColor, verdictIcon } from '@/lib/api';
+import { getMyScanHistory, getMe, postLogout, ScanHistoryItem, CustomerProfile, verdictIcon } from '@/lib/api';
+import BottomNav from '@/components/BottomNav';
 
 type FilterType = 'all' | 'genuine' | 'suspicious' | 'unverified';
+
+// verdictColor() (from '@/lib/api') returns a var(--color-*) reference, which
+// can't be hex-alpha-suffixed for translucent fills/borders. This local map
+// mirrors the new --verdict-* token values as literal hex for that purpose.
+const VERDICT_HEX: Record<'genuine' | 'suspicious' | 'unverified', string> = {
+  genuine: '#00e6a8',
+  suspicious: '#ffb800',
+  unverified: '#9aa1b9',
+};
 
 export default function ScanHistoryPage() {
   const router = useRouter();
@@ -71,25 +81,16 @@ export default function ScanHistoryPage() {
 
       <main className={styles.main}>
         {profile && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            margin: '0 16px 16px',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            background: 'rgba(70,241,197,0.08)',
-            border: '1px solid rgba(70,241,197,0.2)',
-          }}>
-            <span style={{ fontSize: '14px' }}>Hi, {profile.name}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--color-primary)' }}>
+          <div className={styles.scorePill}>
+            <span className={styles.scoreGreeting}>Hi, {profile.name}</span>
+            <div className={styles.scoreActions}>
+              <span className={styles.scorePoints}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>military_tech</span>
                 {profile.score_points} pts
               </span>
               <button
                 onClick={async () => { await postLogout(); router.push('/login'); }}
-                style={{ background: 'none', border: 'none', color: 'var(--color-on-surface-variant)', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}
+                className={styles.logoutBtn}
               >
                 Log out
               </button>
@@ -99,7 +100,7 @@ export default function ScanHistoryPage() {
 
         {/* Search */}
         <div className={styles.searchWrapper}>
-          <span className="material-symbols-outlined" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px' }}>search</span>
+          <span className={`material-symbols-outlined ${styles.searchIcon}`}>search</span>
           <input
             className={styles.searchInput}
             placeholder="Search product or batch..."
@@ -120,7 +121,6 @@ export default function ScanHistoryPage() {
               key={f}
               className={filter === f ? styles.filterChipActive : styles.filterChip}
               onClick={() => setFilter(f)}
-              style={filter === f && f !== 'all' ? { borderColor: verdictColor(f), color: verdictColor(f), background: `${verdictColor(f)}15` } : {}}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
@@ -129,14 +129,14 @@ export default function ScanHistoryPage() {
 
         {/* Loading / Error States */}
         {loading && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-on-surface-variant)' }}>
+          <div className={styles.stateMessage}>
             <span className="material-symbols-outlined spin" style={{ fontSize: '32px' }}>sync</span>
             <p style={{ marginTop: '8px' }}>Loading history...</p>
           </div>
         )}
 
         {error && (
-          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--color-error)' }}>
+          <div className={styles.stateMessage} style={{ color: 'var(--verdict-counterfeit)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>error_outline</span>
             <p style={{ marginTop: '8px' }}>{error}</p>
           </div>
@@ -145,57 +145,40 @@ export default function ScanHistoryPage() {
         {/* Scan list */}
         {!loading && !error && filtered.length === 0 ? (
           <div className={styles.emptyState}>
-            <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--color-on-surface-variant)' }}>search_off</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '48px' }}>search_off</span>
             <p>No scans found</p>
           </div>
         ) : (
           <div className={styles.scanList}>
-            {filtered.map(scan => (
-              <div key={scan.id} className={styles.scanCard} style={{ borderLeft: `3px solid ${verdictColor(scan.verdict)}` }}>
-                <div className={styles.scanLeft}>
-                  <div className={styles.statusDot} style={{ color: verdictColor(scan.verdict) }}>
+            {filtered.map(scan => {
+              const hex = VERDICT_HEX[scan.verdict];
+              return (
+                <div key={scan.id} className={styles.scanCard} style={{ borderLeft: `3px solid ${hex}` }}>
+                  <div className={styles.statusDot} style={{ color: hex, background: `${hex}1a`, borderColor: `${hex}33` }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
                       {verdictIcon(scan.verdict)}
                     </span>
                   </div>
+                  <div className={styles.scanInfo}>
+                    <p className={styles.productName}>{scan.product_name || 'Unknown Product'}</p>
+                    <p className={styles.batchInfo}>
+                      {scan.extracted_batch || 'No Batch'} · {scan.brand_name || 'Unknown Brand'}
+                    </p>
+                    <p className={styles.timeInfo}>{formatTime(scan.created_at)}</p>
+                  </div>
+                  <div className={styles.scanRight}>
+                    <span className={styles.statusBadge} style={{ color: hex, background: `${hex}1a`, border: `1px solid ${hex}33` }}>
+                      {scan.verdict}
+                    </span>
+                  </div>
                 </div>
-                <div className={styles.scanInfo}>
-                  <p className={styles.productName}>{scan.product_name || 'Unknown Product'}</p>
-                  <p className={styles.batchInfo}>
-                    {scan.extracted_batch || 'No Batch'} · {scan.brand_name || 'Unknown Brand'}
-                  </p>
-                  <p className={styles.timeInfo}>{formatTime(scan.created_at)}</p>
-                </div>
-                <div className={styles.scanRight}>
-                  <span className={styles.statusBadge} style={{ color: verdictColor(scan.verdict), background: `${verdictColor(scan.verdict)}15`, border: `1px solid ${verdictColor(scan.verdict)}30` }}>
-                    {scan.verdict}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
 
-      {/* Bottom Nav */}
-      <nav className={styles.bottomNav}>
-        <Link href="/" className={styles.navItem}>
-          <span className="material-symbols-outlined">home</span>
-          <span>Home</span>
-        </Link>
-        <Link href="/scan" className={styles.navItem}>
-          <span className="material-symbols-outlined">qr_code_scanner</span>
-          <span>Scan</span>
-        </Link>
-        <Link href="/scan/history" className={`${styles.navItem} ${styles.navItemActive}`}>
-          <span className="material-symbols-outlined">history</span>
-          <span>History</span>
-        </Link>
-        <Link href="/login" className={styles.navItem}>
-          <span className="material-symbols-outlined">person</span>
-          <span>Profile</span>
-        </Link>
-      </nav>
+      <BottomNav />
     </div>
   );
 }

@@ -1,0 +1,82 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  border-radius: 12px;
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: box-shadow 0.2s ease, transform 0.1s ease, background 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Sizes */
+.sm { padding: 0.55rem 1rem; font-size: 13px; border-radius: 10px; }
+.md { padding: 0.8rem 1.5rem; font-size: 14px; }
+.lg { padding: 1rem 2rem; font-size: 16px; border-radius: 14px; }
+
+/* Primary */
+.primary {
+  background: var(--liquid-primary-grad);
+  color: #ffffff;
+}
+.primary:hover:not(:disabled) {
+  box-shadow: var(--accent-glow-shadow);
+}
+
+/* Ghost / Secondary */
+.ghost {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--bg-glass-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Danger */
+.danger {
+  background: rgba(255, 51, 102, 0.12);
+  color: var(--verdict-counterfeit);
+  border: 1px solid rgba(255, 51, 102, 0.4);
+}
+.danger:hover:not(:disabled) {
+  background: rgba(255, 51, 102, 0.18);
+  box-shadow: 0 0 20px rgba(255, 51, 102, 0.25);
+}
+
+.icon {
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './scan.module.css';
 import { getGeolocation, getScanHistory, ScanHistoryItem, verdictColor } from '@/lib/api';
+import BottomNav from '@/components/BottomNav';
+import Input from '@/components/Input';
 
 import { compressImage } from '@/lib/imageCompress';
 
@@ -209,18 +211,7 @@ export default function ScanPage() {
 
         {/* Error display */}
         {error && (
-          <div style={{
-            background: 'rgba(255,80,80,0.12)',
-            border: '1px solid rgba(255,80,80,0.3)',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            margin: '0 16px',
-            color: 'var(--color-error)',
-            fontSize: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}>
+          <div className={styles.errorBanner}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>error</span>
             {error}
           </div>
@@ -229,17 +220,14 @@ export default function ScanPage() {
         {/* Manual Input */}
         <div className={styles.manualSection}>
           <p className={styles.orDivider}>— or enter barcode manually —</p>
-          <div className={styles.inputWrapper}>
-            <span className="material-symbols-outlined" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px' }}>barcode</span>
-            <input
-              className={styles.input}
-              placeholder="e.g. 8901030873874"
-              value={barcode}
-              onChange={e => setBarcode(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !frontImage && handleBarcodeScan()}
-              disabled={scanning}
-            />
-          </div>
+          <Input
+            icon="barcode"
+            label="Barcode number"
+            value={barcode}
+            onChange={e => setBarcode(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !frontImage && handleBarcodeScan()}
+            disabled={scanning}
+          />
           {!frontImage && (
             <button
               className={styles.scanBtn}
@@ -274,33 +262,13 @@ export default function ScanPage() {
               </div>
             ))}
             {history.length === 0 && (
-              <p style={{ fontSize: '14px', color: 'var(--color-on-surface-variant)', opacity: 0.6, padding: '8px 0' }}>
-                No scans recorded yet.
-              </p>
+              <p className={styles.emptyState}>No scans recorded yet.</p>
             )}
           </div>
         </div>
       </main>
 
-      {/* Bottom Nav */}
-      <nav className={styles.bottomNav}>
-        <Link href="/" className={styles.navItem}>
-          <span className="material-symbols-outlined">home</span>
-          <span>Home</span>
-        </Link>
-        <button className={`${styles.navItem} ${styles.navItemActive}`}>
-          <span className="material-symbols-outlined">qr_code_scanner</span>
-          <span>Scan</span>
-        </button>
-        <Link href="/scan/history" className={styles.navItem}>
-          <span className="material-symbols-outlined">history</span>
-          <span>History</span>
-        </Link>
-        <Link href="/login" className={styles.navItem}>
-          <span className="material-symbols-outlined">person</span>
-          <span>Profile</span>
-        </Link>
-      </nav>
+      <BottomNav />
     </div>
   );
 }

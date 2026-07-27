@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from '../login/login.module.css';
+import styles from './signup.module.css';
 import { postSignup } from '@/lib/api';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -49,14 +51,14 @@ export default function SignupPage() {
           <div className={styles.trustRow}>
             {['24,891 Scans Today', '1,247 Fakes Caught', '98.6% Accuracy'].map((s, i) => (
               <div key={i} className={styles.trustPill}>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary)' }}>verified</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--cyan-glow)' }}>verified</span>
                 {s}
               </div>
             ))}
           </div>
         </div>
 
-        <div className={styles.loginCard}>
+        <div className={`liquid-glass-gradient-border ${styles.signupCard}`}>
           <h2 className={styles.cardTitle}>Create Your Account</h2>
           <p className={styles.cardSubtitle}>Sign up to start verifying products and earn points for flagging counterfeits</p>
 
@@ -68,77 +70,43 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.inputGroup}>
-              <label htmlFor="name" className={styles.label}>Full Name</label>
-              <div className={styles.inputWrapper}>
-                <span className={`material-symbols-outlined ${styles.inputIcon}`}>person</span>
-                <input
-                  id="name"
-                  type="text"
-                  className={styles.input}
-                  placeholder="Your name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                  minLength={2}
-                />
-              </div>
-            </div>
+            <Input
+              label="Full Name"
+              icon="person"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              minLength={2}
+            />
+            <Input
+              label="Email Address"
+              icon="mail"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              label="Password"
+              icon="lock"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={8}
+            />
 
-            <div className={styles.inputGroup}>
-              <label htmlFor="email" className={styles.label}>Email Address</label>
-              <div className={styles.inputWrapper}>
-                <span className={`material-symbols-outlined ${styles.inputIcon}`}>mail</span>
-                <input
-                  id="email"
-                  type="email"
-                  className={styles.input}
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label htmlFor="password" className={styles.label}>Password</label>
-              <div className={styles.inputWrapper}>
-                <span className={`material-symbols-outlined ${styles.inputIcon}`}>lock</span>
-                <input
-                  id="password"
-                  type="password"
-                  className={styles.input}
-                  placeholder="At least 8 characters"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
-            </div>
-
-            <button type="submit" className={styles.submitBtn} disabled={loading}>
-              {loading ? (
-                <>
-                  <span className={`material-symbols-outlined ${styles.spinIcon}`}>progress_activity</span>
-                  Creating account...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined">person_add</span>
-                  Sign Up
-                </>
-              )}
-            </button>
+            <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} icon={loading ? undefined : 'person_add'}>
+              {loading ? 'Creating account...' : 'Sign Up'}
+            </Button>
           </form>
 
           <div className={styles.divider}><span>or</span></div>
 
-          <button className={styles.consumerBtn} onClick={() => router.push('/login')}>
-            <span className="material-symbols-outlined">login</span>
+          <Button variant="ghost" size="lg" fullWidth icon="login" onClick={() => router.push('/login')}>
             Already have an account? Sign In
-          </button>
+          </Button>
         </div>
       </div>
     </div>

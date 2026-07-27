@@ -1,0 +1,162 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.bgOrb1 {
+  position: fixed;
+  top: -15rem;
+  left: -15rem;
+  width: 50rem;
+  height: 50rem;
+  background: radial-gradient(circle, rgba(0, 210, 255, 0.07) 0%, transparent 70%);
+  animation: drift1 12s ease-in-out infinite;
+  pointer-events: none;
+}
+.bgOrb2 {
+  position: fixed;
+  bottom: -10rem;
+  right: -10rem;
+  width: 40rem;
+  height: 40rem;
+  background: radial-gradient(circle, rgba(138, 43, 226, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+@keyframes drift1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, 20px); }
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  max-width: 1000px;
+  width: 100%;
+  z-index: 5;
+  position: relative;
+}
+
+/* Left Panel */
+.leftPanel {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+}
+@media (min-width: 900px) {
+  .leftPanel { display: flex; }
+}
+
+.logoMark {
+  width: 5rem;
+  height: 5rem;
+  background: var(--bg-glass-card);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-radius: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 30px rgba(0, 210, 255, 0.15);
+}
+.logoMark .material-symbols-outlined {
+  font-size: 40px;
+  color: var(--cyan-glow);
+}
+
+.brandName {
+  font-family: var(--font-heading);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.brandTagline {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+  line-height: 28px;
+}
+
+.trustRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trustPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 14px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  width: fit-content;
+}
+
+/* Signup Card */
+.signupCard {
+  flex: 1;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 440px;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.cardSubtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 51, 102, 0.12);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+  color: var(--verdict-counterfeit);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}

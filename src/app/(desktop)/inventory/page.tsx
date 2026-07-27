@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import VerdictBadge from '@/components/VerdictBadge';
 import styles from './inventory.module.css';
+import { useToast } from '@/components/ToastContext';
 
 type FilterType = 'All' | 'Active' | 'Flagged' | 'Recalled';
 
@@ -42,6 +43,7 @@ export default function InventoryPage() {
   const [newImageUrl, setNewImageUrl] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { showToast } = useToast();
 
   async function loadProducts() {
     setLoading(true);
@@ -99,7 +101,7 @@ export default function InventoryPage() {
       }));
     } catch (err) {
       console.error(err);
-      alert("Failed to update product status. Please try again.");
+      showToast("Failed to update product status. Please try again.", 'error');
     }
   }
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import styles from './result.module.css';
+import Button from '@/components/Button';
 
 interface ProductData {
   name: string;
@@ -107,25 +107,29 @@ export default function ResultPage() {
   };
   const reason = result?.reason || "Visual inspection could not be verified securely.";
 
-  // Theme styling configurations based on status
-  let themeColor = "var(--color-secondary)"; // default amber
+  // Theme styling configurations based on status.
+  // NOTE: themeColor is a plain hex value (matching the --verdict-* tokens in
+  // globals.css) rather than a var() reference, because it gets alpha-suffixed
+  // below (`${themeColor}40`) to derive translucent fills/borders — that
+  // hex-alpha trick only works on literal hex colors, not on var() calls.
+  let themeColor = "#ffb800"; // --verdict-suspicious
   let themeIcon = "warning";
-  let statusUrdu = "تفتیش کی ضرورت ہے";
+  let statusHeadline = "NEEDS MANUAL REVIEW";
+  let statusUrdu = "مشکوک";
   let statusSub = "Visual discrepancies detected. Manual check recommended.";
-  let glowClass = styles.amberGlow;
 
   if (status === "Likely Original") {
-    themeColor = "var(--color-primary)"; // green
+    themeColor = "#00e6a8"; // --verdict-genuine
     themeIcon = "verified";
-    statusUrdu = "✅ اصل مصنوع — تصدیق شدہ";
+    statusHeadline = "LIKELY ORIGINAL";
+    statusUrdu = "اصلی";
     statusSub = "This product matches all official manufacturer specifications.";
-    glowClass = ""; // will style inline or rely on green colors
   } else if (status === "Likely Counterfeit") {
-    themeColor = "var(--color-error)"; // red
+    themeColor = "#ff3366"; // --verdict-counterfeit
     themeIcon = "gpp_maybe";
-    statusUrdu = "⚠️ جعلی مصنوع — انتباہ";
+    statusHeadline = "LIKELY COUNTERFEIT";
+    statusUrdu = "جعلی";
     statusSub = "High packaging discrepancy indicates potential counterfeit.";
-    glowClass = "";
   }
 
   return (
@@ -140,24 +144,15 @@ export default function ResultPage() {
 
       <main className={styles.container}>
         <div className={styles.ambientGlowContainer}>
-          <div 
-            className={styles.pulseAmberBig} 
-            style={{ backgroundColor: status === "Likely Original" ? "rgba(70,241,197,0.15)" : status === "Likely Counterfeit" ? "rgba(255,180,171,0.15)" : "var(--color-secondary-container)" }}
-          ></div>
-          <div className={styles.pulseAmberCenter}></div>
+          <div className={styles.pulseAmberBig} style={{ backgroundColor: themeColor }}></div>
+          <div className={styles.pulseAmberCenter} style={{ backgroundColor: themeColor }}></div>
         </div>
 
-        {/* Verdict Header Card */}
-        <div 
-          className={`${styles.glassCard} ${glowClass} ${styles.headerCard}`}
-          style={{ 
-            boxShadow: status === "Likely Original" ? "0 0 30px rgba(70,241,197,0.15)" : status === "Likely Counterfeit" ? "0 0 30px rgba(255,180,171,0.15)" : "0 0 30px rgba(238, 152, 0, 0.15)",
-            border: `1px solid ${themeColor}30`
-          }}
-        >
-          <div 
-            className={styles.warningIconWrapper} 
-            style={{ 
+        {/* Verdict Hero Badge */}
+        <div className={`liquid-glass-gradient-border ${styles.headerCard}`} style={{ boxShadow: `var(--glass-shadow), 0 0 40px ${themeColor}26` }}>
+          <div
+            className={styles.warningIconWrapper}
+            style={{
               background: `${themeColor}20`,
               borderColor: `${themeColor}40`
             }}
@@ -168,15 +163,14 @@ export default function ResultPage() {
           </div>
           <div>
             <h2 className={styles.verdictTitle} style={{ color: themeColor }}>
-              {status}
+              {statusHeadline} <span className={styles.urduText}>/ {statusUrdu}</span>
             </h2>
-            <p className={styles.verdictSubtitle} style={{ fontWeight: 600, color: themeColor }}>{statusUrdu}</p>
-            <p className={styles.verdictSubtitle} style={{ marginTop: '4px' }}>{statusSub}</p>
+            <p className={styles.verdictSubtitle}>{statusSub}</p>
           </div>
         </div>
 
         {/* Confidence & Score Section */}
-        <div className={`${styles.glassCard} ${styles.confidenceSection}`} style={{ border: `1px solid ${themeColor}20` }}>
+        <div className={`liquid-glass-gradient-border ${styles.confidenceSection}`}>
           <div className={styles.flexBetween}>
             <span className={styles.labelCaps}>Authenticity Score</span>
             <span className={styles.confidenceValue} style={{ color: themeColor }}>
@@ -184,49 +178,53 @@ export default function ResultPage() {
             </span>
           </div>
           <div className={styles.progressBarTrack}>
-            <div 
-              className={styles.progressBarFill} 
-              style={{ 
-                width: `${score}%`, 
-                background: `linear-gradient(to right, ${themeColor}40, ${themeColor})`,
-                boxShadow: `0 0 10px ${themeColor}50`
+            <div
+              className={styles.progressBarFill}
+              style={{
+                width: `${score}%`,
+                background: `linear-gradient(to right, var(--cyan-glow), ${themeColor})`,
+                boxShadow: `0 0 10px ${themeColor}80`
               }}
             ></div>
           </div>
           <p className={styles.analysisNote}>{reason}</p>
         </div>
 
-        {/* Gemini Visual Evaluation Details */}
+        {/* Gemini Visual Evaluation Details — telemetry bars */}
         <div className={styles.reasonsGrid}>
           {[
             { label: "Logo Accuracy", val: gemini.logoMatch },
             { label: "Brand Fonts", val: gemini.brandMatch },
             { label: "Design Layout", val: gemini.designMatch },
             { label: "Packaging Shell", val: gemini.packagingMatch },
-          ].map((item, idx) => (
-            <div 
-              key={idx} 
-              className={styles.reasonChip} 
-              style={{ 
-                borderLeft: `4px solid ${item.val >= 80 ? 'var(--color-primary)' : item.val >= 50 ? 'var(--color-secondary)' : 'var(--color-error)'}`,
-                background: 'rgba(255,255,255,0.02)'
-              }}
-            >
-              <span className={styles.labelCaps} style={{ fontSize: '10px' }}>{item.label}</span>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: 'white' }}>{item.val}%</span>
-            </div>
-          ))}
+          ].map((item, idx) => {
+            const barColor = item.val >= 80 ? 'var(--verdict-genuine)' : item.val >= 50 ? 'var(--verdict-suspicious)' : 'var(--verdict-counterfeit)';
+            return (
+              <div key={idx} className={`liquid-glass ${styles.reasonChip}`}>
+                <div className={styles.reasonChipHeader}>
+                  <span className={styles.labelCaps} style={{ fontSize: '10px' }}>{item.label}</span>
+                  <span className={styles.reasonChipValue}>{item.val}%</span>
+                </div>
+                <div className={styles.telemetryTrack}>
+                  <div
+                    className={styles.telemetryFill}
+                    style={{ width: `${item.val}%`, background: `linear-gradient(to right, var(--cyan-glow), ${barColor})` }}
+                  ></div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Product Details Snapshot */}
-        <div className={`${styles.glassCard} ${styles.productSnapshot}`}>
+        <div className={`liquid-glass ${styles.productSnapshot}`}>
           {product.referenceImage && (
-            <div 
-              className={styles.snapshotImage} 
+            <div
+              className={styles.snapshotImage}
               style={{ backgroundImage: `url('${product.referenceImage}')`, height: '12rem' }}
             ></div>
           )}
-          <div className={styles.snapshotDetails} style={{ width: '100%' }}>
+          <div className={styles.snapshotDetails}>
             <div>
               <p className={styles.labelCaps}>Product</p>
               <p className={styles.detailValue}>{product.name}</p>
@@ -245,7 +243,7 @@ export default function ResultPage() {
             </div>
             <div>
               <p className={styles.labelCaps}>Barcode No.</p>
-              <p className={styles.detailValue} style={{ fontFamily: 'monospace' }}>{product.barcode}</p>
+              <p className={`${styles.detailValue} ${styles.mono}`}>{product.barcode}</p>
             </div>
             <div>
               <p className={styles.labelCaps}>Net Quantity</p>
@@ -253,7 +251,7 @@ export default function ResultPage() {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <p className={styles.labelCaps}>API Lookup Source</p>
-              <p className={styles.detailValue} style={{ color: 'var(--color-primary)' }}>
+              <p className={styles.detailValue} style={{ color: 'var(--cyan-glow)' }}>
                 {apiSourceLabels[apiSource] || apiSource}
               </p>
             </div>
@@ -262,11 +260,11 @@ export default function ResultPage() {
 
         {/* Action Warning Notice */}
         {status !== "Likely Original" ? (
-          <div 
-            className={styles.urgentWarning} 
-            style={{ 
-              background: status === "Likely Counterfeit" ? "rgba(147,0,10,0.2)" : "rgba(238,152,0,0.12)",
-              border: status === "Likely Counterfeit" ? "1px solid rgba(255,180,171,0.3)" : "1px solid rgba(255,185,95,0.3)"
+          <div
+            className={styles.urgentWarning}
+            style={{
+              background: `${themeColor}1f`,
+              border: `1px solid ${themeColor}4d`
             }}
           >
             <span className="material-symbols-outlined" style={{ color: themeColor, marginTop: '2px', fontVariationSettings: "'FILL' 1" }}>
@@ -284,11 +282,11 @@ export default function ResultPage() {
             </div>
           </div>
         ) : (
-          <div 
-            className={styles.urgentWarning} 
-            style={{ 
-              background: "rgba(70,241,197,0.1)",
-              border: "1px solid rgba(70,241,197,0.25)"
+          <div
+            className={styles.urgentWarning}
+            style={{
+              background: `${themeColor}1a`,
+              border: `1px solid ${themeColor}40`
             }}
           >
             <span className="material-symbols-outlined" style={{ color: themeColor, marginTop: '2px', fontVariationSettings: "'FILL' 1" }}>
@@ -303,24 +301,21 @@ export default function ResultPage() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <Link href="/scan" className={styles.scanAgainBtn}>
-            <span className="material-symbols-outlined">qr_code_scanner</span>
+          <Button href="/scan" variant="primary" icon="qr_code_scanner" fullWidth>
             Scan Another
-          </Link>
-          <button
-            className={styles.reportBtn}
+          </Button>
+          <Button
+            variant="danger"
+            icon={reported ? 'check_circle' : 'report'}
             onClick={handleReport}
             disabled={reporting || reported}
-            style={{ opacity: reported ? 0.6 : 1 }}
+            fullWidth
           >
-            <span className="material-symbols-outlined">{reported ? 'check_circle' : 'report'}</span>
             {reported ? 'Reported!' : reporting ? 'Reporting...' : 'Report Discrepancy'}
-          </button>
+          </Button>
         </div>
         {result?.scan_id && (
-          <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--color-on-surface-variant)', opacity: 0.6, marginTop: '8px' }}>
-            Scan ID: {result.scan_id}
-          </p>
+          <p className={styles.scanIdNote}>Scan ID: {result.scan_id}</p>
         )}
       </main>
     </>

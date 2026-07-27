@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import styles from './Sidebar.module.css';
+import { useToast } from './ToastContext';
 
 const navItems = [
   { href: '/dashboard', icon: 'dashboard', label: 'OVERVIEW' },
@@ -14,11 +16,10 @@ const navItems = [
   { href: '/settings', icon: 'settings', label: 'SETTINGS' },
 ];
 
-import { useState } from 'react';
-
 export default function Sidebar() {
   const pathname = usePathname();
   const [exporting, setExporting] = useState(false);
+  const { showToast } = useToast();
 
   const handleExportAll = async () => {
     if (exporting) return;
@@ -37,10 +38,10 @@ export default function Sidebar() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      alert("Successfully exported all scans to CSV!");
+      showToast("Successfully exported all scans to CSV!", "success");
     } catch (err) {
       console.error("[Sidebar] Failed to export all scans:", err);
-      alert("Failed to export scan logs. Please try again.");
+      showToast("Failed to export scan logs. Please try again.", "error");
     } finally {
       setExporting(false);
     }
@@ -51,7 +52,7 @@ export default function Sidebar() {
       <div className={styles.sidebarContent}>
         <div className={styles.agentProfile}>
           <div className={styles.agentAvatar}>
-            <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>security</span>
+            <span className="material-symbols-outlined" style={{ color: 'var(--cyan-glow)' }}>security</span>
           </div>
           <div>
             <p className={styles.agentRole}>AGENT PORTAL</p>
@@ -77,12 +78,12 @@ export default function Sidebar() {
       </div>
 
       <div className={styles.sidebarFooter}>
-        <button 
+        <button
           className={styles.exportBtn}
           onClick={handleExportAll}
           disabled={exporting}
         >
-          <span className={`material-symbols-outlined ${exporting ? 'spin' : ''}`}>
+          <span className={`material-symbols-outlined ${exporting ? styles.spin : ''}`}>
             {exporting ? 'sync' : 'download'}
           </span>
           {exporting ? 'EXPORTING...' : 'EXPORT DATA'}

@@ -12,8 +12,10 @@
     height: 100%;
     z-index: 40;
     width: 16rem;
-    background-color: var(--color-surface-container-lowest);
-    border-right: 1px solid rgba(59, 74, 68, 0.15);
+    background: var(--bg-glass-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 5rem;
   }
 }
@@ -29,15 +31,15 @@
   gap: 0.75rem;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(59, 74, 68, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .agentAvatar {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background-color: rgba(70, 241, 197, 0.1);
-  border: 1px solid rgba(70, 241, 197, 0.2);
+  background: rgba(0, 210, 255, 0.12);
+  border: 1px solid rgba(0, 210, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,7 +50,7 @@
   font-size: 10px;
   letter-spacing: 0.1em;
   font-weight: 600;
-  color: var(--color-on-surface-variant);
+  color: var(--text-secondary);
   text-transform: uppercase;
   margin: 0;
 }
@@ -56,7 +58,7 @@
 .agentName {
   font-size: 14px;
   font-weight: 700;
-  color: var(--color-on-surface);
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -71,8 +73,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 1rem;
-  border-radius: 0.5rem;
-  color: var(--color-on-surface-variant);
+  border-radius: 12px;
+  color: var(--text-secondary);
   text-decoration: none;
   transition: all 0.2s ease;
   font-size: 12px;
@@ -81,8 +83,8 @@
 }
 
 .sidebarLink:hover {
-  background-color: rgba(46, 53, 69, 0.5);
-  color: var(--color-on-surface);
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
 }
 
 .sidebarLinkActive {
@@ -90,23 +92,23 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 1rem;
-  border-radius: 0.5rem;
-  color: var(--color-primary);
+  border-radius: 12px;
+  color: var(--text-primary);
   font-weight: 700;
-  border-left: 3px solid var(--color-primary);
-  background-color: rgba(0, 212, 170, 0.07);
+  background: var(--liquid-primary-grad);
+  box-shadow: var(--accent-glow-shadow);
   text-decoration: none;
   font-size: 12px;
   letter-spacing: 0.05em;
 }
 
 .navLabel {
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-body);
 }
 
 .sidebarFooter {
   padding: 1rem 1.5rem 1.5rem;
-  border-top: 1px solid rgba(59, 74, 68, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -119,20 +121,24 @@
   gap: 0.5rem;
   width: 100%;
   padding: 0.65rem;
-  background: rgba(70, 241, 197, 0.1);
-  color: var(--color-primary);
+  background: var(--bg-glass-hover);
+  color: var(--cyan-glow);
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.05em;
-  border: 1px solid rgba(70, 241, 197, 0.2);
-  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 210, 255, 0.25);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .exportBtn:hover {
-  background: rgba(70, 241, 197, 0.15);
-  box-shadow: 0 0 15px rgba(70, 241, 197, 0.15);
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+}
+
+.exportBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .scanBtn {
@@ -142,17 +148,26 @@
   gap: 0.5rem;
   width: 100%;
   padding: 0.65rem;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--liquid-primary-grad);
+  color: #ffffff;
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.05em;
-  border-radius: 0.5rem;
+  border-radius: 12px;
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .scanBtn:hover {
-  box-shadow: 0 0 20px rgba(70, 241, 197, 0.35);
+  box-shadow: var(--accent-glow-shadow);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

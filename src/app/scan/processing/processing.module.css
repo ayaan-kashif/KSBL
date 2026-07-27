@@ -1,9 +1,9 @@
 .page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #070e1d 0%, #0c1322 100%);
+  background: var(--bg-base);
   display: flex;
   flex-direction: column;
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-body);
   position: relative;
   overflow: hidden;
 }
@@ -13,15 +13,19 @@
   justify-content: center;
   align-items: center;
   padding: 0.875rem 1.25rem;
-  background: rgba(7, 14, 29, 0.7);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(59, 74, 68, 0.15);
+  background: rgba(15, 16, 21, 0.7);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .appBarTitle {
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-heading);
   font-size: 17px;
   font-weight: 600;
-  color: var(--color-primary);
+  background: var(--liquid-primary-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .main {
@@ -31,9 +35,21 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
-  gap: 2rem;
+  gap: 1.75rem;
   max-width: 420px;
   margin: 0 auto;
+  width: 100%;
+}
+
+.errorState {
+  text-align: center;
+  padding: 40px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.progressWrap {
   width: 100%;
 }
 
@@ -50,17 +66,17 @@
 .radarRing1, .radarRing2, .radarRing3 {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(70,241,197,0.15);
+  border: 1px solid rgba(0, 210, 255, 0.2);
 }
 .radarRing1 { inset: 0; }
-.radarRing2 { inset: 25%; border-color: rgba(70,241,197,0.25); }
-.radarRing3 { inset: 50%; border-color: rgba(70,241,197,0.4); }
+.radarRing2 { inset: 25%; border-color: rgba(138, 43, 226, 0.3); }
+.radarRing3 { inset: 50%; border-color: rgba(0, 210, 255, 0.45); }
 
 .radarSweep {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0deg, rgba(70,241,197,0.1) 60deg, rgba(70,241,197,0.3) 90deg, transparent 91deg);
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 210, 255, 0.12) 60deg, rgba(138, 43, 226, 0.35) 90deg, transparent 91deg);
   animation: sweep 2s linear infinite;
 }
 @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -69,23 +85,23 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 0 20px rgba(70,241,197,0.6);
+  background: var(--liquid-primary-grad);
+  box-shadow: var(--accent-glow-shadow);
   animation: centerPulse 2s ease-in-out infinite;
   z-index: 2;
 }
 @keyframes centerPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.7; } }
 
 .title {
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-heading);
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-on-surface);
+  color: var(--text-primary);
   text-align: center;
 }
 .subtitle {
   font-size: 14px;
-  color: var(--color-on-surface-variant);
+  color: var(--text-secondary);
   text-align: center;
   margin-top: -1.25rem;
 }
@@ -96,34 +112,34 @@
 
 .stepDotDone {
   width: 2rem; height: 2rem; border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--liquid-primary-grad);
   display: flex; align-items: center; justify-content: center;
-  color: var(--color-on-primary); flex-shrink: 0;
+  color: #ffffff; flex-shrink: 0;
 }
 .stepDotActive {
   width: 2rem; height: 2rem; border-radius: 50%;
-  border: 2px solid var(--color-primary);
+  border: 2px solid var(--cyan-glow);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; animation: activePulse 1.5s ease-in-out infinite;
 }
 .innerPulse {
   width: 0.7rem; height: 0.7rem; border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--liquid-primary-grad);
   animation: innerBounce 1.5s ease-in-out infinite;
 }
 @keyframes innerBounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.6); } }
-@keyframes activePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(70,241,197,0); } 50% { box-shadow: 0 0 0 5px rgba(70,241,197,0.15); } }
+@keyframes activePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(0, 210, 255, 0); } 50% { box-shadow: 0 0 0 5px rgba(0, 210, 255, 0.2); } }
 
 .stepDotPending {
   width: 2rem; height: 2rem; border-radius: 50%;
-  border: 2px solid rgba(133,148,141,0.3);
-  background: rgba(255,255,255,0.02); flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02); flex-shrink: 0;
 }
-.stepLine { width: 2px; flex: 1; min-height: 1.5rem; background: rgba(133,148,141,0.2); margin: 0.25rem auto; }
-.stepLineDone { width: 2px; flex: 1; min-height: 1.5rem; background: var(--color-primary); opacity: 0.4; margin: 0.25rem auto; }
+.stepLine { width: 2px; flex: 1; min-height: 1.5rem; background: rgba(255, 255, 255, 0.12); margin: 0.25rem auto; }
+.stepLineDone { width: 2px; flex: 1; min-height: 1.5rem; background: var(--cyan-glow); opacity: 0.5; margin: 0.25rem auto; }
 
 .stepContent { padding-bottom: 1.5rem; padding-top: 0.25rem; }
-.stepLabelDone { font-size: 14px; font-weight: 600; color: var(--color-primary); margin-bottom: 0.15rem; }
-.stepLabelActive { font-size: 14px; font-weight: 600; color: var(--color-on-surface); margin-bottom: 0.15rem; }
-.stepLabelPending { font-size: 14px; font-weight: 500; color: var(--color-on-surface-variant); margin-bottom: 0.15rem; opacity: 0.5; }
-.stepSub { font-size: 12px; color: var(--color-on-surface-variant); opacity: 0.6; }
+.stepLabelDone { font-size: 14px; font-weight: 600; color: var(--cyan-glow); margin-bottom: 0.15rem; }
+.stepLabelActive { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 0.15rem; }
+.stepLabelPending { font-size: 14px; font-weight: 500; color: var(--text-muted); margin-bottom: 0.15rem; }
+.stepSub { font-size: 12px; color: var(--text-secondary); }

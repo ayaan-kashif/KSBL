@@ -1,4 +1,53 @@
 :root {
+  /* ============================================================
+     LIQUID GLASS design tokens (primary system going forward)
+     ============================================================ */
+
+  /* Canvas & Surface Colors */
+  --bg-base: #0f1015;
+  --bg-surface: #161821;
+  --bg-glass-card: rgba(26, 29, 41, 0.55);
+  --bg-glass-hover: rgba(36, 40, 56, 0.65);
+  --bg-glass-input: rgba(20, 23, 33, 0.70);
+
+  /* Signature Liquid Gradients */
+  --liquid-primary-grad: linear-gradient(135deg, #00d2ff 0%, #8a2be2 100%);
+  --liquid-border-grad: linear-gradient(135deg, rgba(0, 210, 255, 0.6) 0%, rgba(138, 43, 226, 0.6) 100%);
+  --liquid-border-subtle: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+
+  /* Accent Colors */
+  --cyan-glow: #00d2ff;
+  --purple-glow: #8a2be2;
+  --accent-glow-shadow: 0 8px 24px rgba(138, 43, 226, 0.35), 0 0 12px rgba(0, 210, 255, 0.25);
+
+  /* Verdict Status Colors */
+  --verdict-genuine: #00e6a8;
+  --verdict-suspicious: #ffb800;
+  --verdict-counterfeit: #ff3366;
+
+  /* Text Colors */
+  --text-primary: #f3f4f8;
+  --text-secondary: #9aa1b9;
+  --text-muted: #5e657e;
+
+  /* Shadows & Glass Effects */
+  --glass-blur: blur(20px);
+  --glass-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --inset-glow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+
+  /* Fonts — served via next/font (see src/app/layout.tsx), not @import,
+     so there's no extra Google Fonts network round-trip / layout shift */
+  --font-heading: var(--font-outfit), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-urdu: var(--font-noto-arabic), sans-serif;
+
+  /* ============================================================
+     Legacy tokens — kept as-is so routes not yet migrated to
+     Liquid Glass (inventory, reports, settings, onboarding,
+     whatsapp, scan/genuine|simplified|unverified) keep rendering
+     exactly as before. Safe to delete once those are migrated too.
+     ============================================================ */
   --color-primary: #46f1c5;
   --color-primary-container: #00d4aa;
   --color-on-primary: #00382b;
@@ -9,10 +58,9 @@
 
   --color-secondary: #ffb95f;
   --color-secondary-container: #ee9800;
-
   --color-on-secondary: #472a00;
   --color-on-secondary-container: #5b3800;
-  
+
   --color-error: #ffb4ab;
   --color-error-container: #93000a;
   --color-on-error: #690005;
@@ -20,7 +68,7 @@
 
   --color-background: #0c1322;
   --color-on-background: #dce2f7;
-  
+
   --color-surface: #0c1322;
   --color-surface-dim: #0c1322;
   --color-surface-bright: #323949;
@@ -29,12 +77,12 @@
   --color-surface-container: #191f2f;
   --color-surface-container-high: #232a3a;
   --color-surface-container-highest: #2e3545;
-  
+
   --color-on-surface: #dce2f7;
   --color-on-surface-variant: #bacac2;
   --color-inverse-surface: #dce2f7;
   --color-inverse-on-surface: #293040;
-  
+
   --color-outline: #85948d;
   --color-outline-variant: #3b4a44;
 
@@ -51,15 +99,21 @@
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-on-background);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(0, 210, 255, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(138, 43, 226, 0.08) 0%, transparent 45%);
+  background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-heading);
   margin: 0;
 }
 
@@ -67,7 +121,43 @@ p {
   margin: 0;
 }
 
-/* Glass Utilities */
+/* ============================================================
+   Liquid Glass utilities
+   ============================================================ */
+.liquid-glass {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--glass-shadow), var(--inset-glow);
+}
+
+.liquid-glass-gradient-border {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 18px;
+  position: relative;
+  box-shadow: var(--glass-shadow);
+}
+
+.liquid-glass-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 1px;
+  background: var(--liquid-border-grad);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Legacy glass utilities — kept for unmigrated routes
+   ============================================================ */
 .glass-panel {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(12px);

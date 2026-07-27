@@ -13,51 +13,29 @@
 }
 
 .title {
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-heading);
   font-size: 28px;
   font-weight: 700;
-  color: var(--color-on-surface);
+  color: var(--text-primary);
   letter-spacing: -0.01em;
   margin-bottom: 0.25rem;
 }
 .subtitle {
   font-size: 14px;
-  color: var(--color-on-surface-variant);
+  color: var(--text-secondary);
 }
-
-.filterBtn {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.6rem 1.1rem;
-  border-radius: 0.5rem;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: var(--font-inter), sans-serif;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: var(--color-on-surface-variant);
-}
-.filterBtn:hover { background: rgba(255,255,255,0.07); }
-.filterBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tableCard {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 1rem;
   padding: 1.5rem;
-  backdrop-filter: blur(10px);
 }
 
 .tableHeader { display: flex; justify-content: space-between; align-items: center; }
 
 .cardTitle {
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-heading);
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-on-surface);
+  color: var(--text-primary);
 }
 
 .tableWrapper { overflow-x: auto; margin-top: 1rem; }
@@ -67,22 +45,24 @@
   font-size: 11px;
   letter-spacing: 0.06em;
   font-weight: 600;
-  color: var(--color-on-surface-variant);
+  color: var(--text-secondary);
   text-transform: uppercase;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(59,74,68,0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .tr {
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: background 0.15s;
 }
-.tr:hover { background: rgba(255,255,255,0.025); }
+.tr:hover { background: var(--bg-glass-hover); }
 .td {
   padding: 0.875rem 1rem;
   font-size: 14px;
-  color: var(--color-on-surface);
+  color: var(--text-primary);
   vertical-align: middle;
 }
+.tdEmpty { text-align: center; padding: 24px 0; color: var(--text-secondary); }
+.tdMuted { color: var(--text-secondary); font-size: 13px; }
 
 .rankBadge {
   display: inline-flex;
@@ -92,8 +72,9 @@
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 700;
-  border: 1px solid rgba(255,255,255,0.1);
-  color: var(--color-on-surface-variant);
+  font-family: var(--font-mono);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -104,7 +85,7 @@
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-primary);
-  background: rgba(70,241,197,0.1);
-  border: 1px solid rgba(70,241,197,0.3);
+  font-family: var(--font-mono);
+  color: #ffffff;
+  background: var(--liquid-primary-grad);
 }

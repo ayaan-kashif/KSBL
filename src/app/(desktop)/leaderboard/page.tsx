@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import styles from './leaderboard.module.css';
 import { getLeaderboard, LeaderboardEntry } from '@/lib/api';
+import Button from '@/components/Button';
 
 const RANK_COLORS: Record<number, string> = {
   1: '#ffd700',
@@ -42,13 +43,12 @@ export default function LeaderboardPage() {
             Every customer ranked by scorecard points earned from flagging suspicious scans
           </p>
         </div>
-        <button className={styles.filterBtn} onClick={load} disabled={loading}>
-          <span className="material-symbols-outlined spin-on-hover">refresh</span>
+        <Button variant="ghost" size="sm" icon="refresh" onClick={load} loading={loading}>
           Refresh
-        </button>
+        </Button>
       </div>
 
-      <div className={styles.tableCard}>
+      <div className={`liquid-glass ${styles.tableCard}`}>
         <div className={styles.tableHeader}>
           <h3 className={styles.cardTitle}>All Customers ({entries.length})</h3>
         </div>
@@ -64,19 +64,19 @@ export default function LeaderboardPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className={styles.td} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--color-on-surface-variant)' }}>
+                  <td colSpan={4} className={`${styles.td} ${styles.tdEmpty}`}>
                     Loading leaderboard...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={4} className={styles.td} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--color-error)' }}>
+                  <td colSpan={4} className={`${styles.td} ${styles.tdEmpty}`} style={{ color: 'var(--verdict-counterfeit)' }}>
                     {error}
                   </td>
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className={styles.td} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--color-on-surface-variant)' }}>
+                  <td colSpan={4} className={`${styles.td} ${styles.tdEmpty}`}>
                     No customers have signed up yet.
                   </td>
                 </tr>
@@ -96,7 +96,7 @@ export default function LeaderboardPage() {
                         </span>
                       </td>
                       <td className={styles.td} style={{ fontWeight: 600 }}>{u.name}</td>
-                      <td className={styles.td} style={{ color: 'var(--color-on-surface-variant)', fontSize: '13px' }}>
+                      <td className={`${styles.td} ${styles.tdMuted}`}>
                         {u.email}
                       </td>
                       <td className={styles.td}>
