@@ -9,6 +9,7 @@
   --bg-glass-card: rgba(26, 29, 41, 0.55);
   --bg-glass-hover: rgba(36, 40, 56, 0.65);
   --bg-glass-input: rgba(20, 23, 33, 0.70);
+  --bg-glass-input-solid: #141721;
 
   /* Signature Liquid Gradients */
   --liquid-primary-grad: linear-gradient(135deg, #00d2ff 0%, #8a2be2 100%);
