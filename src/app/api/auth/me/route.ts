@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCustomerIdFromRequest } from "@/lib/customer";
+import { getSupabaseEnv } from "@/lib/supabaseEnv";
 
 export async function GET(req: NextRequest) {
   const customerId = await getCustomerIdFromRequest(req);
@@ -14,8 +15,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ authenticated: false }, { status: 200 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { supabaseUrl, anonKey } = getSupabaseEnv();
   if (!supabaseUrl || !anonKey) {
     return NextResponse.json({ authenticated: false }, { status: 200 });
   }

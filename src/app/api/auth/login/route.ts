@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { signCustomerSession, CUSTOMER_SESSION_COOKIE } from "@/lib/auth";
+import { getSupabaseEnv } from "@/lib/supabaseEnv";
 
 const LoginSchema = z.object({
   email: z.string().trim().email().max(200),
@@ -19,8 +20,7 @@ const LoginSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { supabaseUrl, anonKey } = getSupabaseEnv();
   if (!supabaseUrl || !anonKey) {
     return NextResponse.json({ error: "Server configuration is missing" }, { status: 500 });
   }
