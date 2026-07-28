@@ -11,7 +11,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "waba:subscribe": "ts-node scripts/subscribe-waba.ts",
+    "waba:test": "ts-node scripts/test-webhook.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
@@ -19,9 +21,11 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
+    "@types/dotenv": "^6.1.1",
     "@vercel/blob": "^2.6.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
     "jose": "^6.2.4",
     "next": "16.2.11",
     "pg": "^8.22.0",
