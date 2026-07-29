@@ -118,6 +118,13 @@ model User {
   scans Scan[]
 }
 
+model Admin {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+}
+
 model Scan {
   id               String        @id @default(cuid())
   product_id       String?       // nullable — no match found = unverified
