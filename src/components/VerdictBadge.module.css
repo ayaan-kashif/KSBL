@@ -20,36 +20,36 @@
 
 /* Variants */
 .genuine {
-  background: rgba(0, 230, 168, 0.12);
+  background: rgba(4, 120, 87, 0.12);
   color: var(--verdict-genuine);
-  border: 1px solid rgba(0, 230, 168, 0.35);
-  box-shadow: 0 0 20px rgba(0, 230, 168, 0.15);
+  border: 1px solid rgba(4, 120, 87, 0.35);
+  box-shadow: 0 0 20px rgba(4, 120, 87, 0.15);
 }
 
 .suspicious {
-  background: rgba(255, 184, 0, 0.12);
+  background: rgba(180, 83, 9, 0.12);
   color: var(--verdict-suspicious);
-  border: 1px solid rgba(255, 184, 0, 0.35);
-  box-shadow: 0 0 20px rgba(255, 184, 0, 0.15);
+  border: 1px solid rgba(180, 83, 9, 0.35);
+  box-shadow: 0 0 20px rgba(180, 83, 9, 0.15);
 }
 
 .counterfeit {
-  background: rgba(255, 51, 102, 0.12);
+  background: rgba(190, 18, 60, 0.12);
   color: var(--verdict-counterfeit);
-  border: 1px solid rgba(255, 51, 102, 0.35);
-  box-shadow: 0 0 20px rgba(255, 51, 102, 0.15);
+  border: 1px solid rgba(190, 18, 60, 0.35);
+  box-shadow: 0 0 20px rgba(190, 18, 60, 0.15);
 }
 
 .unverified {
-  background: rgba(154, 161, 185, 0.1);
+  background: rgba(71, 80, 105, 0.1);
   color: var(--text-secondary);
-  border: 1px solid rgba(154, 161, 185, 0.3);
+  border: 1px solid rgba(71, 80, 105, 0.3);
 }
 
 .processing {
-  background: rgba(0, 210, 255, 0.1);
+  background: rgba(0, 119, 168, 0.1);
   color: var(--cyan-glow);
-  border: 1px solid rgba(0, 210, 255, 0.25);
+  border: 1px solid rgba(0, 119, 168, 0.25);
   animation: processingPulse 2s ease-in-out infinite;
 }
 

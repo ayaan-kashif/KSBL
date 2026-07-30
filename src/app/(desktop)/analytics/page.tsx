@@ -12,9 +12,9 @@ import Button from '@/components/Button';
 // below (e.g. `${hex}1a`) for translucent fills/borders — a trick that only
 // works on literal hex colors, not on var() references.
 const STATUS_HEX: Record<string, string> = {
-  genuine: '#00e6a8',
-  suspicious: '#ffb800',
-  unverified: '#9aa1b9',
+  genuine: '#047857',
+  suspicious: '#b45309',
+  unverified: '#475069',
 };
 
 const statusIcons: Record<string, string> = {

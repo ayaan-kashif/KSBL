@@ -80,9 +80,9 @@ const REPORTS: Report[] = [
 ];
 
 const formatColors: Record<ReportFormat, string> = {
-  PDF: '#ff6b6b',
-  CSV: '#46f1c5',
-  XLSX: '#4ecdc4',
+  PDF: '#be123c',
+  CSV: '#047857',
+  XLSX: '#0077a8',
 };
 
 export default function ReportsPage() {
@@ -244,12 +244,12 @@ export default function ReportsPage() {
           position: 'fixed',
           bottom: '24px',
           right: '24px',
-          background: toast.type === 'success' ? '#1c2e24' : '#331a1a',
-          color: 'white',
-          border: toast.type === 'success' ? '1px solid #46f1c5' : '1px solid #ff6b6b',
+          background: toast.type === 'success' ? '#ecfdf5' : '#fff1f2',
+          color: toast.type === 'success' ? 'var(--verdict-genuine)' : 'var(--verdict-counterfeit)',
+          border: toast.type === 'success' ? '1px solid #047857' : '1px solid #be123c',
           padding: '12px 20px',
           borderRadius: '8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          boxShadow: '0 4px 16px rgba(15,23,42,0.14)',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
@@ -257,11 +257,11 @@ export default function ReportsPage() {
           fontSize: '14px',
           fontFamily: 'var(--font-inter), sans-serif'
         }}>
-          <span className="material-symbols-outlined" style={{ color: toast.type === 'success' ? '#46f1c5' : '#ff6b6b', fontSize: '18px' }}>
+          <span className="material-symbols-outlined" style={{ color: toast.type === 'success' ? '#047857' : '#be123c', fontSize: '18px' }}>
             {toast.type === 'success' ? 'check_circle' : 'error'}
           </span>
           {toast.message}
-          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', marginLeft: '12px', display: 'flex', alignItems: 'center' }}>
+          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginLeft: '12px', display: 'flex', alignItems: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
           </button>
         </div>

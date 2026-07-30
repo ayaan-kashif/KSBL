@@ -22,10 +22,10 @@ export default function HomePage() {
   }, []);
 
   const features = [
-    { icon: 'qr_code_scanner', title: 'Barcode & QR Scan', desc: 'Scan any product barcode in seconds with your phone camera.', color: '#00d2ff' },
-    { icon: 'analytics', title: 'AI Verification', desc: 'Machine learning trained on millions of genuine products.', color: '#8a2be2' },
-    { icon: 'shield', title: 'Real-time Alerts', desc: 'Instant counterfeit detection with audit trail logging.', color: '#ff3366' },
-    { icon: 'translate', title: 'Bilingual UI', desc: 'Full English and Urdu support for all users.', color: '#00e6a8' },
+    { icon: 'qr_code_scanner', title: 'Barcode & QR Scan', desc: 'Scan any product barcode in seconds with your phone camera.', color: '#0077a8' },
+    { icon: 'analytics', title: 'AI Verification', desc: 'Machine learning trained on millions of genuine products.', color: '#6d28d9' },
+    { icon: 'shield', title: 'Real-time Alerts', desc: 'Instant counterfeit detection with audit trail logging.', color: '#be123c' },
+    { icon: 'translate', title: 'Bilingual UI', desc: 'Full English and Urdu support for all users.', color: '#047857' },
   ];
 
   return (

@@ -48,10 +48,10 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background 0.15s;
 }
 .tr:hover { background: var(--bg-glass-hover); }
@@ -73,7 +73,7 @@
   font-size: 12px;
   font-weight: 700;
   font-family: var(--font-mono);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   white-space: nowrap;
 }

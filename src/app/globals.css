@@ -1,40 +1,65 @@
 :root {
   /* ============================================================
-     LIQUID GLASS design tokens (primary system going forward)
+     LIQUID GLASS design tokens — LIGHT THEME
+     Token names are unchanged from the dark theme so every
+     downstream module keeps resolving; only the values flipped.
+     Contrast ratios in comments are measured against the surface
+     the token is actually used on (#f5f7fb canvas / #ffffff card).
      ============================================================ */
 
   /* Canvas & Surface Colors */
-  --bg-base: #0f1015;
-  --bg-surface: #161821;
-  --bg-glass-card: rgba(26, 29, 41, 0.55);
-  --bg-glass-hover: rgba(36, 40, 56, 0.65);
-  --bg-glass-input: rgba(20, 23, 33, 0.70);
-  --bg-glass-input-solid: #141721;
+  --bg-base: #f5f7fb;
+  --bg-surface: #ffffff;
+  --bg-glass-card: rgba(255, 255, 255, 0.78);
+  /* Deliberately a slate tint, not white-at-higher-alpha: 0.78 white and 0.95
+     white over this canvas differ by ~1%, so a "brighten on hover" is
+     invisible in a light theme. Hover has to DARKEN to register. */
+  --bg-glass-hover: rgba(241, 245, 249, 0.95);
+  --bg-glass-input: rgba(255, 255, 255, 0.88);
+  --bg-glass-input-solid: #ffffff;
 
-  /* Signature Liquid Gradients */
-  --liquid-primary-grad: linear-gradient(135deg, #00d2ff 0%, #8a2be2 100%);
-  --liquid-border-grad: linear-gradient(135deg, rgba(0, 210, 255, 0.6) 0%, rgba(138, 43, 226, 0.6) 100%);
-  --liquid-border-subtle: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  /* Signature Liquid Gradients — accents/borders only, never behind text.
+     NOTE: #0091c2 carries white text at only 3.60:1 (fails AA for body
+     copy), so text-bearing fills use --liquid-primary-grad-text below. */
+  --liquid-primary-grad: linear-gradient(135deg, #0091c2 0%, #6d28d9 100%);
+  --liquid-primary-grad-text: linear-gradient(135deg, #0077a8 0%, #6d28d9 100%);
+  --liquid-border-grad: linear-gradient(135deg, rgba(0, 145, 194, 0.45) 0%, rgba(109, 40, 217, 0.45) 100%);
+  --liquid-border-subtle: linear-gradient(135deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.06) 100%);
 
-  /* Accent Colors */
-  --cyan-glow: #00d2ff;
-  --purple-glow: #8a2be2;
-  --accent-glow-shadow: 0 8px 24px rgba(138, 43, 226, 0.35), 0 0 12px rgba(0, 210, 255, 0.25);
+  /* Accent Colors — darkened so they stay legible AS TEXT on white */
+  --cyan-glow: #0077a8;        /* 5.00:1 on #fff */
+  --purple-glow: #6d28d9;      /* 7.10:1 on #fff */
+  --accent-glow-shadow: 0 6px 20px rgba(109, 40, 217, 0.16), 0 0 8px rgba(0, 119, 168, 0.12);
 
-  /* Verdict Status Colors */
-  --verdict-genuine: #00e6a8;
-  --verdict-suspicious: #ffb800;
-  --verdict-counterfeit: #ff3366;
+  /* Verdict Status Colors — text-safe; -bg/-border pairs for tinted chips */
+  --verdict-genuine: #047857;          /* 5.48:1 on #fff, 5.21:1 on its own -bg */
+  --verdict-genuine-bg: #ecfdf5;
+  --verdict-genuine-border: #6ee7b7;
+  --verdict-suspicious: #b45309;       /* 5.02:1 on #fff, 4.84:1 on its own -bg */
+  --verdict-suspicious-bg: #fffbeb;
+  --verdict-suspicious-border: #fcd34d;
+  --verdict-counterfeit: #be123c;      /* 6.29:1 on #fff, 5.72:1 on its own -bg */
+  --verdict-counterfeit-bg: #fff1f2;
+  --verdict-counterfeit-border: #fda4af;
 
   /* Text Colors */
-  --text-primary: #f3f4f8;
-  --text-secondary: #9aa1b9;
-  --text-muted: #5e657e;
+  --text-primary: #0f172a;     /* 16.65:1 on canvas */
+  --text-secondary: #475069;   /* 7.48:1 on canvas */
+  --text-muted: #5f6b7d;       /* 5.04:1 on canvas — #64748b was 4.44:1, under AA */
+
+  /* Borders & elevation.
+     --border-subtle/-strong are DECORATIVE separators (card edges,
+     dividers) — WCAG 1.4.11 does not require 3:1 for these.
+     --border-interactive is for anything that delimits a CONTROL
+     (inputs, checkboxes, focus rings) where 3:1 IS required. */
+  --border-subtle: rgba(15, 23, 42, 0.10);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --border-interactive: #7e8b9c;   /* 3.47:1 on #fff, 3.23:1 on canvas */
 
   /* Shadows & Glass Effects */
-  --glass-blur: blur(20px);
-  --glass-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --inset-glow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  --glass-blur: blur(12px);
+  --glass-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.08);
+  --inset-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 
   /* Fonts — served via next/font (see src/app/layout.tsx), not @import,
      so there's no extra Google Fonts network round-trip / layout shift */
@@ -44,48 +69,50 @@
   --font-urdu: var(--font-noto-arabic), sans-serif;
 
   /* ============================================================
-     Legacy tokens — kept as-is so routes not yet migrated to
-     Liquid Glass (inventory, reports, settings, onboarding,
-     whatsapp, scan/genuine|simplified|unverified) keep rendering
-     exactly as before. Safe to delete once those are migrated too.
+     Legacy tokens — remapped to light. Several routes (inventory,
+     reports, settings, onboarding, whatsapp,
+     scan/genuine|simplified|unverified) still consume these; if they
+     kept their dark values those routes would render as dark islands
+     on a light canvas. The container ladder is inverted: "lowest"
+     is now the brightest surface, "highest" the most recessed.
      ============================================================ */
-  --color-primary: #46f1c5;
-  --color-primary-container: #00d4aa;
-  --color-on-primary: #00382b;
-  --color-on-primary-container: #005643;
-  --color-primary-fixed: #55fcd0;
-  --color-primary-fixed-dim: #28dfb5;
-  --color-inverse-primary: #006b55;
+  --color-primary: #047857;
+  --color-primary-container: #d1fae5;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #064e3b;
+  --color-primary-fixed: #d1fae5;
+  --color-primary-fixed-dim: #6ee7b7;
+  --color-inverse-primary: #6ee7b7;
 
-  --color-secondary: #ffb95f;
-  --color-secondary-container: #ee9800;
-  --color-on-secondary: #472a00;
-  --color-on-secondary-container: #5b3800;
+  --color-secondary: #b45309;
+  --color-secondary-container: #fef3c7;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #78350f;
 
-  --color-error: #ffb4ab;
-  --color-error-container: #93000a;
-  --color-on-error: #690005;
-  --color-on-error-container: #ffdad6;
+  --color-error: #be123c;
+  --color-error-container: #fff1f2;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #881337;
 
-  --color-background: #0c1322;
-  --color-on-background: #dce2f7;
+  --color-background: #f5f7fb;
+  --color-on-background: #0f172a;
 
-  --color-surface: #0c1322;
-  --color-surface-dim: #0c1322;
-  --color-surface-bright: #323949;
-  --color-surface-container-lowest: #070e1d;
-  --color-surface-container-low: #141b2b;
-  --color-surface-container: #191f2f;
-  --color-surface-container-high: #232a3a;
-  --color-surface-container-highest: #2e3545;
+  --color-surface: #f5f7fb;
+  --color-surface-dim: #f5f7fb;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f8fafc;
+  --color-surface-container: #f1f5f9;
+  --color-surface-container-high: #e9eef5;
+  --color-surface-container-highest: #e2e8f0;
 
-  --color-on-surface: #dce2f7;
-  --color-on-surface-variant: #bacac2;
-  --color-inverse-surface: #dce2f7;
-  --color-inverse-on-surface: #293040;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #475069;
+  --color-inverse-surface: #0f172a;
+  --color-inverse-on-surface: #f5f7fb;
 
-  --color-outline: #85948d;
-  --color-outline-variant: #3b4a44;
+  --color-outline: #94a3b8;
+  --color-outline-variant: #cbd5e1;
 
   --spacing-container-margin: 20px;
   --spacing-glass-padding: 24px;
@@ -107,9 +134,11 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  /* Atmosphere kept but dialled right down — at the dark theme's 0.08
+     these tinted washes read as smudges/dirt on a light canvas. */
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(0, 210, 255, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 85% 75%, rgba(138, 43, 226, 0.08) 0%, transparent 45%);
+    radial-gradient(circle at 15% 20%, rgba(0, 145, 194, 0.05) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(109, 40, 217, 0.05) 0%, transparent 45%);
   background-attachment: fixed;
 }
 
@@ -130,7 +159,9 @@ p {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  /* A white border on a white card is invisible — this single line is
+     what makes the light theme read as layered rather than flat. */
+  border: 1px solid var(--border-subtle);
   box-shadow: var(--glass-shadow), var(--inset-glow);
 }
 
@@ -160,35 +191,41 @@ p {
    Legacy glass utilities — kept for unmigrated routes
    ============================================================ */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
   border-radius: 0.5rem;
 }
 
 .glass-modal {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-strong);
   border-radius: 0.75rem;
+  box-shadow: var(--glass-shadow);
 }
 
+/* Glows do not read on a light canvas — a coloured halo over white is
+   nearly invisible. These now lift with a shadow + tinted border instead. */
 .glow-teal {
-  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.14);
+  border: 1px solid var(--verdict-genuine-border);
 }
 
 .glow-amber {
-  box-shadow: 0 0 20px rgba(238, 152, 0, 0.15);
+  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.14);
+  border: 1px solid var(--verdict-suspicious-border);
 }
 
 .glow-button {
-  transition: box-shadow 0.2s ease, transform 0.1s ease;
+  transition: box-shadow 0.2s ease, transform 0.1s ease, border-color 0.2s ease;
 }
 
 .glow-button:hover {
-  box-shadow: 0 0 25px rgba(70, 241, 197, 0.4);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  border-color: var(--border-interactive);
 }
 
 .glow-button:active {

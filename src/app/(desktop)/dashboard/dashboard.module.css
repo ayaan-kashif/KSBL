@@ -28,7 +28,11 @@
   border-radius: 50%;
   position: relative;
   z-index: 3;
-  box-shadow: 0 0 10px currentColor;
+  /* A coloured glow (the dark-theme treatment) disappears over a light
+     basemap. A white halo plus a dark outer ring keeps the marker readable
+     over both the white base and the grey gridlines. */
+  border: 1.5px solid var(--bg-surface);
+  box-shadow: 0 0 0 1.5px rgba(15, 23, 42, 0.55), 0 2px 6px rgba(15, 23, 42, 0.30);
 }
 
 .pingRipple, .pingRipple2 {
@@ -72,14 +76,14 @@
   flex-direction: column;
   gap: 24px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 210, 255, 0.25) transparent;
+  scrollbar-color: rgba(0, 119, 168, 0.25) transparent;
 }
 
 .panelInner::-webkit-scrollbar {
   width: 4px;
 }
 .panelInner::-webkit-scrollbar-thumb {
-  background: rgba(0, 210, 255, 0.3);
+  background: rgba(0, 119, 168, 0.3);
   border-radius: 4px;
 }
 
@@ -165,7 +169,7 @@
 .confTrack {
   height: 8px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.08);
+  background: #e9eef5;
   overflow: hidden;
 }
 
@@ -192,8 +196,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f1f5f9;
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 12px 14px;
 }
@@ -228,8 +232,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 51, 102, 0.07);
-  border: 1px solid rgba(255, 51, 102, 0.18);
+  background: rgba(190, 18, 60, 0.07);
+  border: 1px solid rgba(190, 18, 60, 0.18);
   border-radius: 10px;
   padding: 12px 14px;
 }

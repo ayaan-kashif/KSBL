@@ -82,17 +82,17 @@ export default function InventoryPage() {
           else if (newStatus === "recalled") displayVerdict = "counterfeit";
           else if (p.stock === 0) displayVerdict = "unverified";
 
-          let color = "rgba(70,241,197,0.1)";
-          let accent = "#46f1c5";
+          let color = "rgba(4,120,87,0.1)";
+          let accent = "#047857";
           if (displayVerdict === "suspicious") {
-            color = "rgba(255,185,95,0.1)";
-            accent = "#ffb95f";
+            color = "rgba(180,83,9,0.1)";
+            accent = "#b45309";
           } else if (displayVerdict === "counterfeit") {
-            color = "rgba(255,107,107,0.1)";
-            accent = "#ff6b6b";
+            color = "rgba(190,18,60,0.1)";
+            accent = "#be123c";
           } else if (displayVerdict === "unverified") {
-            color = "rgba(255,255,255,0.05)";
-            accent = "#bacac2";
+            color = "rgba(15,23,42,0.06)";
+            accent = "#5f6b7d";
           }
 
           return { ...p, status: newStatus, verdict: displayVerdict, color, accent };
@@ -205,7 +205,7 @@ export default function InventoryPage() {
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-error)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>error</span>
           <p style={{ marginTop: '8px' }}>{error}</p>
-          <button className={styles.addBtn} style={{ marginTop: '12px', background: 'rgba(255,255,255,0.08)' }} onClick={loadProducts}>Retry</button>
+          <button className={styles.addBtn} style={{ marginTop: '12px', background: 'var(--bg-glass-hover)' }} onClick={loadProducts}>Retry</button>
         </div>
       ) : paginated.length === 0 ? (
         <div className={styles.empty}>
@@ -242,9 +242,9 @@ export default function InventoryPage() {
                       value={p.status}
                       onChange={(e) => handleStatusChange(p.id, e.target.value as any)}
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        color: 'rgba(255,255,255,0.8)',
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-interactive)',
+                        color: 'var(--text-primary)',
                         padding: '3px 6px',
                         borderRadius: '6px',
                         fontSize: '11px',
@@ -252,9 +252,9 @@ export default function InventoryPage() {
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="active" style={{ background: '#1c1b1f', color: 'white' }}>Active</option>
-                      <option value="flagged" style={{ background: '#1c1b1f', color: 'white' }}>Flagged</option>
-                      <option value="recalled" style={{ background: '#1c1b1f', color: 'white' }}>Recalled</option>
+                      <option value="active" style={{ background: '#ffffff', color: '#0f172a' }}>Active</option>
+                      <option value="flagged" style={{ background: '#ffffff', color: '#0f172a' }}>Flagged</option>
+                      <option value="recalled" style={{ background: '#ffffff', color: '#0f172a' }}>Recalled</option>
                     </select>
                   </div>
                 </div>

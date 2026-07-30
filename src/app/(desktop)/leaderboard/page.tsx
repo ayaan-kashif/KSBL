@@ -6,9 +6,9 @@ import { getLeaderboard, LeaderboardEntry } from '@/lib/api';
 import Button from '@/components/Button';
 
 const RANK_COLORS: Record<number, string> = {
-  1: '#ffd700',
-  2: '#c0c0c0',
-  3: '#cd7f32',
+  1: '#b45309',
+  2: '#5f6b7d',
+  3: '#92400e',
 };
 
 export default function LeaderboardPage() {

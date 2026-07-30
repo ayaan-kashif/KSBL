@@ -11,10 +11,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.875rem 1.25rem;
-  background: rgba(15, 16, 21, 0.85);
+  background: rgba(245, 247, 251, 0.85);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -53,7 +53,7 @@
 
 /* Viewfinder HUD */
 .viewfinderContainer {
-  background: radial-gradient(circle at 50% 40%, rgba(0, 210, 255, 0.06) 0%, transparent 60%), #050608;
+  background: radial-gradient(circle at 50% 40%, rgba(0, 119, 168, 0.06) 0%, transparent 60%), #f5f7fb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,7 +81,7 @@
   height: 2.25rem;
   border-color: var(--cyan-glow);
   border-style: solid;
-  filter: drop-shadow(0 0 6px rgba(0, 210, 255, 0.8));
+  filter: drop-shadow(0 0 6px rgba(0, 119, 168, 0.8));
 }
 .cornerTL { top: 0; left: 0; border-width: 4px 0 0 4px; border-radius: 8px 0 0 0; }
 .cornerTR { top: 0; right: 0; border-width: 4px 4px 0 0; border-radius: 0 8px 0 0; }
@@ -96,7 +96,7 @@
   right: 0;
   height: 3px;
   background: linear-gradient(to right, transparent, var(--cyan-glow), var(--purple-glow), transparent);
-  box-shadow: 0 0 16px var(--cyan-glow), 0 0 24px rgba(138, 43, 226, 0.6);
+  box-shadow: 0 0 16px var(--cyan-glow), 0 0 24px rgba(109, 40, 217, 0.6);
   animation: scanDown 2.5s ease-in-out infinite;
 }
 @keyframes scanDown {
@@ -138,7 +138,7 @@
   aspect-ratio: 1;
   border-radius: 0.875rem;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-subtle);
   background: #000;
 }
 
@@ -153,7 +153,7 @@
   position: absolute;
   bottom: 0.5rem;
   left: 0.5rem;
-  background: rgba(15, 16, 21, 0.85);
+  background: rgba(245, 247, 251, 0.85);
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 600;
@@ -169,8 +169,8 @@
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 50%;
-  background: rgba(15, 16, 21, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(245, 247, 251, 0.85);
+  border: 1px solid var(--border-strong);
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -178,14 +178,14 @@
   cursor: pointer;
   transition: background 0.2s;
 }
-.photoSlotRemove:hover:not(:disabled) { background: rgba(255, 51, 102, 0.3); }
+.photoSlotRemove:hover:not(:disabled) { background: rgba(190, 18, 60, 0.3); }
 .photoSlotRemove:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .addBackSlot {
   aspect-ratio: 1;
   border-radius: 0.875rem;
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border-interactive);
+  background: #f8fafc;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
@@ -200,7 +200,7 @@
 .addBackSlot:hover:not(:disabled) {
   border-color: var(--cyan-glow);
   color: var(--cyan-glow);
-  background: rgba(0, 210, 255, 0.05);
+  background: rgba(0, 119, 168, 0.05);
 }
 .addBackSlot:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -220,8 +220,8 @@
 }
 
 .errorBanner {
-  background: rgba(255, 51, 102, 0.12);
-  border: 1px solid rgba(255, 51, 102, 0.3);
+  background: rgba(190, 18, 60, 0.12);
+  border: 1px solid rgba(190, 18, 60, 0.3);
   border-radius: 12px;
   padding: 12px 16px;
   margin: 0 1.25rem 1rem;
@@ -238,7 +238,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .orDivider {
@@ -299,7 +299,7 @@
   background: var(--bg-glass-card);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
   padding: 0.875rem 1rem;
 }

@@ -112,20 +112,20 @@ export default function ResultPage() {
   // globals.css) rather than a var() reference, because it gets alpha-suffixed
   // below (`${themeColor}40`) to derive translucent fills/borders — that
   // hex-alpha trick only works on literal hex colors, not on var() calls.
-  let themeColor = "#ffb800"; // --verdict-suspicious
+  let themeColor = "#b45309"; // --verdict-suspicious
   let themeIcon = "warning";
   let statusHeadline = "NEEDS MANUAL REVIEW";
   let statusUrdu = "مشکوک";
   let statusSub = "Visual discrepancies detected. Manual check recommended.";
 
   if (status === "Likely Original") {
-    themeColor = "#00e6a8"; // --verdict-genuine
+    themeColor = "#047857"; // --verdict-genuine
     themeIcon = "verified";
     statusHeadline = "LIKELY ORIGINAL";
     statusUrdu = "اصلی";
     statusSub = "This product matches all official manufacturer specifications.";
   } else if (status === "Likely Counterfeit") {
-    themeColor = "#ff3366"; // --verdict-counterfeit
+    themeColor = "#be123c"; // --verdict-counterfeit
     themeIcon = "gpp_maybe";
     statusHeadline = "LIKELY COUNTERFEIT";
     statusUrdu = "جعلی";

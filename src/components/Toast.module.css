@@ -48,11 +48,11 @@
 }
 
 .success::before {
-  background: linear-gradient(135deg, rgba(0, 230, 168, 0.7) 0%, rgba(0, 210, 255, 0.5) 100%);
+  background: linear-gradient(135deg, rgba(4, 120, 87, 0.7) 0%, rgba(0, 119, 168, 0.5) 100%);
 }
 
 .error::before {
-  background: linear-gradient(135deg, rgba(255, 51, 102, 0.7) 0%, rgba(138, 43, 226, 0.5) 100%);
+  background: linear-gradient(135deg, rgba(190, 18, 60, 0.7) 0%, rgba(109, 40, 217, 0.5) 100%);
 }
 
 .info::before {

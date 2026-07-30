@@ -11,7 +11,7 @@
   background: var(--bg-glass-card);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-subtle);
   border-radius: 20px;
   box-shadow: var(--glass-shadow), var(--inset-glow);
   width: calc(100% - 1.5rem);

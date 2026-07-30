@@ -49,22 +49,22 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-interactive);
 }
 .ghost:hover:not(:disabled) {
   background: var(--bg-glass-hover);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--text-secondary);
 }
 
 /* Danger */
 .danger {
-  background: rgba(255, 51, 102, 0.12);
+  background: rgba(190, 18, 60, 0.12);
   color: var(--verdict-counterfeit);
-  border: 1px solid rgba(255, 51, 102, 0.4);
+  border: 1px solid rgba(190, 18, 60, 0.4);
 }
 .danger:hover:not(:disabled) {
-  background: rgba(255, 51, 102, 0.18);
-  box-shadow: 0 0 20px rgba(255, 51, 102, 0.25);
+  background: rgba(190, 18, 60, 0.18);
+  box-shadow: 0 0 20px rgba(190, 18, 60, 0.25);
 }
 
 .icon {
