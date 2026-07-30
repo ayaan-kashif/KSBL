@@ -1,651 +1,270 @@
-/* ==========================================================================
-   ShelfWatch — "Aurora Depth" design system
-   --------------------------------------------------------------------------
-   Layered glassmorphism with a real spatial elevation scale.
-
-   The 3D read comes from three things applied together at every raised
-   surface, never one alone:
-     1. a specular top edge (light source sits above and slightly forward)
-     2. an ambient shadow (soft, wide, low-opacity — the "room")
-     3. a contact shadow (tight, dark — anchors the surface to what's below)
-   `--e1`..`--e4` bundle all three; use them instead of hand-rolled shadows.
-
-   Brand hue (cyan→violet) is reserved for the product/scan identity.
-   Verdict hues (emerald/amber/rose) are semantic ONLY — never decorative —
-   so a verdict colour never competes with a brand accent for meaning.
-   ========================================================================== */
-
 :root {
-  color-scheme: dark;
+  /* ============================================================
+     LIQUID GLASS design tokens — LIGHT THEME
+     Token names are unchanged from the dark theme so every
+     downstream module keeps resolving; only the values flipped.
+     Contrast ratios in comments are measured against the surface
+     the token is actually used on (#f5f7fb canvas / #ffffff card).
+     ============================================================ */
 
-  /* ── Brand ──────────────────────────────────────────────────────────── */
-  --brand-cyan: #22d3ee;
-  --brand-violet: #7c5cff;
-  --brand-cyan-soft: rgba(34, 211, 238, 0.16);
-  --brand-violet-soft: rgba(124, 92, 255, 0.16);
-
-  --grad-brand: linear-gradient(135deg, #22d3ee 0%, #7c5cff 100%);
-  --grad-brand-dim: linear-gradient(135deg, rgba(34, 211, 238, 0.55) 0%, rgba(124, 92, 255, 0.55) 100%);
-  --grad-brand-wash: linear-gradient(135deg, rgba(34, 211, 238, 0.12) 0%, rgba(124, 92, 255, 0.12) 100%);
-
-  /* ── Verdict semantics (meaning, not decoration) ────────────────────── */
-  --verdict-genuine: #00e5a0;
-  --verdict-genuine-soft: rgba(0, 229, 160, 0.14);
-  --verdict-genuine-line: rgba(0, 229, 160, 0.38);
-
-  --verdict-suspicious: #ffb020;
-  --verdict-suspicious-soft: rgba(255, 176, 32, 0.14);
-  --verdict-suspicious-line: rgba(255, 176, 32, 0.38);
-
-  --verdict-counterfeit: #ff4d6d;
-  --verdict-counterfeit-soft: rgba(255, 77, 109, 0.14);
-  --verdict-counterfeit-line: rgba(255, 77, 109, 0.38);
-
-  /* ── Canvas & surfaces ──────────────────────────────────────────────── */
-  --bg-base: #080a12;
-  --bg-sunken: #05060d;
-  --bg-surface: #0e111c;
-
-  --glass-1: rgba(24, 28, 44, 0.55);
-  --glass-2: rgba(30, 35, 54, 0.62);
-  --glass-3: rgba(38, 44, 68, 0.70);
-  --glass-hover: rgba(44, 51, 78, 0.72);
-  --glass-input: rgba(12, 15, 26, 0.72);
-  --glass-input-solid: #10131f;
-
-  /* Hairlines. Top edge is brighter than the rest — that asymmetry is what
-     reads as a lit bevel rather than a flat outline. */
-  --edge: rgba(255, 255, 255, 0.10);
-  --edge-strong: rgba(255, 255, 255, 0.18);
-  --edge-specular: rgba(255, 255, 255, 0.28);
-
-  /* ── Text ───────────────────────────────────────────────────────────── */
-  --text-primary: #f2f4fb;
-  --text-secondary: #a3abc7;
-  --text-muted: #656d8a;
-  --text-on-brand: #06070d;
-
-  /* ── Elevation scale ────────────────────────────────────────────────── */
-  --e0: none;
-  --e1:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 1px 2px rgba(0, 0, 0, 0.40),
-    0 4px 10px rgba(0, 0, 0, 0.24);
-  --e2:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 2px 4px rgba(0, 0, 0, 0.44),
-    0 10px 24px rgba(0, 0, 0, 0.34);
-  --e3:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 4px 8px rgba(0, 0, 0, 0.48),
-    0 20px 44px rgba(0, 0, 0, 0.42);
-  --e4:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 8px 16px rgba(0, 0, 0, 0.52),
-    0 36px 80px rgba(0, 0, 0, 0.52);
-
-  /* Coloured ambient bloom — layer *under* an elevation, never instead of it */
-  --bloom-brand: 0 12px 40px -8px rgba(124, 92, 255, 0.45), 0 0 20px -4px rgba(34, 211, 238, 0.30);
-  --bloom-genuine: 0 12px 40px -8px rgba(0, 229, 160, 0.38);
-  --bloom-suspicious: 0 12px 40px -8px rgba(255, 176, 32, 0.38);
-  --bloom-counterfeit: 0 12px 40px -8px rgba(255, 77, 109, 0.38);
-
-  --blur-sm: blur(8px);
-  --blur-md: blur(18px);
-  --blur-lg: blur(32px);
-
-  /* ── Radius ─────────────────────────────────────────────────────────── */
-  --r-xs: 8px;
-  --r-sm: 12px;
-  --r-md: 16px;
-  --r-lg: 22px;
-  --r-xl: 28px;
-  --r-pill: 999px;
-
-  /* ── Spacing (4pt rhythm) ───────────────────────────────────────────── */
-  --s-1: 4px;
-  --s-2: 8px;
-  --s-3: 12px;
-  --s-4: 16px;
-  --s-5: 20px;
-  --s-6: 24px;
-  --s-8: 32px;
-  --s-10: 40px;
-  --s-12: 48px;
-  --s-16: 64px;
-
-  /* ── Motion ─────────────────────────────────────────────────────────── */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
-  --t-fast: 140ms;
-  --t-base: 220ms;
-  --t-slow: 360ms;
-
-  /* ── Layering ───────────────────────────────────────────────────────── */
-  --z-base: 0;
-  --z-raised: 10;
-  --z-sticky: 20;
-  --z-nav: 40;
-  --z-overlay: 100;
-  --z-modal: 200;
-  --z-toast: 300;
-
-  /* ── Fonts (served via next/font — see src/app/layout.tsx) ──────────── */
-  --font-heading: var(--font-outfit), system-ui, sans-serif;
-  --font-body: var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
-  --font-urdu: var(--font-noto-arabic), system-ui, sans-serif;
-
-  /* ── Compatibility aliases ──────────────────────────────────────────────
-     Older route stylesheets reference these names. They now resolve to the
-     Aurora Depth palette, so those routes inherit the new look without
-     needing a rewrite first. Prefer the tokens above in new code. */
-  --color-primary: var(--brand-cyan);
-  --color-primary-container: rgba(34, 211, 238, 0.18);
-  --color-on-primary: var(--text-on-brand);
-  --color-on-primary-container: #a5f3fc;
-  --color-primary-fixed: #67e8f9;
-  --color-primary-fixed-dim: var(--brand-cyan);
-  --color-inverse-primary: #0e7490;
-
-  --color-secondary: var(--brand-violet);
-  --color-secondary-container: rgba(124, 92, 255, 0.18);
-  --color-on-secondary: #ffffff;
-  --color-on-secondary-container: #ddd6ff;
-
-  --color-error: var(--verdict-counterfeit);
-  --color-error-container: var(--verdict-counterfeit-soft);
-  --color-on-error: #ffffff;
-  --color-on-error-container: #ffdadf;
-
-  --color-background: var(--bg-base);
-  --color-on-background: var(--text-primary);
-
-  --color-surface: var(--bg-base);
-  --color-surface-dim: var(--bg-sunken);
-  --color-surface-bright: var(--glass-3);
-  --color-surface-container-lowest: var(--bg-sunken);
-  --color-surface-container-low: var(--bg-surface);
-  --color-surface-container: var(--glass-1);
-  --color-surface-container-high: var(--glass-2);
-  --color-surface-container-highest: var(--glass-3);
-
-  --color-on-surface: var(--text-primary);
-  --color-on-surface-variant: var(--text-secondary);
-  --color-inverse-surface: var(--text-primary);
-  --color-inverse-on-surface: var(--bg-base);
-
-  --color-outline: var(--edge-strong);
-  --color-outline-variant: var(--edge);
-
-  --spacing-container-margin: var(--s-5);
-  --spacing-glass-padding: var(--s-6);
-  --spacing-gutter: var(--s-4);
-  --spacing-stack-sm: var(--s-2);
-  --spacing-stack-md: var(--s-4);
-  --spacing-stack-lg: var(--s-8);
-
-  /* Superseded names still referenced by a few stylesheets */
-  --bg-glass-card: var(--glass-1);
-  --bg-glass-hover: var(--glass-hover);
-  --bg-glass-input: var(--glass-input);
-  --bg-glass-input-solid: var(--glass-input-solid);
-  --liquid-primary-grad: var(--grad-brand);
-  --liquid-border-grad: var(--grad-brand-dim);
-  --liquid-border-subtle: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 100%);
-  --cyan-glow: var(--brand-cyan);
-  --purple-glow: var(--brand-violet);
-  --accent-glow-shadow: var(--bloom-brand);
-  --glass-blur: var(--blur-md);
-  --glass-shadow: var(--e2);
-  --inset-glow: inset 0 1px 0 0 var(--edge-specular);
-}
-
-/* ==========================================================================
-   Light theme
-   Glass needs a darker tint over light backgrounds or surfaces dissolve.
-   Shadows drop in opacity but the specular edge stays — depth still reads.
-   ========================================================================== */
-:root[data-theme='light'] {
-  color-scheme: light;
-
-  --brand-cyan: #0891b2;
-  --brand-violet: #6d43e8;
-  --brand-cyan-soft: rgba(8, 145, 178, 0.12);
-  --brand-violet-soft: rgba(109, 67, 232, 0.12);
-  --grad-brand: linear-gradient(135deg, #0891b2 0%, #6d43e8 100%);
-  --grad-brand-dim: linear-gradient(135deg, rgba(8, 145, 178, 0.5) 0%, rgba(109, 67, 232, 0.5) 100%);
-  --grad-brand-wash: linear-gradient(135deg, rgba(8, 145, 178, 0.08) 0%, rgba(109, 67, 232, 0.08) 100%);
-
-  --verdict-genuine: #00875a;
-  --verdict-genuine-soft: rgba(0, 135, 90, 0.12);
-  --verdict-genuine-line: rgba(0, 135, 90, 0.32);
-  --verdict-suspicious: #a86100;
-  --verdict-suspicious-soft: rgba(168, 97, 0, 0.12);
-  --verdict-suspicious-line: rgba(168, 97, 0, 0.32);
-  --verdict-counterfeit: #d0263f;
-  --verdict-counterfeit-soft: rgba(208, 38, 63, 0.12);
-  --verdict-counterfeit-line: rgba(208, 38, 63, 0.32);
-
-  --bg-base: #eef1f8;
-  --bg-sunken: #e2e6f0;
+  /* Canvas & Surface Colors */
+  --bg-base: #f5f7fb;
   --bg-surface: #ffffff;
+  --bg-glass-card: rgba(255, 255, 255, 0.78);
+  /* Deliberately a slate tint, not white-at-higher-alpha: 0.78 white and 0.95
+     white over this canvas differ by ~1%, so a "brighten on hover" is
+     invisible in a light theme. Hover has to DARKEN to register. */
+  --bg-glass-hover: rgba(241, 245, 249, 0.95);
+  --bg-glass-input: rgba(255, 255, 255, 0.88);
+  --bg-glass-input-solid: #ffffff;
 
-  --glass-1: rgba(255, 255, 255, 0.72);
-  --glass-2: rgba(255, 255, 255, 0.82);
-  --glass-3: rgba(255, 255, 255, 0.92);
-  --glass-hover: rgba(255, 255, 255, 0.96);
-  --glass-input: rgba(255, 255, 255, 0.86);
-  --glass-input-solid: #ffffff;
+  /* Signature Liquid Gradients — accents/borders only, never behind text.
+     NOTE: #0091c2 carries white text at only 3.60:1 (fails AA for body
+     copy), so text-bearing fills use --liquid-primary-grad-text below. */
+  --liquid-primary-grad: linear-gradient(135deg, #0091c2 0%, #6d28d9 100%);
+  --liquid-primary-grad-text: linear-gradient(135deg, #0077a8 0%, #6d28d9 100%);
+  --liquid-border-grad: linear-gradient(135deg, rgba(0, 145, 194, 0.45) 0%, rgba(109, 40, 217, 0.45) 100%);
+  --liquid-border-subtle: linear-gradient(135deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.06) 100%);
 
-  --edge: rgba(15, 23, 42, 0.10);
-  --edge-strong: rgba(15, 23, 42, 0.16);
-  --edge-specular: rgba(255, 255, 255, 0.90);
+  /* Accent Colors — darkened so they stay legible AS TEXT on white */
+  --cyan-glow: #0077a8;        /* 5.00:1 on #fff */
+  --purple-glow: #6d28d9;      /* 7.10:1 on #fff */
+  --accent-glow-shadow: 0 6px 20px rgba(109, 40, 217, 0.16), 0 0 8px rgba(0, 119, 168, 0.12);
 
-  --text-primary: #0d1220;
-  --text-secondary: #4a5474;
-  --text-muted: #78829e;
-  --text-on-brand: #ffffff;
+  /* Verdict Status Colors — text-safe; -bg/-border pairs for tinted chips */
+  --verdict-genuine: #047857;          /* 5.48:1 on #fff, 5.21:1 on its own -bg */
+  --verdict-genuine-bg: #ecfdf5;
+  --verdict-genuine-border: #6ee7b7;
+  --verdict-suspicious: #b45309;       /* 5.02:1 on #fff, 4.84:1 on its own -bg */
+  --verdict-suspicious-bg: #fffbeb;
+  --verdict-suspicious-border: #fcd34d;
+  --verdict-counterfeit: #be123c;      /* 6.29:1 on #fff, 5.72:1 on its own -bg */
+  --verdict-counterfeit-bg: #fff1f2;
+  --verdict-counterfeit-border: #fda4af;
 
-  --e1:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 1px 2px rgba(15, 23, 42, 0.08),
-    0 4px 10px rgba(15, 23, 42, 0.05);
-  --e2:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 2px 4px rgba(15, 23, 42, 0.10),
-    0 10px 24px rgba(15, 23, 42, 0.08);
-  --e3:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 4px 8px rgba(15, 23, 42, 0.12),
-    0 20px 44px rgba(15, 23, 42, 0.10);
-  --e4:
-    inset 0 1px 0 0 var(--edge-specular),
-    0 8px 16px rgba(15, 23, 42, 0.14),
-    0 36px 80px rgba(15, 23, 42, 0.14);
+  /* Text Colors */
+  --text-primary: #0f172a;     /* 16.65:1 on canvas */
+  --text-secondary: #475069;   /* 7.48:1 on canvas */
+  --text-muted: #5f6b7d;       /* 5.04:1 on canvas — #64748b was 4.44:1, under AA */
 
-  --bloom-brand: 0 12px 40px -8px rgba(109, 67, 232, 0.28), 0 0 20px -4px rgba(8, 145, 178, 0.18);
-  --bloom-genuine: 0 12px 40px -8px rgba(0, 135, 90, 0.24);
-  --bloom-suspicious: 0 12px 40px -8px rgba(168, 97, 0, 0.24);
-  --bloom-counterfeit: 0 12px 40px -8px rgba(208, 38, 63, 0.24);
+  /* Borders & elevation.
+     --border-subtle/-strong are DECORATIVE separators (card edges,
+     dividers) — WCAG 1.4.11 does not require 3:1 for these.
+     --border-interactive is for anything that delimits a CONTROL
+     (inputs, checkboxes, focus rings) where 3:1 IS required. */
+  --border-subtle: rgba(15, 23, 42, 0.10);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --border-interactive: #7e8b9c;   /* 3.47:1 on #fff, 3.23:1 on canvas */
 
+  /* Shadows & Glass Effects */
+  --glass-blur: blur(12px);
+  --glass-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.08);
+  --inset-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Fonts — served via next/font (see src/app/layout.tsx), not @import,
+     so there's no extra Google Fonts network round-trip / layout shift */
+  --font-heading: var(--font-outfit), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-urdu: var(--font-noto-arabic), sans-serif;
+
+  /* ============================================================
+     Legacy tokens — remapped to light. Several routes (inventory,
+     reports, settings, onboarding, whatsapp,
+     scan/genuine|simplified|unverified) still consume these; if they
+     kept their dark values those routes would render as dark islands
+     on a light canvas. The container ladder is inverted: "lowest"
+     is now the brightest surface, "highest" the most recessed.
+     ============================================================ */
+  --color-primary: #047857;
+  --color-primary-container: #d1fae5;
   --color-on-primary: #ffffff;
+  --color-on-primary-container: #064e3b;
+  --color-primary-fixed: #d1fae5;
+  --color-primary-fixed-dim: #6ee7b7;
+  --color-inverse-primary: #6ee7b7;
+
+  --color-secondary: #b45309;
+  --color-secondary-container: #fef3c7;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #78350f;
+
+  --color-error: #be123c;
+  --color-error-container: #fff1f2;
   --color-on-error: #ffffff;
+  --color-on-error-container: #881337;
+
+  --color-background: #f5f7fb;
+  --color-on-background: #0f172a;
+
+  --color-surface: #f5f7fb;
+  --color-surface-dim: #f5f7fb;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f8fafc;
+  --color-surface-container: #f1f5f9;
+  --color-surface-container-high: #e9eef5;
+  --color-surface-container-highest: #e2e8f0;
+
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #475069;
+  --color-inverse-surface: #0f172a;
+  --color-inverse-on-surface: #f5f7fb;
+
+  --color-outline: #94a3b8;
+  --color-outline-variant: #cbd5e1;
+
+  --spacing-container-margin: 20px;
+  --spacing-glass-padding: 24px;
+  --spacing-gutter: 16px;
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 32px;
 }
 
-/* ==========================================================================
-   Base
-   ========================================================================== */
-*,
-*::before,
-*::after {
+* {
   box-sizing: border-box;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
 body {
-  margin: 0;
-  min-height: 100dvh;
-  overflow-x: hidden;
   background-color: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.55;
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Aurora field — slow-drifting ambient light behind all content. This is
-   what gives glass something to refract; on a flat fill it reads as grey. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: -25%;
-  z-index: -1;
-  pointer-events: none;
+  /* Atmosphere kept but dialled right down — at the dark theme's 0.08
+     these tinted washes read as smudges/dirt on a light canvas. */
   background-image:
-    radial-gradient(38% 32% at 18% 16%, rgba(34, 211, 238, 0.20) 0%, transparent 70%),
-    radial-gradient(42% 36% at 84% 26%, rgba(124, 92, 255, 0.20) 0%, transparent 70%),
-    radial-gradient(46% 38% at 62% 88%, rgba(0, 229, 160, 0.10) 0%, transparent 70%);
-  filter: blur(20px);
-  animation: aurora-drift 34s ease-in-out infinite alternate;
-}
-
-:root[data-theme='light'] body::before {
-  background-image:
-    radial-gradient(38% 32% at 18% 16%, rgba(8, 145, 178, 0.16) 0%, transparent 70%),
-    radial-gradient(42% 36% at 84% 26%, rgba(109, 67, 232, 0.14) 0%, transparent 70%),
-    radial-gradient(46% 38% at 62% 88%, rgba(0, 135, 90, 0.08) 0%, transparent 70%);
-}
-
-@keyframes aurora-drift {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  50%  { transform: translate3d(2.5%, -2%, 0) scale(1.06); }
-  100% { transform: translate3d(-2%, 2.5%, 0) scale(1.02); }
+    radial-gradient(circle at 15% 20%, rgba(0, 145, 194, 0.05) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(109, 40, 217, 0.05) 0%, transparent 45%);
+  background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  margin: 0;
   font-family: var(--font-heading);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  margin: 0;
 }
 
-p { margin: 0; }
-
-a { color: inherit; }
-
-button, input, select, textarea {
-  font: inherit;
-  color: inherit;
+p {
+  margin: 0;
 }
 
-/* Numeric columns must not jitter as values change */
-.tabular,
-[data-tabular] {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
-}
-
-:where(a, button, [role='button'], input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--brand-cyan);
-  outline-offset: 2px;
-  border-radius: var(--r-xs);
-}
-
-::selection {
-  background: var(--brand-violet-soft);
-  color: var(--text-primary);
-}
-
-/* Scrollbars — thin enough not to break the floating-surface illusion */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--edge-strong) transparent;
-}
-*::-webkit-scrollbar { width: 10px; height: 10px; }
-*::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb {
-  background: var(--edge-strong);
-  border: 3px solid transparent;
-  background-clip: content-box;
-  border-radius: var(--r-pill);
-}
-*::-webkit-scrollbar-thumb:hover { background-clip: content-box; background-color: var(--text-muted); }
-
-/* ==========================================================================
-   Surface utilities
-   ========================================================================== */
-
-/* Base raised glass panel. `--surface-tint` / `--surface-elevation` let a
-   caller retint or re-elevate without redeclaring the whole recipe. */
-.surface {
-  position: relative;
-  background: var(--surface-tint, var(--glass-1));
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-lg);
-  box-shadow: var(--surface-elevation, var(--e2));
-}
-
-.surface-flat  { --surface-elevation: var(--e1); }
-.surface-raised { --surface-elevation: var(--e3); }
-.surface-float  { --surface-elevation: var(--e4); }
-
-/* Gradient hairline via mask — a real 1px brand-tinted rim, not a fake inset */
-.surface-brand-edge::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: inherit;
-  background: var(--grad-brand-dim);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* Sheen: a diagonal specular sweep across the top-left of a panel. Adds the
-   impression of a glossy plane catching light, which flat glass lacks. */
-.surface-sheen::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.10) 0%,
-    rgba(255, 255, 255, 0.02) 26%,
-    transparent 52%
-  );
-}
-
-/* Interactive lift — hover raises toward the viewer, press pushes past rest
-   for a physical rebound. Transform-only so it never triggers layout. */
-.lift {
-  transition:
-    transform var(--t-base) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    border-color var(--t-base) var(--ease-out),
-    background-color var(--t-base) var(--ease-out);
-  will-change: transform;
-}
-.lift:hover {
-  transform: translateY(-3px);
-  border-color: var(--edge-strong);
-  box-shadow: var(--e3);
-}
-.lift:active {
-  transform: translateY(0) scale(0.985);
-  box-shadow: var(--e1);
-  transition-duration: var(--t-fast);
-}
-
-/* 3D tilt container — children on their own Z planes get real parallax
-   rather than a faked offset. Apply .tilt to the parent, .tilt-layer inside. */
-.tilt {
-  perspective: 1200px;
-  transform-style: preserve-3d;
-}
-.tilt-layer {
-  transform: translateZ(40px);
-  transform-style: preserve-3d;
-}
-
-.text-gradient {
-  background: var(--grad-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* ==========================================================================
-   Entrance motion
-   ========================================================================== */
-@keyframes rise-in {
-  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.985); }
-  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
-}
-@keyframes shimmer {
-  from { background-position: -180% 0; }
-  to   { background-position: 180% 0; }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes pulse-ring {
-  0%   { transform: scale(0.94); opacity: 0.7; }
-  70%  { transform: scale(1.18); opacity: 0; }
-  100% { transform: scale(1.18); opacity: 0; }
-}
-
-.animate-rise  { animation: rise-in var(--t-slow) var(--ease-out) both; }
-.animate-fade  { animation: fade-in var(--t-base) var(--ease-out) both; }
-.animate-scale { animation: scale-in var(--t-base) var(--ease-spring) both; }
-
-/* Staggered list entrance — 50ms cadence reads as a wave without dragging */
-.stagger > * { animation: rise-in var(--t-slow) var(--ease-out) both; }
-.stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 50ms; }
-.stagger > *:nth-child(3) { animation-delay: 100ms; }
-.stagger > *:nth-child(4) { animation-delay: 150ms; }
-.stagger > *:nth-child(5) { animation-delay: 200ms; }
-.stagger > *:nth-child(6) { animation-delay: 250ms; }
-.stagger > *:nth-child(7) { animation-delay: 300ms; }
-.stagger > *:nth-child(8) { animation-delay: 350ms; }
-.stagger > *:nth-child(n + 9) { animation-delay: 400ms; }
-
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--glass-1) 25%,
-    var(--glass-3) 50%,
-    var(--glass-1) 75%
-  );
-  background-size: 220% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: var(--r-sm);
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* ==========================================================================
-   Legacy class names — remapped onto the elevation scale so older markup
-   picks up the new depth treatment automatically.
-   ========================================================================== */
-.liquid-glass,
-.glass-panel {
-  background: var(--glass-1);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-lg);
-  box-shadow: var(--e2);
+/* ============================================================
+   Liquid Glass utilities
+   ============================================================ */
+.liquid-glass {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 18px;
+  /* A white border on a white card is invisible — this single line is
+     what makes the light theme read as layered rather than flat. */
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--glass-shadow), var(--inset-glow);
 }
 
 .liquid-glass-gradient-border {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 18px;
   position: relative;
-  background: var(--glass-1);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  border-radius: var(--r-lg);
-  box-shadow: var(--e2);
+  box-shadow: var(--glass-shadow);
 }
+
 .liquid-glass-gradient-border::before {
   content: '';
   position: absolute;
   inset: 0;
+  border-radius: 18px;
   padding: 1px;
-  border-radius: inherit;
-  background: var(--grad-brand-dim);
+  background: var(--liquid-border-grad);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
 }
 
-.glass-modal {
-  background: var(--glass-3);
-  backdrop-filter: var(--blur-lg);
-  -webkit-backdrop-filter: var(--blur-lg);
-  border: 1px solid var(--edge-strong);
-  border-radius: var(--r-xl);
-  box-shadow: var(--e4);
+/* ============================================================
+   Legacy glass utilities — kept for unmigrated routes
+   ============================================================ */
+.glass-panel {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
 }
 
-.glow-teal  { box-shadow: var(--e1), var(--bloom-genuine); }
-.glow-amber { box-shadow: var(--e1), var(--bloom-suspicious); }
+.glass-modal {
+  background: var(--bg-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.75rem;
+  box-shadow: var(--glass-shadow);
+}
+
+/* Glows do not read on a light canvas — a coloured halo over white is
+   nearly invisible. These now lift with a shadow + tinted border instead. */
+.glow-teal {
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.14);
+  border: 1px solid var(--verdict-genuine-border);
+}
+
+.glow-amber {
+  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.14);
+  border: 1px solid var(--verdict-suspicious-border);
+}
 
 .glow-button {
-  transition: box-shadow var(--t-base) var(--ease-out), transform var(--t-fast) var(--ease-out);
+  transition: box-shadow 0.2s ease, transform 0.1s ease, border-color 0.2s ease;
 }
-.glow-button:hover { box-shadow: var(--e2), var(--bloom-brand); }
-.glow-button:active { transform: scale(0.97); }
 
-/* Typography utilities */
+.glow-button:hover {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+  border-color: var(--border-interactive);
+}
+
+.glow-button:active {
+  transform: scale(0.95);
+}
+
+/* Typography Utilities */
 .text-label-caps {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 16px;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.05em;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-muted);
-}
-.text-body-md      { font-size: 16px; line-height: 24px; }
-.text-headline-md  { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em; }
-.text-headline-lg  { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: -0.03em; }
-
-.text-primary            { color: var(--brand-cyan); }
-.text-secondary          { color: var(--brand-violet); }
-.text-error              { color: var(--verdict-counterfeit); }
-.text-on-surface         { color: var(--text-primary); }
-.text-on-surface-variant { color: var(--text-secondary); }
-
-.bg-primary             { background: var(--grad-brand); }
-.bg-error-container     { background: var(--verdict-counterfeit-soft); }
-.bg-secondary-container { background: var(--brand-violet-soft); }
-
-/* ==========================================================================
-   Reduced motion — strip ambient/decorative motion, keep state changes
-   perceptible but near-instant. Never removes a needed affordance.
-   ========================================================================== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-  body::before { animation: none; }
-  .lift:hover { transform: none; }
 }
 
-/* Backdrop-filter is still unsupported in a few engines; fall back to opaque
-   surfaces so text keeps its contrast instead of sitting on transparency. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root {
-    --glass-1: #171b2b;
-    --glass-2: #1d2234;
-    --glass-3: #252b41;
-    --glass-hover: #2b3250;
-    --glass-input: #10131f;
-  }
-  :root[data-theme='light'] {
-    --glass-1: #ffffff;
-    --glass-2: #ffffff;
-    --glass-3: #ffffff;
-    --glass-hover: #f6f8fc;
-    --glass-input: #ffffff;
-  }
+.text-body-md {
+  font-size: 16px;
+  line-height: 24px;
 }
+
+.text-headline-md {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+}
+
+.text-headline-lg {
+  font-size: 32px;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-error { color: var(--color-error); }
+.text-on-surface { color: var(--color-on-surface); }
+.text-on-surface-variant { color: var(--color-on-surface-variant); }
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-error-container { background-color: var(--color-error-container); }
+.bg-secondary-container { background-color: var(--color-secondary-container); }

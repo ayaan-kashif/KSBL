@@ -1,4 +1,6 @@
-.sidebar { display: none; }
+.sidebar {
+  display: none;
+}
 
 @media (min-width: 1024px) {
   .sidebar {
@@ -8,52 +10,47 @@
     left: 0;
     top: 0;
     height: 100%;
-    z-index: var(--z-sticky);
+    z-index: 40;
     width: 16rem;
-    background: var(--glass-1);
-    backdrop-filter: var(--blur-lg) saturate(1.4);
-    -webkit-backdrop-filter: var(--blur-lg) saturate(1.4);
-    border-right: 1px solid var(--edge);
+    background: var(--bg-glass-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--border-subtle);
     padding-top: 5rem;
-    /* Rightward shadow only — the rail sits in front of the page content */
-    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.24);
   }
 }
 
 .sidebarContent {
-  padding: var(--s-6);
+  padding: 1.5rem;
   flex: 1;
-  overflow-y: auto;
 }
 
 .agentProfile {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
-  margin-bottom: var(--s-8);
-  padding-bottom: var(--s-6);
-  border-bottom: 1px solid var(--edge);
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .agentAvatar {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: var(--grad-brand-wash);
-  border: 1px solid var(--edge-strong);
-  color: var(--brand-cyan);
+  background: rgba(0, 119, 168, 0.12);
+  border: 1px solid rgba(0, 119, 168, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: var(--e1);
 }
 
 .agentRole {
   font-size: 10px;
   letter-spacing: 0.1em;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-transform: uppercase;
   margin: 0;
 }
@@ -68,168 +65,109 @@
 .sidebarNav {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
+  gap: 0.25rem;
 }
 
 .sidebarLink {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--s-3);
+  gap: 0.75rem;
   padding: 0.7rem 1rem;
-  min-height: 44px;
-  border-radius: var(--r-sm);
+  border-radius: 12px;
   color: var(--text-secondary);
   text-decoration: none;
+  transition: all 0.2s ease;
   font-size: 12px;
   letter-spacing: 0.05em;
   font-weight: 600;
-  border: 1px solid transparent;
-  transition:
-    color var(--t-base) var(--ease-out),
-    background-color var(--t-base) var(--ease-out),
-    border-color var(--t-base) var(--ease-out),
-    transform var(--t-fast) var(--ease-out);
 }
 
 .sidebarLink:hover {
-  background: var(--glass-hover);
-  border-color: var(--edge);
+  background: var(--bg-glass-hover);
   color: var(--text-primary);
-  transform: translateX(2px);
 }
 
 .sidebarLinkActive {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--s-3);
+  gap: 0.75rem;
   padding: 0.7rem 1rem;
-  min-height: 44px;
-  border-radius: var(--r-sm);
-  color: var(--text-on-brand);
+  border-radius: 12px;
+  color: var(--text-primary);
   font-weight: 700;
-  background: var(--grad-brand);
-  box-shadow: var(--e2), var(--bloom-brand);
+  background: var(--liquid-primary-grad);
+  box-shadow: var(--accent-glow-shadow);
   text-decoration: none;
   font-size: 12px;
   letter-spacing: 0.05em;
-  isolation: isolate;
 }
 
-/* Same top gloss as the buttons, so the active rail item belongs to the
-   same material family rather than looking like a flat colour block. */
-.sidebarLinkActive::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, transparent 50%);
-  pointer-events: none;
+.navLabel {
+  font-family: var(--font-body);
 }
-
-.navLabel { font-family: var(--font-body); }
 
 .sidebarFooter {
-  padding: var(--s-4) var(--s-6) var(--s-6);
-  border-top: 1px solid var(--edge);
+  padding: 1rem 1.5rem 1.5rem;
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
+  gap: 0.5rem;
 }
 
 .exportBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s-2);
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.7rem;
-  min-height: 44px;
-  background: var(--glass-2);
-  color: var(--brand-cyan);
-  font-family: var(--font-heading);
+  padding: 0.65rem;
+  background: var(--bg-glass-hover);
+  color: var(--cyan-glow);
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.05em;
-  border: 1px solid var(--edge-strong);
-  border-radius: var(--r-sm);
+  border: 1px solid rgba(0, 119, 168, 0.25);
+  border-radius: 12px;
   cursor: pointer;
-  box-shadow: var(--e1);
-  transition:
-    transform var(--t-fast) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    background-color var(--t-base) var(--ease-out);
+  transition: all 0.2s ease;
 }
 
-.exportBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: var(--glass-hover);
-  box-shadow: var(--e2);
-}
-
-.exportBtn:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-  box-shadow: var(--e0);
+.exportBtn:hover {
+  box-shadow: 0 0 15px rgba(0, 119, 168, 0.2);
 }
 
 .exportBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
 }
 
 .scanBtn {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s-2);
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.7rem;
-  min-height: 44px;
-  background: var(--grad-brand);
-  color: var(--text-on-brand);
-  font-family: var(--font-heading);
+  padding: 0.65rem;
+  background: var(--liquid-primary-grad);
+  color: #ffffff;
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.05em;
-  border-radius: var(--r-sm);
+  border-radius: 12px;
   text-decoration: none;
   cursor: pointer;
-  isolation: isolate;
-  box-shadow: var(--e2), var(--bloom-brand);
-  transition:
-    transform var(--t-fast) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    filter var(--t-base) var(--ease-out);
-}
-
-.scanBtn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, transparent 50%);
-  pointer-events: none;
+  transition: all 0.2s ease;
 }
 
 .scanBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--e3), var(--bloom-brand);
-  filter: saturate(1.12) brightness(1.05);
+  box-shadow: var(--accent-glow-shadow);
 }
 
-.scanBtn:active { transform: translateY(0) scale(0.98); }
+.spin {
+  animation: spin 1s linear infinite;
+}
 
-.spin { animation: spin 1s linear infinite; }
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebarLink:hover,
-  .exportBtn:hover:not(:disabled),
-  .exportBtn:active:not(:disabled),
-  .scanBtn:hover,
-  .scanBtn:active { transform: none; }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

@@ -1,7 +1,7 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
+  gap: 0.4rem;
   width: 100%;
 }
 
@@ -9,68 +9,36 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--s-3);
 }
 
 .label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.09em;
-  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
   text-transform: uppercase;
 }
 
 .percent {
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
   font-size: 13px;
   font-weight: 600;
-  color: var(--brand-cyan);
+  color: var(--cyan-glow);
 }
 
-/* Recessed track so the fill reads as sitting *inside* a channel */
 .track {
   position: relative;
   width: 100%;
-  height: 10px;
-  border-radius: var(--r-pill);
-  background: var(--bg-sunken);
-  border: 1px solid var(--edge);
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.36);
-}
-
-:root[data-theme='light'] .track {
-  box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.10);
 }
 
 .fill {
-  position: relative;
   height: 100%;
-  border-radius: var(--r-pill);
-  background: var(--grad-brand);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 0 14px rgba(34, 211, 238, 0.45);
-  transition: width var(--t-slow) var(--ease-out);
-}
-
-/* Travelling highlight reads as flowing progress rather than a static bar */
-.fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.32) 50%,
-    transparent 100%
-  );
-  background-size: 220% 100%;
-  animation: shimmer 2s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fill::after { animation: none; opacity: 0; }
+  border-radius: 999px;
+  background: var(--liquid-primary-grad);
+  box-shadow: 0 0 12px rgba(0, 119, 168, 0.5);
+  transition: width 0.35s ease;
 }

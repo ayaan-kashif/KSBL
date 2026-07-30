@@ -4,9 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './unverified.module.css';
 import { readScanResult, postReport, ScanResult, formatConfidence, verdictColor } from '@/lib/api';
+import VerdictBadge from '@/components/VerdictBadge';
+import BilingualText from '@/components/BilingualText';
+import { useLanguage } from '@/components/LanguageContext';
+import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
 
 export default function UnverifiedResultPage() {
   const [result, setResult] = useState<ScanResult | null>(null);
+  const { lang } = useLanguage();
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,14 +60,29 @@ export default function UnverifiedResultPage() {
           </div>
         </div>
 
-        <h2 className={styles.verdictTitle}>Unverified</h2>
-        <p className={styles.verdictUrdu} dir="rtl">غیر تصدیق شدہ</p>
-        <p className={styles.verdictSub}>Product could not be matched in our database</p>
+        <VerdictBadge verdict="unverified" size="lg" />
+        <div className={styles.verdictSub}>
+          <BilingualText
+            en={VERDICT_PHRASE.unverified.en}
+            ur={VERDICT_PHRASE.unverified.ur}
+            size="sm"
+          />
+        </div>
+
+        {/* Reason — bilingual, from the scan payload when present. */}
+        <div className={styles.verdictSub}>
+          <BilingualText
+            en={result?.reason ?? 'Product could not be matched in our database.'}
+            ur={result?.reason_ur ?? 'یہ مصنوع ہمارے ڈیٹا بیس میں نہیں مل سکی۔'}
+            size="sm"
+          />
+        </div>
 
         {/* Confidence */}
         <div className={styles.confidenceCard}>
           <div className={styles.confRow}>
-            <span className={styles.confLabel}>Confidence Score</span>
+            <span className={styles.confLabel}>{pick(UI_COPY.confidence, lang)}</span>
+            {/* Latin digits in both languages. */}
             <span className={styles.confValue}>{confidence}%</span>
           </div>
           <div className={styles.confTrack}>

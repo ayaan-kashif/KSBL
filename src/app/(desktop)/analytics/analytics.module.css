@@ -44,7 +44,7 @@
 
 .brandSelect {
   background: var(--bg-glass-card);
-  border: 1px solid var(--edge-strong);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   padding: 6px 12px;
   border-radius: 10px;
@@ -78,7 +78,7 @@
   align-items: center;
   gap: 12px;
   background: var(--bg-glass-card);
-  border: 1px solid var(--edge-strong);
+  border: 1px solid var(--border-subtle);
   padding: 20px 40px;
   border-radius: 16px;
   box-shadow: var(--glass-shadow);
@@ -149,10 +149,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--glass-1);
+  background: #f8fafc;
   padding: 12px 16px;
   border-radius: 12px;
-  border: 1px solid var(--edge);
+  border: 1px solid var(--border-subtle);
 }
 .hotspotName { font-weight: 600; color: var(--text-primary); font-size: 14px; }
 .hotspotCoords { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
@@ -225,13 +225,13 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--edge-strong);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .tr {
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background 0.15s;
 }
-.tr:nth-child(even) { background: var(--glass-1); }
+.tr:nth-child(even) { background: #f8fafc; }
 .tr:hover { background: var(--bg-glass-hover); }
 .td {
   padding: 0.875rem 1rem;
@@ -260,7 +260,7 @@
 .miniBar {
   flex: 1;
   height: 6px;
-  background: var(--glass-2);
+  background: #e9eef5;
   border-radius: 3px;
   overflow: hidden;
   min-width: 60px;

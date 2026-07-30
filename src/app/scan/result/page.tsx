@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 import styles from './result.module.css';
 import Button from '@/components/Button';
+import BilingualText from '@/components/BilingualText';
+import LanguageToggle from '@/components/LanguageToggle';
+import { useLanguage } from '@/components/LanguageContext';
+import { UI_COPY, pick } from '@/lib/verdictCopy';
 
 interface ProductData {
   name: string;
@@ -33,13 +37,31 @@ interface VerificationResult {
   gemini: GeminiData;
   apiSource: "LocalCatalog" | "ScraperMatch" | "UPCItemDB" | "OpenFoodFacts" | "BarcodeLookup" | "none";
   reason: string;
+  /** Bilingual fields from /api/verify. Optional so a result cached in
+   *  sessionStorage from before this change still renders. */
+  reason_en?: string;
+  reason_ur?: string;
+  urdu_text?: string;
+  english_text?: string;
   barcodeDetected: boolean;
+  /** Routing metadata. Optional for the same reason as the bilingual fields —
+   *  a result cached before this change still renders. */
+  verificationPath?: "national_rag" | "external_db";
+  brandContext?: {
+    isNationalFoods: boolean;
+    detectedBrand: string | null;
+    source: "local_catalog" | "sku_prefix" | "vision" | "unknown";
+    confidence: number;
+  };
+  vectorSimilarity?: number | null;
+  displayVerdict?: "genuine" | "suspicious" | "counterfeit" | "unverified";
 }
 
 export default function ResultPage() {
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     const stored = sessionStorage.getItem('shelfwatch_verify_result');
@@ -112,32 +134,70 @@ export default function ResultPage() {
   // globals.css) rather than a var() reference, because it gets alpha-suffixed
   // below (`${themeColor}40`) to derive translucent fills/borders — that
   // hex-alpha trick only works on literal hex colors, not on var() calls.
-  let themeColor = "#ffb020"; // --verdict-suspicious
+  // Rendered from displayVerdict, which is the superset the API returns
+  // (`counterfeit` is display-only — the DB stored `suspicious`). Older
+  // cached results predate the field, so fall back to `status`.
+  const displayVerdict =
+    result?.displayVerdict ??
+    (status === "Likely Original"
+      ? "genuine"
+      : status === "Likely Counterfeit"
+        ? "counterfeit"
+        : "suspicious");
+
+  let themeColor = "#b45309"; // --verdict-suspicious
   let themeIcon = "warning";
   let statusHeadline = "NEEDS MANUAL REVIEW";
   let statusUrdu = "مشکوک";
   let statusSub = "Visual discrepancies detected. Manual check recommended.";
+  let statusSubUrdu = "ظاہری تضادات پائے گئے۔ دستی جانچ کی سفارش کی جاتی ہے۔";
 
-  if (status === "Likely Original") {
-    themeColor = "#00e5a0"; // --verdict-genuine
+  if (displayVerdict === "genuine") {
+    themeColor = "#047857"; // --verdict-genuine
     themeIcon = "verified";
     statusHeadline = "LIKELY ORIGINAL";
     statusUrdu = "اصلی";
     statusSub = "This product matches all official manufacturer specifications.";
-  } else if (status === "Likely Counterfeit") {
-    themeColor = "#ff4d6d"; // --verdict-counterfeit
+    statusSubUrdu = "یہ مصنوع کارخانہ دار کی تمام سرکاری تفصیلات سے مطابقت رکھتی ہے۔";
+  } else if (displayVerdict === "counterfeit") {
+    themeColor = "#be123c"; // --verdict-counterfeit
     themeIcon = "gpp_maybe";
     statusHeadline = "LIKELY COUNTERFEIT";
     statusUrdu = "جعلی";
     statusSub = "High packaging discrepancy indicates potential counterfeit.";
+    statusSubUrdu = "پیکنگ میں نمایاں فرق ممکنہ جعل سازی کی نشاندہی کرتا ہے۔";
+  } else if (displayVerdict === "unverified") {
+    // Deliberately neutral, not alarming: no reference was available, which
+    // is an absence of evidence rather than evidence against the product.
+    themeColor = "#475069"; // --text-secondary
+    themeIcon = "help_outline";
+    statusHeadline = "UNVERIFIED";
+    statusUrdu = "غیر تصدیق شدہ";
+    statusSub = "No reference record was available, so authenticity could not be confirmed either way.";
+    statusSubUrdu = "کوئی حوالہ جاتی ریکارڈ دستیاب نہیں تھا، اس لیے اصل ہونے کی تصدیق ممکن نہیں۔";
   }
+
+  // Provenance line — makes the routing decision visible on screen.
+  const pathLabel =
+    result?.verificationPath === "national_rag"
+      ? { en: "Verified against National Foods catalogue", ur: "نیشنل فوڈز کیٹلاگ کے مقابلے میں تصدیق شدہ" }
+      : result?.verificationPath === "external_db"
+        ? { en: "Verified against global product databases", ur: "عالمی پروڈکٹ ڈیٹا بیس کے مقابلے میں تصدیق شدہ" }
+        : null;
+
+  // Both languages stay on screen; `lang` only decides which one leads.
+  const urduLeads = lang === 'ur';
+  const reasonEn = result?.reason_en ?? reason;
+  // Pre-bilingual cached results have no Urdu reason — show the fixed glossary
+  // line rather than repeating the English sentence in the Urdu slot.
+  const reasonUr = result?.reason_ur ?? statusSubUrdu;
 
   return (
     <>
       <header className={styles.appBar}>
         <h1 className={styles.logo}>ShelfWatch</h1>
         <div className={styles.appBarActions}>
-          <button className={`material-symbols-outlined ${styles.iconButton}`}>language</button>
+          <LanguageToggle compact />
           <button className={`material-symbols-outlined ${styles.iconButton}`}>account_circle</button>
         </div>
       </header>
@@ -149,7 +209,7 @@ export default function ResultPage() {
         </div>
 
         {/* Verdict Hero Badge */}
-        <div className={`liquid-glass-gradient-border ${styles.headerCard}`} style={{ boxShadow: `var(--e3), 0 0 40px ${themeColor}26` }}>
+        <div className={`liquid-glass-gradient-border ${styles.headerCard}`} style={{ boxShadow: `var(--glass-shadow), 0 0 40px ${themeColor}26` }}>
           <div
             className={styles.warningIconWrapper}
             style={{
@@ -162,32 +222,73 @@ export default function ResultPage() {
             </span>
           </div>
           <div>
+            {/* Stacked, not slashed — each language gets its own line, correct
+                direction and correct font. */}
             <h2 className={styles.verdictTitle} style={{ color: themeColor }}>
-              {statusHeadline} <span className={styles.urduText}>/ {statusUrdu}</span>
+              {urduLeads ? (
+                <>
+                  <span lang="ur" dir="rtl" className={styles.urduHeadline}>{statusUrdu}</span>
+                  <span lang="en" dir="ltr" className={styles.secondaryHeadline}>{statusHeadline}</span>
+                </>
+              ) : (
+                <>
+                  <span lang="en" dir="ltr">{statusHeadline}</span>
+                  <span lang="ur" dir="rtl" className={`${styles.urduHeadline} ${styles.secondaryHeadline}`}>{statusUrdu}</span>
+                </>
+              )}
             </h2>
-            <p className={styles.verdictSubtitle}>{statusSub}</p>
+            <BilingualText en={statusSub} ur={statusSubUrdu} size="sm" />
+
+            {/* Which pipeline produced this verdict. Surfaced deliberately —
+                the routing is the point of the feature, so it should be
+                visible to anyone evaluating the app. */}
+            {pathLabel && (
+              <p className={styles.pathLabel}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                  {result?.verificationPath === 'national_rag' ? 'inventory_2' : 'public'}
+                </span>
+                <span {...(urduLeads ? { lang: 'ur', dir: 'rtl' as const } : { lang: 'en', dir: 'ltr' as const })}>
+                  {urduLeads ? pathLabel.ur : pathLabel.en}
+                </span>
+                {typeof result?.vectorSimilarity === 'number' && (
+                  <span className={styles.pathMetric}>
+                    {/* Latin digits in both languages. */}
+                    {(result.vectorSimilarity * 100).toFixed(1)}% match
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Confidence & Score Section */}
         <div className={`liquid-glass-gradient-border ${styles.confidenceSection}`}>
           <div className={styles.flexBetween}>
-            <span className={styles.labelCaps}>Authenticity Score</span>
+            <span className={styles.labelCaps}>
+              {pick(UI_COPY.confidence, lang)}
+              {/* Score itself stays Latin digits in both languages. */}
+            </span>
             <span className={styles.confidenceValue} style={{ color: themeColor }}>
               {score}%
             </span>
+          </div>
+          <div className={styles.flexBetween}>
+            <span className={styles.labelCaps}>{pick(UI_COPY.batchCode, lang)}</span>
+            <span className={styles.batchValue}>{product.barcode || '—'}</span>
           </div>
           <div className={styles.progressBarTrack}>
             <div
               className={styles.progressBarFill}
               style={{
                 width: `${score}%`,
-                background: `linear-gradient(to right, var(--brand-cyan), ${themeColor})`,
+                background: `linear-gradient(to right, var(--cyan-glow), ${themeColor})`,
                 boxShadow: `0 0 10px ${themeColor}80`
               }}
             ></div>
           </div>
-          <p className={styles.analysisNote}>{reason}</p>
+          <div className={styles.analysisNote}>
+            <BilingualText en={reasonEn} ur={reasonUr} size="sm" />
+          </div>
         </div>
 
         {/* Gemini Visual Evaluation Details — telemetry bars */}
@@ -208,7 +309,7 @@ export default function ResultPage() {
                 <div className={styles.telemetryTrack}>
                   <div
                     className={styles.telemetryFill}
-                    style={{ width: `${item.val}%`, background: `linear-gradient(to right, var(--brand-cyan), ${barColor})` }}
+                    style={{ width: `${item.val}%`, background: `linear-gradient(to right, var(--cyan-glow), ${barColor})` }}
                   ></div>
                 </div>
               </div>
@@ -251,7 +352,7 @@ export default function ResultPage() {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <p className={styles.labelCaps}>API Lookup Source</p>
-              <p className={styles.detailValue} style={{ color: 'var(--brand-cyan)' }}>
+              <p className={styles.detailValue} style={{ color: 'var(--cyan-glow)' }}>
                 {apiSourceLabels[apiSource] || apiSource}
               </p>
             </div>

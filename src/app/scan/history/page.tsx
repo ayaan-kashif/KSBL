@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './history.module.css';
 import { getMyScanHistory, getMe, postLogout, ScanHistoryItem, CustomerProfile, verdictIcon } from '@/lib/api';
+import { useLanguage } from '@/components/LanguageContext';
+import { VERDICT_LABEL } from '@/lib/verdictCopy';
 import BottomNav from '@/components/BottomNav';
 
 type FilterType = 'all' | 'genuine' | 'suspicious' | 'unverified';
@@ -13,14 +15,16 @@ type FilterType = 'all' | 'genuine' | 'suspicious' | 'unverified';
 // can't be hex-alpha-suffixed for translucent fills/borders. This local map
 // mirrors the new --verdict-* token values as literal hex for that purpose.
 const VERDICT_HEX: Record<'genuine' | 'suspicious' | 'unverified', string> = {
-  genuine: '#00e5a0',
-  suspicious: '#ffb020',
-  unverified: '#9aa1b9',
+  genuine: '#047857',
+  suspicious: '#b45309',
+  unverified: '#475069',
 };
 
 export default function ScanHistoryPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterType>('all');
+  const { lang } = useLanguage();
+  const urduLeads = lang === 'ur';
   const [search, setSearch] = useState('');
   const [scans, setScans] = useState<ScanHistoryItem[]>([]);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
@@ -167,8 +171,26 @@ export default function ScanHistoryPage() {
                     <p className={styles.timeInfo}>{formatTime(scan.created_at)}</p>
                   </div>
                   <div className={styles.scanRight}>
+                    {/* Verdict label in the active language, with the other
+                        beneath it — rows stay bilingual in both modes. */}
                     <span className={styles.statusBadge} style={{ color: hex, background: `${hex}1a`, border: `1px solid ${hex}33` }}>
-                      {scan.verdict}
+                      {urduLeads ? (
+                        <>
+                          <span lang="ur" dir="rtl" className={styles.badgeUrdu}>
+                            {VERDICT_LABEL[scan.verdict].ur}
+                          </span>
+                          <span lang="en" dir="ltr" className={styles.badgeSecondary}>
+                            {VERDICT_LABEL[scan.verdict].en}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span lang="en" dir="ltr">{VERDICT_LABEL[scan.verdict].en}</span>
+                          <span lang="ur" dir="rtl" className={`${styles.badgeUrdu} ${styles.badgeSecondary}`}>
+                            {VERDICT_LABEL[scan.verdict].ur}
+                          </span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>

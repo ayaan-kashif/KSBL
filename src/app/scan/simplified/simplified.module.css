@@ -1,322 +1,111 @@
-/* Simplified genuine-result view. Every accent here is the *genuine* verdict
-   colour, never the brand gradient — on a verdict screen the colour has to
-   mean "authentic", so the brand identity deliberately steps back. */
-
 .page {
-  min-height: 100dvh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: linear-gradient(180deg, #f8fafc 0%, #f5f7fb 60%, #ecfdf5 100%);
   position: relative;
   overflow: hidden;
-  padding-bottom: var(--s-16);
-  font-family: var(--font-body);
+  padding-bottom: 4rem;
+  font-family: var(--font-inter), sans-serif;
 }
-
-/* Verdict-tinted glow behind the result, layered over the global aurora */
 .bgOrb {
   position: fixed;
-  top: 18%;
+  top: 25%;
   left: 50%;
   transform: translateX(-50%);
-  width: 40rem;
-  height: 40rem;
-  max-width: 140vw;
-  background: radial-gradient(circle, var(--verdict-genuine-soft) 0%, transparent 68%);
-  filter: blur(16px);
+  width: 36rem;
+  height: 36rem;
+  background: radial-gradient(circle, rgba(4, 120, 87,0.07) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
-
 .appBar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: var(--z-nav);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--s-3);
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 50;
+  display: flex; justify-content: space-between; align-items: center;
   padding: 0.875rem 1.25rem;
-  padding-top: max(0.875rem, env(safe-area-inset-top));
-  background: var(--glass-2);
-  backdrop-filter: var(--blur-lg) saturate(1.5);
-  -webkit-backdrop-filter: var(--blur-lg) saturate(1.5);
-  border-bottom: 1px solid var(--edge);
-  box-shadow: 0 1px 0 var(--edge-specular) inset, 0 8px 24px rgba(0, 0, 0, 0.26);
+  background: rgba(248, 250, 252,0.7); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(203, 213, 225,0.15);
 }
-
-.backBtn,
-.shareBtn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 44px meets the touch-target minimum even though the glyph is 24px */
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-pill);
-  transition:
-    background-color var(--t-base) var(--ease-out),
-    color var(--t-base) var(--ease-out),
-    transform var(--t-fast) var(--ease-out);
+.backBtn, .shareBtn {
+  background: transparent; border: none;
+  color: var(--color-on-surface-variant);
+  cursor: pointer; text-decoration: none;
+  display: flex; align-items: center;
+  width: 2.25rem; height: 2.25rem;
+  justify-content: center; border-radius: 50%;
+  transition: background 0.2s;
 }
-
-.backBtn:hover,
-.shareBtn:hover {
-  background: var(--glass-hover);
-  color: var(--text-primary);
-}
-
-.backBtn:active,
-.shareBtn:active { transform: scale(0.92); }
-
-.appBarTitle {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
+.backBtn:hover, .shareBtn:hover { background: #e9eef5; }
+.appBarTitle { font-family: var(--font-outfit), sans-serif; font-size: 17px; font-weight: 600; color: var(--color-on-surface); }
 .main {
-  position: relative;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  position: relative; z-index: 5;
+  display: flex; flex-direction: column; align-items: center;
   padding: 6rem 1.5rem 2rem;
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  text-align: center;
+  width: 100%; max-width: 420px; margin: 0 auto; text-align: center;
 }
-
-/* ── Verdict medallion ─────────────────────────────────────────────────── */
 .verdictIcon {
-  position: relative;
-  width: 8rem;
-  height: 8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--s-8);
-  animation: scale-in var(--t-slow) var(--ease-spring) both;
+  position: relative; width: 8rem; height: 8rem;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 2rem;
 }
-
-/* Two offset rings expanding on a stagger — reads as a confirmation pulse
-   radiating outward from the seal. */
 .iconRing {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid var(--verdict-genuine-line);
-  animation: pulse-ring 2.6s var(--ease-out) infinite;
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid rgba(4, 120, 87,0.3);
+  animation: ringPulse 2.5s ease-in-out infinite;
 }
-
 .iconRing2 {
-  position: absolute;
-  inset: -1rem;
-  border-radius: 50%;
-  border: 1px solid var(--verdict-genuine-soft);
-  animation: pulse-ring 2.6s var(--ease-out) 0.6s infinite;
+  position: absolute; inset: -1rem; border-radius: 50%;
+  border: 1px solid rgba(4, 120, 87,0.1);
+  animation: ringPulse 2.5s ease-in-out 0.5s infinite;
 }
-
-/* Spherical read: the radial highlight sits up-left of centre, matching the
-   light source the elevation shadows assume everywhere else. */
+@keyframes ringPulse { 0%,100%{transform:scale(1);opacity:0.8;} 50%{transform:scale(1.06);opacity:0.3;} }
 .iconCenter {
-  position: relative;
-  width: 6rem;
-  height: 6rem;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.26) 0%, transparent 56%),
-    var(--verdict-genuine-soft);
-  border: 2px solid var(--verdict-genuine-line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow:
-    inset 0 2px 6px rgba(255, 255, 255, 0.18),
-    inset 0 -6px 14px rgba(0, 0, 0, 0.24),
-    var(--e3),
-    var(--bloom-genuine);
+  width: 6rem; height: 6rem; border-radius: 50%;
+  background: rgba(4, 120, 87,0.12);
+  border: 2px solid rgba(4, 120, 87,0.4);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 40px rgba(4, 120, 87,0.3), inset 0 0 20px rgba(4, 120, 87,0.05);
 }
-
-.iconCenter .material-symbols-outlined {
-  font-size: 48px;
-  color: var(--verdict-genuine);
-  font-variation-settings: 'FILL' 1;
-}
-
-.verdictTitle {
-  font-family: var(--font-heading);
-  font-size: 42px;
-  font-weight: 700;
-  color: var(--verdict-genuine);
-  letter-spacing: -0.03em;
-  margin-bottom: var(--s-1);
-}
-
-.verdictUrdu {
-  font-family: var(--font-urdu);
-  font-size: 18px;
-  color: var(--text-secondary);
-  line-height: 2;
-  margin-bottom: var(--s-6);
-}
-
+.iconCenter .material-symbols-outlined { font-size: 48px; color: var(--color-primary); font-variation-settings:'FILL' 1; }
+.verdictTitle { font-family: var(--font-outfit),sans-serif; font-size: 42px; font-weight: 700; color: var(--color-primary); letter-spacing:-0.02em; margin-bottom:0.25rem; }
+.verdictUrdu { font-family: var(--font-noto-arabic),serif; font-size:18px; color:var(--color-on-surface-variant); line-height:32px; margin-bottom:1.5rem; }
 .confBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-  background: var(--verdict-genuine-soft);
-  border: 1px solid var(--verdict-genuine-line);
-  color: var(--verdict-genuine);
-  font-size: 13px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  padding: 0.45rem 1rem;
-  border-radius: var(--r-pill);
-  margin-bottom: var(--s-8);
-  box-shadow: var(--e1);
+  display:inline-flex; align-items:center; gap:0.4rem;
+  background:rgba(4, 120, 87,0.1); border:1px solid rgba(4, 120, 87,0.2);
+  color:var(--color-primary); font-size:13px; font-weight:700;
+  padding:0.4rem 1rem; border-radius:9999px; margin-bottom:2rem;
 }
-
 .detailCard {
-  width: 100%;
-  background: var(--glass-1);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-lg);
-  padding: var(--s-2) 0;
-  margin-bottom: var(--s-6);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  box-shadow: var(--e2);
-  text-align: left;
+  width:100%; background:#f1f5f9; border:1px solid var(--border-subtle);
+  border-radius:1rem; padding:0.5rem 0; margin-bottom:1.5rem; backdrop-filter:blur(10px);
 }
-
-.detailRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--s-4);
-  padding: 0.875rem 1.25rem;
-}
-
-.detailLabel {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.detailValue {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.divider {
-  height: 1px;
-  background: var(--edge);
-  margin: 0 1.25rem;
-}
-
-.message {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--s-8);
-}
-
-.actions {
-  display: flex;
-  gap: var(--s-3);
-  width: 100%;
-}
-
-.primaryBtn,
-.secondaryBtn {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-2);
-  padding: 0.9rem;
-  min-height: 48px;
-  font-family: var(--font-heading);
-  font-size: 14px;
-  border-radius: var(--r-sm);
-  text-decoration: none;
-  cursor: pointer;
-  isolation: isolate;
-  transition:
-    transform var(--t-fast) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    background-color var(--t-base) var(--ease-out),
-    filter var(--t-base) var(--ease-out);
-}
-
+.detailRow { display:flex; justify-content:space-between; align-items:center; padding:0.875rem 1.25rem; }
+.detailLabel { font-size:12px; font-weight:600; letter-spacing:0.05em; color:var(--color-on-surface-variant); text-transform:uppercase; }
+.detailValue { font-size:14px; font-weight:600; color:var(--color-on-surface); }
+.divider { height:1px; background:#f1f5f9; margin:0 1.25rem; }
+.message { font-size:14px; color:var(--color-on-surface-variant); line-height:22px; margin-bottom:2rem; }
+.actions { display:flex; gap:0.75rem; width:100%; }
 .primaryBtn {
-  background: var(--verdict-genuine);
-  color: var(--text-on-brand);
-  font-weight: 700;
-  border: none;
-  box-shadow: var(--e2), var(--bloom-genuine);
+  flex:1; display:flex; align-items:center; justify-content:center; gap:0.4rem;
+  padding:0.875rem; background:var(--color-primary); color:var(--color-on-primary);
+  font-weight:700; font-size:14px; border-radius:0.75rem; text-decoration:none; transition:all 0.2s;
+  font-family:var(--font-outfit),sans-serif;
 }
-
-.primaryBtn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-.primaryBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--e3), var(--bloom-genuine);
-  filter: brightness(1.06);
-}
-
-.primaryBtn:active { transform: translateY(1px) scale(0.98); box-shadow: var(--e1); }
-
+.primaryBtn:hover { box-shadow:0 0 25px rgba(4, 120, 87,0.4); }
 .secondaryBtn {
-  background: var(--glass-2);
-  color: var(--text-primary);
-  font-weight: 600;
-  border: 1px solid var(--edge);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  box-shadow: var(--e1);
+  flex:1; display:flex; align-items:center; justify-content:center; gap:0.4rem;
+  padding:0.875rem; background:#f1f5f9; color:var(--color-on-surface);
+  font-weight:600; font-size:14px; border:1px solid var(--border-subtle);
+  border-radius:0.75rem; text-decoration:none; transition:all 0.2s;
 }
+.secondaryBtn:hover { background:#e9eef5; }
 
-.secondaryBtn:hover {
-  transform: translateY(-2px);
-  background: var(--glass-hover);
-  border-color: var(--edge-strong);
-  box-shadow: var(--e2);
-}
-
-.secondaryBtn:active { transform: translateY(1px) scale(0.98); box-shadow: var(--e0); }
-
-@media (prefers-reduced-motion: reduce) {
-  .iconRing,
-  .iconRing2 { animation: none; opacity: 0.4; }
-  .primaryBtn:hover,
-  .primaryBtn:active,
-  .secondaryBtn:hover,
-  .secondaryBtn:active,
-  .backBtn:active,
-  .shareBtn:active { transform: none; }
+/* Wrapper for the bilingual verdict phrase under the badge. */
+.verdictCopy {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  padding-inline: 1.25rem;
+  margin-block: 0.5rem 0.25rem;
 }

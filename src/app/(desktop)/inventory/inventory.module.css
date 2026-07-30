@@ -44,14 +44,14 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.25);
+  box-shadow: 0 0 20px rgba(4, 120, 87, 0.25);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .addBtn:hover {
   transform: translateY(-2px);
-  box-shadow: var(--e2), var(--bloom-brand);
+  box-shadow: 0 6px 24px rgba(4, 120, 87, 0.4);
 }
 
 /* Controls */
@@ -83,7 +83,7 @@
   padding: 12px 40px 12px 44px;
   border-radius: 12px;
   border: 1px solid var(--color-outline-variant);
-  background: var(--glass-1);
+  background: rgba(241, 245, 249, 0.7);
   backdrop-filter: blur(10px);
   color: var(--color-on-surface);
   font-family: var(--font-inter), sans-serif;
@@ -98,7 +98,7 @@
 
 .searchInput:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--brand-cyan-soft);
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
 }
 
 .clearSearch {
@@ -131,7 +131,7 @@
   padding: 8px 16px;
   border-radius: 99px;
   border: 1px solid var(--color-outline-variant);
-  background: var(--glass-1);
+  background: rgba(241, 245, 249, 0.5);
   color: var(--color-on-surface-variant);
   font-family: var(--font-inter), sans-serif;
   font-size: 13px;
@@ -146,7 +146,7 @@
 }
 
 .chipActive {
-  background: rgba(34, 211, 238, 0.1);
+  background: rgba(4, 120, 87, 0.1);
   border-color: var(--color-primary);
   color: var(--color-primary);
   font-weight: 700;
@@ -160,10 +160,10 @@
 }
 
 .card {
-  background: var(--glass-1);
+  background: rgba(241, 245, 249, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--edge);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -172,8 +172,8 @@
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--e3);
-  border-color: var(--edge-strong);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.11);
+  border-color: var(--border-strong);
 }
 
 .cardImage {
@@ -181,7 +181,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--border-subtle);
   border-radius: 0;
 }
 
@@ -217,7 +217,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 8px;
-  border-top: 1px solid var(--edge);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .stockInfo {
@@ -268,7 +268,7 @@
   padding: 10px 18px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: var(--glass-1);
+  background: rgba(241, 245, 249, 0.6);
   color: var(--color-on-surface);
   font-family: var(--font-inter), sans-serif;
   font-size: 13px;
@@ -308,7 +308,7 @@
   background: var(--color-primary);
   width: 24px;
   border-radius: 4px;
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 8px rgba(4, 120, 87, 0.5);
 }
 
 /* Modal */
@@ -325,14 +325,14 @@
 }
 
 .modal {
-  background: var(--glass-1);
+  background: rgba(241, 245, 249, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--edge-strong);
+  border: 1px solid var(--border-subtle);
   border-radius: 20px;
   width: 100%;
   max-width: 480px;
-  box-shadow: var(--e4);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
 }
 
 .modalHeader {
@@ -340,7 +340,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .modalTitle {
@@ -388,7 +388,7 @@
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: var(--glass-1);
+  background: #f1f5f9;
   color: var(--color-on-surface);
   font-family: var(--font-inter), sans-serif;
   font-size: 14px;
@@ -398,14 +398,14 @@
 
 .formInput:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--brand-cyan-soft);
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1);
 }
 
 .modalFooter {
   display: flex;
   gap: 10px;
   padding: 16px 24px 20px;
-  border-top: 1px solid var(--edge);
+  border-top: 1px solid var(--border-subtle);
   justify-content: flex-end;
 }
 
@@ -427,7 +427,7 @@
 
 .btnPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: var(--e2), var(--bloom-brand);
+  box-shadow: 0 4px 16px rgba(4, 120, 87, 0.3);
 }
 
 .btnOutlined {
@@ -447,6 +447,6 @@
 }
 
 .btnOutlined:hover {
-  border-color: var(--edge-strong);
-  background: var(--glass-1);
+  border-color: var(--border-interactive);
+  background: #f1f5f9;
 }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Outfit, Noto_Sans_Arabic, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ToastContext";
+import { LanguageProvider } from "@/components/LanguageContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" });
@@ -61,7 +62,11 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <ToastProvider>{children}</ToastProvider>
+        {/* Providers wrap {children} rather than <html> so the static parts of
+            the server tree stay server-rendered. */}
+        <LanguageProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

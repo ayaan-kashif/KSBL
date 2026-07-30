@@ -82,17 +82,17 @@ export default function InventoryPage() {
           else if (newStatus === "recalled") displayVerdict = "counterfeit";
           else if (p.stock === 0) displayVerdict = "unverified";
 
-          let color = "var(--verdict-genuine-soft)";
-          let accent = "var(--verdict-genuine)";
+          let color = "rgba(4,120,87,0.1)";
+          let accent = "#047857";
           if (displayVerdict === "suspicious") {
-            color = "var(--verdict-suspicious-soft)";
-            accent = "var(--verdict-suspicious)";
+            color = "rgba(180,83,9,0.1)";
+            accent = "#b45309";
           } else if (displayVerdict === "counterfeit") {
-            color = "var(--verdict-counterfeit-soft)";
-            accent = "var(--verdict-counterfeit)";
+            color = "rgba(190,18,60,0.1)";
+            accent = "#be123c";
           } else if (displayVerdict === "unverified") {
-            color = "var(--glass-2)";
-            accent = "var(--text-secondary)";
+            color = "rgba(15,23,42,0.06)";
+            accent = "#5f6b7d";
           }
 
           return { ...p, status: newStatus, verdict: displayVerdict, color, accent };
@@ -205,7 +205,7 @@ export default function InventoryPage() {
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-error)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>error</span>
           <p style={{ marginTop: '8px' }}>{error}</p>
-          <button className={styles.addBtn} style={{ marginTop: '12px', background: 'rgba(255,255,255,0.08)' }} onClick={loadProducts}>Retry</button>
+          <button className={styles.addBtn} style={{ marginTop: '12px', background: 'var(--bg-glass-hover)' }} onClick={loadProducts}>Retry</button>
         </div>
       ) : paginated.length === 0 ? (
         <div className={styles.empty}>
@@ -216,12 +216,7 @@ export default function InventoryPage() {
         <div className={styles.grid}>
           {paginated.map(p => (
             <div key={p.id} className={styles.card}>
-              {/* color-mix, not hex-alpha concatenation: p.accent is a var()
-                  reference, so appending "40" would be invalid CSS. */}
-              <div
-                className={styles.cardImage}
-                style={{ background: p.color, borderColor: `color-mix(in srgb, ${p.accent} 40%, transparent)` }}
-              >
+              <div className={styles.cardImage} style={{ background: p.color, borderColor: p.accent + '40' }}>
                 <span className="material-symbols-outlined" style={{ color: p.accent, fontSize: '36px' }}>
                   {p.status === 'recalled' ? 'cancel' : 'medication'}
                 </span>
@@ -247,9 +242,9 @@ export default function InventoryPage() {
                       value={p.status}
                       onChange={(e) => handleStatusChange(p.id, e.target.value as any)}
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        color: 'rgba(255,255,255,0.8)',
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-interactive)',
+                        color: 'var(--text-primary)',
                         padding: '3px 6px',
                         borderRadius: '6px',
                         fontSize: '11px',
@@ -257,9 +252,9 @@ export default function InventoryPage() {
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="active" style={{ background: '#1c1b1f', color: 'white' }}>Active</option>
-                      <option value="flagged" style={{ background: '#1c1b1f', color: 'white' }}>Flagged</option>
-                      <option value="recalled" style={{ background: '#1c1b1f', color: 'white' }}>Recalled</option>
+                      <option value="active" style={{ background: '#ffffff', color: '#0f172a' }}>Active</option>
+                      <option value="flagged" style={{ background: '#ffffff', color: '#0f172a' }}>Flagged</option>
+                      <option value="recalled" style={{ background: '#ffffff', color: '#0f172a' }}>Recalled</option>
                     </select>
                   </div>
                 </div>

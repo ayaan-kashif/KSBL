@@ -1,64 +1,36 @@
-/* Inputs are *recessed* rather than raised — an inset shadow reads as a well
-   cut into the surface, which is the natural affordance for "put text here"
-   and contrasts with the raised buttons beside them. */
 .wrapper {
   position: relative;
   display: flex;
   align-items: stretch;
   min-height: 60px;
-  background: var(--glass-input);
-  border-radius: var(--r-sm);
-  border: 1px solid var(--edge);
+  background: var(--bg-glass-input);
+  border-radius: 12px;
+  border: 1px solid var(--border-interactive);
   overflow: hidden;
-  box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.30),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
-  transition:
-    border-color var(--t-base) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    background-color var(--t-base) var(--ease-out);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-:root[data-theme='light'] .wrapper {
-  box-shadow:
-    inset 0 2px 5px rgba(15, 23, 42, 0.07),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.wrapper:hover:not(.focused) {
-  border-color: var(--edge-strong);
-}
-
-/* Brand hairline fades in on focus */
 .wrapper::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  border-radius: 12px;
   padding: 1px;
-  background: var(--grad-brand-dim);
+  background: var(--liquid-border-grad);
   opacity: 0;
-  transition: opacity var(--t-base) var(--ease-out);
+  transition: opacity 0.2s ease;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
 }
 
-.focused::after { opacity: 1; }
-
-.focused {
-  background: var(--glass-input-solid);
-  box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.24),
-    0 0 0 4px var(--brand-cyan-soft);
+.focused::after {
+  opacity: 1;
 }
 
-:root[data-theme='light'] .focused {
-  box-shadow:
-    inset 0 2px 5px rgba(15, 23, 42, 0.05),
-    0 0 0 4px var(--brand-cyan-soft);
+.focused {
+  box-shadow: 0 0 16px rgba(0, 119, 168, 0.15), 0 0 16px rgba(109, 40, 217, 0.1);
 }
 
 /* padding-top matches .field's so the icon glyph centers against the value
@@ -69,14 +41,11 @@
   display: flex;
   align-items: center;
   padding: 26px 0 0 1rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 20px;
   pointer-events: none;
   flex-shrink: 0;
-  transition: color var(--t-base) var(--ease-out);
 }
-
-.focused .leadingIcon { color: var(--brand-cyan); }
 
 .field {
   width: 100%;
@@ -85,33 +54,36 @@
   outline: none;
   color: var(--text-primary);
   font-family: var(--font-body);
-  /* 16px avoids iOS Safari's auto-zoom on focus */
-  font-size: 16px;
+  font-size: 15px;
   line-height: 20px;
   padding: 26px 1rem 10px;
 }
 
-.field.noLeadingIcon { padding-left: 1rem; }
+.field.noLeadingIcon {
+  padding-left: 1rem;
+}
 
 /* Override the browser's default light autofill background/text so it
    matches the dark glass theme instead of flashing white/yellow.
-   Uses the opaque --glass-input-solid (not the translucent --glass-input)
-   because inset box-shadow paints *over* the native autofill fill rather
-   than replacing it — a translucent color here lets ~30% of that
-   white/yellow show through, producing a washed-out grey instead of the
-   intended dark navy. */
+   Uses the opaque --bg-glass-input-solid (not the translucent
+   --bg-glass-input) because inset box-shadow paints *over* the native
+   autofill fill rather than replacing it — a translucent color here lets
+   ~30% of that white/yellow show through, producing a washed-out grey
+   instead of the intended dark navy. */
 .field:-webkit-autofill,
 .field:-webkit-autofill:hover,
 .field:-webkit-autofill:focus,
 .field:-webkit-autofill:active {
   -webkit-text-fill-color: var(--text-primary);
-  -webkit-box-shadow: 0 0 0 1000px var(--glass-input-solid) inset;
-  box-shadow: 0 0 0 1000px var(--glass-input-solid) inset;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-glass-input-solid) inset;
+  box-shadow: 0 0 0 1000px var(--bg-glass-input-solid) inset;
   caret-color: var(--text-primary);
   transition: background-color 9999s ease-in-out 0s;
 }
 
-.wrapper:has(.leadingIcon) .field { padding-left: 0.6rem; }
+.wrapper:has(.leadingIcon) .field {
+  padding-left: 0.6rem;
+}
 
 .label {
   position: absolute;
@@ -119,49 +91,45 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 15px;
   pointer-events: none;
-  transition:
-    top var(--t-base) var(--ease-out),
-    font-size var(--t-base) var(--ease-out),
-    color var(--t-base) var(--ease-out),
-    transform var(--t-base) var(--ease-out);
+  transition: all 0.15s ease;
 }
 
-.wrapper:has(.leadingIcon) .label { left: 2.75rem; }
+.wrapper:has(.leadingIcon) .label {
+  left: 2.75rem;
+}
 
 .labelFloated {
   top: 9px;
   transform: translateY(0);
   font-size: 11px;
   line-height: 14px;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 600;
-  color: var(--brand-cyan);
+  color: var(--cyan-glow);
 }
 
 /* padding-top matches .field's — see .leadingIcon comment above. */
 .toggleBtn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   padding: 26px 1rem 0;
   flex-shrink: 0;
-  transition: color var(--t-fast) var(--ease-out);
+  transition: color 0.15s ease;
 }
 
-.toggleBtn:hover { color: var(--text-primary); }
+.toggleBtn:hover {
+  color: var(--text-primary);
+}
 
 .errorText {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1);
-  margin-top: 0.45rem;
-  font-size: 12.5px;
-  font-weight: 500;
+  margin-top: 0.4rem;
+  font-size: 12px;
   color: var(--verdict-counterfeit);
 }

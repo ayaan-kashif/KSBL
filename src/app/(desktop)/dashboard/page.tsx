@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import styles from './dashboard.module.css';
 import { getScanHistory, ScanHistoryItem } from '@/lib/api';
 import Button from '@/components/Button';
+import HorecaTile from '@/components/HorecaTile';
 import { useToast } from '@/components/ToastContext';
 
 export default function DashboardPage() {
@@ -97,53 +98,59 @@ export default function DashboardPage() {
     }
   };
 
-  // Mock flags detected based on confidence & type for the UI presentation
-  const mockFlags = [
-    { icon: 'print_disabled', text: 'Print Quality Anomaly' },
-    { icon: 'qr_code', text: 'Barcode/Batch Pattern Inconsistency' },
-    { icon: 'gpp_maybe', text: 'Visual Asset Discrepancy' }
-  ];
+  // Derives real AI flags from this scan's stored Gemini per-check scores
+  // (src/app/api/verify/route.ts persists these into ocr_raw_json at scan
+  // time). Scans made before that change have ai_flags = null — those fall
+  // back to a message rather than showing fabricated flags.
+  const MATCH_THRESHOLD = 70;
+  function deriveFlags(incident: ScanHistoryItem): { icon: string; text: string }[] {
+    const flags = incident.ai_flags;
+    if (!flags) return [];
 
-  const confidencePct = activeIncident ? Math.round(activeIncident.confidence * 100) : 97;
+    const result: { icon: string; text: string }[] = [];
+    if (flags.tampering) {
+      result.push({ icon: 'gpp_maybe', text: 'Tampering Detected' });
+    }
+    if (flags.packagingMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'print_disabled', text: 'Print Quality Anomaly' });
+    }
+    if (flags.barcodeMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'qr_code', text: 'Barcode/Batch Pattern Inconsistency' });
+    }
+    if (flags.logoMatch < MATCH_THRESHOLD || flags.brandMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'branding_watermark', text: 'Logo/Brand Mark Discrepancy' });
+    }
+    if (flags.designMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'visibility', text: 'Visual Asset Discrepancy' });
+    }
+    return result;
+  }
+
+  const activeFlags = activeIncident ? deriveFlags(activeIncident) : [];
+
+  // confidence is 0 for an unverified verdict — nothing was scored. Rendering
+  // that as "0%" with an empty bar reads as a broken component rather than an
+  // absent measurement, so the two cases are kept distinct.
+  const hasConfidence = !!activeIncident && activeIncident.confidence > 0;
+  const confidencePct = hasConfidence ? Math.round(activeIncident!.confidence * 100) : null;
+
   const isCritical = activeIncident?.verdict === 'suspicious';
-  const verdictHex = isCritical ? '#ff4d6d' : '#ffb020';
+  // Verdict colour comes from a modifier class that maps the light-theme
+  // --verdict-* tokens onto local --verdict-accent* properties, so no hex
+  // values are duplicated in JS.
+  const verdictClass = isCritical ? styles.panelCritical : styles.panelCaution;
 
   return (
     <div className={styles.page}>
-      {/* Vector SVG map */}
-      <svg className={styles.mapSvg} viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <linearGradient id="mapFade" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--bg-base)" stopOpacity="0.2" />
-            <stop offset="55%" stopColor="var(--bg-base)" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="var(--bg-base)" stopOpacity="0.97" />
-          </linearGradient>
-        </defs>
-        <rect width="800" height="600" fill="var(--bg-surface)" />
-        {Array.from({ length: 17 }).map((_, i) => (
-          <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="600" stroke="rgba(34, 211, 238, 0.08)" strokeWidth="1" />
-        ))}
-        {Array.from({ length: 13 }).map((_, i) => (
-          <line key={`h${i}`} x1="0" y1={i * 50} x2="800" y2={i * 50} stroke="rgba(34, 211, 238, 0.08)" strokeWidth="1" />
-        ))}
-        <path d="M0,420 C150,380 250,460 400,400 S650,340 800,380" stroke="rgba(124, 92, 255, 0.35)" strokeWidth="3" fill="none" />
-        <path d="M120,0 C160,150 100,300 180,600" stroke="rgba(34, 211, 238, 0.25)" strokeWidth="3" fill="none" />
-        <path d="M0,180 C220,140 500,220 800,150" stroke="rgba(34, 211, 238, 0.18)" strokeWidth="2" fill="none" />
-        <rect width="800" height="600" fill="url(#mapFade)" />
-      </svg>
-
-      {/* Pulsing ping marker for the active incident */}
-      {activeIncident && (
-        <div className={styles.pingWrapper} style={{ top: '38%', left: '42%', color: verdictHex }}>
-          <div className={styles.pingRipple}></div>
-          <div className={styles.pingRipple2}></div>
-          <div className={styles.pingDot} style={{ background: verdictHex }}></div>
+      <div className={styles.grid}>
+        {/* HORECA pull-through — main column */}
+        <div className={styles.mainCol}>
+          <HorecaTile />
         </div>
-      )}
 
-      {/* Incident Panel */}
-      <div className={styles.incidentPanel}>
-        <div className={styles.panelInner}>
+        {/* Incident Panel — side column */}
+        <div className={`liquid-glass ${styles.incidentPanel} ${verdictClass}`}>
+          <div className={styles.panelInner}>
           {loading ? (
             <div className={styles.stateMessage}>
               <span className="material-symbols-outlined spin" style={{ fontSize: '32px' }}>sync</span>
@@ -160,11 +167,8 @@ export default function DashboardPage() {
                     {activeIncident.area_name || 'Karachi, Pakistan'}
                   </p>
                 </div>
-                <span
-                  className={styles.counterfeitBadge}
-                  style={{ background: `${verdictHex}26`, color: verdictHex, border: `1px solid ${verdictHex}4d` }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>
+                <span className={styles.counterfeitBadge}>
+                  <span className={`material-symbols-outlined ${styles.badgeIcon}`}>
                     {isCritical ? 'cancel' : 'warning'}
                   </span>
                   {isCritical ? 'Counterfeit' : 'Unverified'}
@@ -174,21 +178,25 @@ export default function DashboardPage() {
               {/* Confidence */}
               <div className={styles.confSection}>
                 <div className={styles.confHeader}>
-                  <span className={styles.sectionLabel}>AI Confidence Score</span>
-                  <span className={styles.confValue} style={{ color: verdictHex }}>
-                    {confidencePct}%
-                  </span>
+                  <span className={styles.sectionLabel}>AI CONFIDENCE SCORE</span>
+                  {hasConfidence ? (
+                    <span className={styles.confValue}>{confidencePct}%</span>
+                  ) : (
+                    <span className={styles.confValueEmpty}>Not scored</span>
+                  )}
                 </div>
                 <div className={styles.confTrack}>
-                  <div
-                    className={styles.confFill}
-                    style={{
-                      width: `${confidencePct}%`,
-                      background: `linear-gradient(to right, var(--cyan-glow), ${verdictHex})`,
-                      boxShadow: `0 0 10px ${verdictHex}80`,
-                    }}
-                  ></div>
+                  {/* No fill at all when unscored — a 0%-width bar and a real
+                      0% score are indistinguishable to the eye otherwise. */}
+                  {hasConfidence && (
+                    <div className={styles.confFill} style={{ width: `${confidencePct}%` }} />
+                  )}
                 </div>
+                {!hasConfidence && (
+                  <p className={styles.confNote}>
+                    This scan was not scored — no reference product was matched.
+                  </p>
+                )}
               </div>
 
               {/* Product Details */}
@@ -197,11 +205,11 @@ export default function DashboardPage() {
                 <div className={styles.detailsGrid}>
                   {[
                     { label: 'Batch No.', value: activeIncident.extracted_batch || 'Unknown', mono: true },
-                    { label: 'Factory ID', value: 'KHI-F7', mono: true },
+                    { label: 'Barcode', value: activeIncident.barcode || 'No Barcode', mono: true },
                     { label: 'Time Logged', value: new Date(activeIncident.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
                     { label: 'Verdict', value: activeIncident.verdict.toUpperCase() },
                     { label: 'Brand', value: activeIncident.brand_name || 'Unknown Brand' },
-                    { label: 'Category', value: activeIncident.product_name || 'FMCG Goods' },
+                    { label: 'Category', value: activeIncident.category || 'Uncategorized' },
                   ].map((d, i) => (
                     <div key={i} className={styles.detailItem}>
                       <p className={styles.detailLabel}>{d.label}</p>
@@ -214,12 +222,22 @@ export default function DashboardPage() {
               {/* AI Flags */}
               <div className={styles.flagsCard}>
                 <p className={styles.sectionLabel}>AI FLAGS DETECTED</p>
-                {mockFlags.map((flag, i) => (
+                {activeFlags.map((flag, i) => (
                   <div key={i} className={styles.flagItem}>
-                    <span className="material-symbols-outlined" style={{ color: 'var(--verdict-counterfeit)', fontSize: '18px' }}>{flag.icon}</span>
+                    <span className={`material-symbols-outlined ${styles.flagIcon}`}>{flag.icon}</span>
                     <span className={styles.flagText}>{flag.text}</span>
                   </div>
                 ))}
+                {activeFlags.length === 0 && (
+                  // "No anomalies" is a clean result, not a finding — it must
+                  // not inherit the red treatment the actual flags use.
+                  <div className={`${styles.flagItem} ${styles.flagItemOk}`}>
+                    <span className={`material-symbols-outlined ${styles.flagIcon}`}>check_circle</span>
+                    <span className={styles.flagText}>
+                      {activeIncident.ai_flags ? 'No anomalies detected' : 'AI signal not recorded for this scan'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -247,11 +265,12 @@ export default function DashboardPage() {
               </div>
             </>
           ) : (
-            <div className={styles.stateMessage}>
-              <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>info</span>
-              <p style={{ marginTop: '8px' }}>No incidents logged in the database yet.</p>
-            </div>
-          )}
+              <div className={styles.stateMessage}>
+                <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>info</span>
+                <p style={{ marginTop: '8px' }}>No incidents logged in the database yet.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

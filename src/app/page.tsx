@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import styles from './home.module.css';
 import Button from '@/components/Button';
 import MetricCard from '@/components/MetricCard';
-import ThemeToggle from '@/components/ThemeToggle';
 
 export default function HomePage() {
   const [scanCount, setScanCount] = useState(0);
@@ -23,31 +22,29 @@ export default function HomePage() {
   }, []);
 
   const features = [
-    { icon: 'qr_code_scanner', title: 'Barcode & QR Scan', desc: 'Scan any product barcode in seconds with your phone camera.', color: 'var(--brand-cyan)' },
-    { icon: 'analytics', title: 'AI Verification', desc: 'Machine learning trained on millions of genuine products.', color: 'var(--brand-violet)' },
-    { icon: 'shield', title: 'Real-time Alerts', desc: 'Instant counterfeit detection with audit trail logging.', color: 'var(--verdict-counterfeit)' },
-    { icon: 'translate', title: 'Bilingual UI', desc: 'Full English and Urdu support for all users.', color: 'var(--verdict-genuine)' },
+    { icon: 'qr_code_scanner', title: 'Barcode & QR Scan', desc: 'Scan any product barcode in seconds with your phone camera.', color: '#0077a8' },
+    { icon: 'analytics', title: 'AI Verification', desc: 'Machine learning trained on millions of genuine products.', color: '#6d28d9' },
+    { icon: 'shield', title: 'Real-time Alerts', desc: 'Instant counterfeit detection with audit trail logging.', color: '#be123c' },
+    { icon: 'translate', title: 'Bilingual UI', desc: 'Full English and Urdu support for all users.', color: '#047857' },
   ];
 
   return (
     <div className={styles.page}>
-      {/* Parallax light layers over the global aurora field */}
-      <div className={styles.bgOrb1} aria-hidden="true"></div>
-      <div className={styles.bgOrb2} aria-hidden="true"></div>
-      <div className={styles.bgOrb3} aria-hidden="true"></div>
+      {/* Animated background */}
+      <div className={styles.bgGradient}></div>
+      <div className={styles.bgOrb1}></div>
+      <div className={styles.bgOrb2}></div>
+      <div className={styles.bgOrb3}></div>
 
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.logo}>
-          <span className={styles.logoMark}>
-            <span className="material-symbols-outlined" aria-hidden="true">verified_user</span>
-          </span>
-          <span className={styles.logoText}>ShelfWatch</span>
+          <span className="material-symbols-outlined">shield</span>
+          ShelfWatch
         </div>
         <nav className={styles.nav}>
-          <ThemeToggle />
           <Link href="/settings" className={styles.adminNavLink} title="Brand agent or admin portal">
-            <span className="material-symbols-outlined" aria-hidden="true">security</span>
+            <span className="material-symbols-outlined">security</span>
             Admin Portal
           </Link>
           <Button href="/login" variant="ghost" size="sm">Log In</Button>
@@ -87,15 +84,11 @@ export default function HomePage() {
       </main>
 
       {/* Features */}
-      <section className={`stagger ${styles.features}`}>
+      <section className={styles.features}>
         {features.map((f, i) => (
-          <div
-            key={i}
-            className={`surface surface-sheen ${styles.featureCard}`}
-            style={{ '--card-accent': f.color } as React.CSSProperties}
-          >
-            <div className={styles.featureIcon}>
-              <span className="material-symbols-outlined" aria-hidden="true">{f.icon}</span>
+          <div key={i} className={`liquid-glass ${styles.featureCard}`}>
+            <div className={styles.featureIcon} style={{ color: f.color, background: f.color + '20' }}>
+              <span className="material-symbols-outlined">{f.icon}</span>
             </div>
             <h3 className={styles.featureTitle}>{f.title}</h3>
             <p className={styles.featureDesc}>{f.desc}</p>

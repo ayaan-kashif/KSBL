@@ -1,97 +1,84 @@
-/* dashboard.module.css */
+/* dashboard.module.css
+ *
+ * Normal document flow, two-column grid. This page used to be a stack of
+ * absolutely-positioned overlays floating above a decorative fake-map SVG,
+ * which clipped card content at the viewport edge, leaked grid lines between
+ * the cards, and nested a scroll container inside a page that couldn't
+ * scroll. Cards are grid children now; the page scrolls as one document.
+ *
+ * There is no z-index anywhere in this file. Once the overlays were gone,
+ * nothing needed one. If something later does, use the scale: 1 raised card,
+ * 10 sticky, 100 overlay.
+ */
 
 .page {
-  position: relative;
   width: 100%;
-  height: calc(100dvh - 4rem);
-  overflow: hidden;
+  padding: 24px;
+  /* Content must not run flush into the bottom of the viewport. */
+  padding-bottom: 48px;
+  background: var(--bg-base);
 }
 
-.mapSvg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 24px;
+  /* align-items:start stops the shorter card stretching to match the taller
+     one — otherwise the HORECA card grows a large empty tail. */
+  align-items: start;
+  /* Caps the measure on ultrawide displays so the main column doesn't
+     stretch a 390px-designed card across 1200px of dead space. */
+  max-width: 1280px;
+  margin-inline: auto;
 }
 
-/* Ping Marker */
-.pingWrapper {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.pingDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  position: relative;
-  z-index: 3;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
-    0 0 10px currentColor,
-    0 0 0 3px color-mix(in srgb, currentColor 20%, transparent);
-}
-
-.pingRipple, .pingRipple2 {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  animation: ping 2s ease-out infinite;
-  opacity: 0;
-}
-.pingRipple2 {
-  animation-delay: 0.7s;
-}
-
-@keyframes ping {
-  0% { width: 10px; height: 10px; opacity: 0.9; }
-  100% { width: 60px; height: 60px; opacity: 0; }
-}
-
-/* Detail Panel */
-.incidentPanel {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  bottom: 16px;
-  width: 400px;
-  max-width: calc(100% - 32px);
-  z-index: var(--z-overlay);
-  border-radius: var(--r-xl);
-  background: var(--glass-2);
-  backdrop-filter: var(--blur-lg) saturate(1.4);
-  -webkit-backdrop-filter: var(--blur-lg) saturate(1.4);
-  border: 1px solid var(--edge-strong);
-  /* Deepest elevation: it hovers above a live map, and the separation is
-     what stops the panel reading as part of the map surface. */
-  box-shadow: var(--e4);
-  animation: rise-in var(--t-slow) var(--ease-out) both;
-}
-
-.panelInner {
-  height: 100%;
-  overflow-y: auto;
-  padding: 28px 24px 32px;
+.mainCol {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(34, 211, 238, 0.25) transparent;
+  min-width: 0;
 }
 
-.panelInner::-webkit-scrollbar {
-  width: 4px;
+@media (max-width: 1280px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
-.panelInner::-webkit-scrollbar-thumb {
-  background: rgba(34, 211, 238, 0.3);
-  border-radius: 4px;
+
+@media (max-width: 900px) {
+  .page {
+    padding: 16px;
+    padding-bottom: 40px;
+  }
+}
+
+/* ── Incident panel ─────────────────────────────────────────────────────── */
+/* No position/top/right/bottom/width/z-index: the grid places this. */
+.incidentPanel {
+  border-radius: 20px;
+  min-width: 0;
+}
+
+/* Verdict accent. The light-theme --verdict-* tokens are mapped onto local
+   properties here so page.tsx carries no hex values and no inline colour. */
+.panelCritical {
+  --verdict-accent: var(--verdict-counterfeit);
+  --verdict-accent-bg: var(--verdict-counterfeit-bg);
+  --verdict-accent-border: var(--verdict-counterfeit-border);
+}
+
+.panelCaution {
+  --verdict-accent: var(--verdict-suspicious);
+  --verdict-accent-bg: var(--verdict-suspicious-bg);
+  --verdict-accent-border: var(--verdict-suspicious-border);
+}
+
+/* No height/overflow: the page scrolls, this doesn't. */
+.panelInner {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .stateMessage {
@@ -100,7 +87,7 @@
   color: var(--text-secondary);
 }
 
-/* Panel Header */
+/* ── Panel header ───────────────────────────────────────────────────────── */
 .panelHeader {
   display: flex;
   justify-content: space-between;
@@ -108,11 +95,19 @@
   gap: 12px;
 }
 
-.panelEyebrow {
+/* Shared eyebrow style. .panelEyebrow and .sectionLabel used to differ in
+   size, weight, tracking AND colour; they read as two systems on one card.
+   HorecaTile.module.css matches these values. */
+.panelEyebrow,
+.sectionLabel {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.panelEyebrow {
   margin-bottom: 4px;
 }
 
@@ -134,7 +129,6 @@
 }
 
 .counterfeitBadge {
-  box-shadow: var(--e1);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -145,9 +139,17 @@
   padding: 5px 12px;
   white-space: nowrap;
   flex-shrink: 0;
+  background: var(--verdict-accent-bg);
+  color: var(--verdict-accent);
+  border: 1px solid var(--verdict-accent-border);
 }
 
-/* Confidence Section */
+.badgeIcon {
+  font-size: 14px;
+  font-variation-settings: 'FILL' 1;
+}
+
+/* ── Confidence ─────────────────────────────────────────────────────────── */
 .confSection {
   display: flex;
   flex-direction: column;
@@ -158,41 +160,45 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.sectionLabel {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-secondary);
+  gap: 12px;
 }
 
 .confValue {
   font-family: var(--font-mono);
   font-size: 26px;
   font-weight: 700;
+  color: var(--verdict-accent);
+}
+
+/* Unscored is a distinct state from a low score — muted and worded, not a
+   number, so it can't be misread as a measured zero. */
+.confValueEmpty {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .confTrack {
   height: 8px;
-  border-radius: var(--r-pill);
-  background: var(--bg-sunken);
-  border: 1px solid var(--edge);
+  border-radius: 99px;
+  background: var(--color-surface-container-high);
   overflow: hidden;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .confFill {
   height: 100%;
-  border-radius: var(--r-pill);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 0 12px color-mix(in srgb, currentColor 40%, transparent);
-  transition: width 1s var(--ease-out);
+  border-radius: 99px;
+  background: linear-gradient(to right, var(--cyan-glow), var(--verdict-accent));
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Details */
+.confNote {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* ── Details ────────────────────────────────────────────────────────────── */
 .detailsCard {
   display: flex;
   flex-direction: column;
@@ -209,12 +215,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: var(--glass-input);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-sm);
+  background: var(--color-surface-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
   padding: 12px 14px;
-  /* recessed against the raised panel so the hierarchy reads at a glance */
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.26);
+  min-width: 0;
 }
 
 .detailLabel {
@@ -229,6 +234,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
 .mono {
@@ -236,7 +242,7 @@
   font-size: 13px;
 }
 
-/* Flags */
+/* ── Flags ──────────────────────────────────────────────────────────────── */
 .flagsCard {
   display: flex;
   flex-direction: column;
@@ -247,11 +253,27 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--verdict-counterfeit-soft);
-  border: 1px solid var(--verdict-counterfeit-line);
-  border-radius: var(--r-sm);
+  background: var(--verdict-counterfeit-bg);
+  border: 1px solid var(--verdict-counterfeit-border);
+  border-radius: 10px;
   padding: 12px 14px;
-  box-shadow: var(--e1);
+}
+
+.flagIcon {
+  font-size: 18px;
+  color: var(--verdict-counterfeit);
+  flex-shrink: 0;
+}
+
+/* A clean result, not a finding — it previously inherited the red flag
+   treatment, so "No anomalies detected" rendered on a red card. */
+.flagItemOk {
+  background: var(--verdict-genuine-bg);
+  border-color: var(--verdict-genuine-border);
+}
+
+.flagItemOk .flagIcon {
+  color: var(--verdict-genuine);
 }
 
 .flagText {
@@ -260,15 +282,10 @@
   color: var(--text-primary);
 }
 
-/* Actions */
+/* ── Actions ────────────────────────────────────────────────────────────── */
 .panelActions {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-top: 4px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pingRipple,
-  .pingRipple2 { animation: none; opacity: 0.35; }
 }

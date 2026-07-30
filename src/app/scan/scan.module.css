@@ -1,8 +1,6 @@
 .page {
-  min-height: 100dvh;
-  /* transparent so the global aurora field shows through; an opaque fill
-     here would flatten every glass surface stacked above it */
-  background: transparent;
+  min-height: 100vh;
+  background: var(--bg-base);
   display: flex;
   flex-direction: column;
   font-family: var(--font-body);
@@ -12,21 +10,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--s-3);
   padding: 0.875rem 1.25rem;
-  padding-top: max(0.875rem, env(safe-area-inset-top));
-  background: var(--glass-2);
-  backdrop-filter: var(--blur-lg) saturate(1.5);
-  -webkit-backdrop-filter: var(--blur-lg) saturate(1.5);
-  border-bottom: 1px solid var(--edge);
-  box-shadow: 0 1px 0 var(--edge-specular) inset, 0 8px 24px rgba(0, 0, 0, 0.26);
+  background: rgba(245, 247, 251, 0.85);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
-  z-index: var(--z-sticky);
+  z-index: 10;
 }
-
-.backBtn,
-.helpBtn {
+.backBtn, .helpBtn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
@@ -34,22 +27,13 @@
   text-decoration: none;
   display: flex;
   align-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
   justify-content: center;
-  /* 44px hit area even though the glyph is 24px */
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-pill);
-  transition:
-    background-color var(--t-base) var(--ease-out),
-    color var(--t-base) var(--ease-out),
-    transform var(--t-fast) var(--ease-out);
+  border-radius: 50%;
+  transition: background 0.2s;
 }
-
-.backBtn:hover,
-.helpBtn:hover { background: var(--glass-hover); color: var(--text-primary); }
-.backBtn:active,
-.helpBtn:active { transform: scale(0.92); }
-
+.backBtn:hover, .helpBtn:hover { background: var(--bg-glass-hover); }
 .appBarTitle {
   font-family: var(--font-heading);
   font-size: 17px;
@@ -67,48 +51,14 @@
   width: 100%;
 }
 
-/* ══ Viewfinder ══════════════════════════════════════════════════════════
-   Built as a recessed chamber rather than a flat frame: the container is
-   darker than the page and carries a strong inset shadow, so the scan area
-   reads as a cavity you're looking *into*. The brackets and laser then sit
-   on planes above that floor.
-   ═══════════════════════════════════════════════════════════════════════ */
+/* Viewfinder HUD */
 .viewfinderContainer {
-  position: relative;
+  background: radial-gradient(circle at 50% 40%, rgba(0, 119, 168, 0.06) 0%, transparent 60%), #f5f7fb;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2.5rem 1.5rem;
-  margin: var(--s-4) var(--s-4) 0;
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 38%, rgba(34, 211, 238, 0.10) 0%, transparent 62%),
-    var(--bg-sunken);
-  border: 1px solid var(--edge);
-  box-shadow:
-    inset 0 8px 28px rgba(0, 0, 0, 0.62),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    var(--e1);
-  /* perspective so the child planes below get genuine depth, not a fake offset */
-  perspective: 900px;
-  transform-style: preserve-3d;
-}
-
-/* Faint grid on the chamber floor — gives the perspective something to
-   read against, the way a studio backdrop shows depth. */
-.viewfinderContainer::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--edge) 1px, transparent 1px),
-    linear-gradient(90deg, var(--edge) 1px, transparent 1px);
-  background-size: 32px 32px;
-  opacity: 0.35;
-  mask-image: radial-gradient(circle at 50% 45%, black 0%, transparent 72%);
-  -webkit-mask-image: radial-gradient(circle at 50% 45%, black 0%, transparent 72%);
+  position: relative;
 }
 
 .viewfinder {
@@ -120,92 +70,61 @@
   justify-content: flex-end;
   flex-direction: column;
   padding-bottom: 0.75rem;
-  gap: var(--s-2);
-  border-radius: var(--r-xl);
-  /* lifted off the chamber floor toward the viewer */
-  transform: translateZ(28px);
-  transform-style: preserve-3d;
+  gap: 0.5rem;
+  border-radius: 24px;
 }
 
-/* ── Corner brackets ───────────────────────────────────────────────────── */
-.cornerTL,
-.cornerTR,
-.cornerBL,
-.cornerBR {
+/* Corner brackets */
+.cornerTL, .cornerTR, .cornerBL, .cornerBR {
   position: absolute;
   width: 2.25rem;
   height: 2.25rem;
-  border-color: var(--brand-cyan);
+  border-color: var(--cyan-glow);
   border-style: solid;
-  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.9));
-  animation: bracket-settle var(--t-slow) var(--ease-spring) both;
+  filter: drop-shadow(0 0 6px rgba(0, 119, 168, 0.8));
 }
+.cornerTL { top: 0; left: 0; border-width: 4px 0 0 4px; border-radius: 8px 0 0 0; }
+.cornerTR { top: 0; right: 0; border-width: 4px 4px 0 0; border-radius: 0 8px 0 0; }
+.cornerBL { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-radius: 0 0 0 8px; }
+.cornerBR { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-radius: 0 0 8px 0; }
 
-.cornerTL { top: 0; left: 0;  border-width: 4px 0 0 4px; border-radius: 10px 0 0 0; }
-.cornerTR { top: 0; right: 0; border-width: 4px 4px 0 0; border-radius: 0 10px 0 0; animation-delay: 60ms; }
-.cornerBL { bottom: 0; left: 0;  border-width: 0 0 4px 4px; border-radius: 0 0 0 10px; animation-delay: 120ms; }
-.cornerBR { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-radius: 0 0 10px 0; animation-delay: 180ms; }
-
-/* Brackets converge inward on mount — reads as the scanner locking on */
-@keyframes bracket-settle {
-  from { opacity: 0; transform: scale(1.35); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-/* ── Laser sweep ───────────────────────────────────────────────────────── */
+/* Scanning laser sweep */
 .scanLine {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(to right, transparent, var(--brand-cyan), var(--brand-violet), transparent);
-  box-shadow:
-    0 0 16px var(--brand-cyan),
-    0 0 28px rgba(124, 92, 255, 0.7);
-  animation: scanDown 2.5s var(--ease-out) infinite;
-  transform: translateZ(12px);
+  background: linear-gradient(to right, transparent, var(--cyan-glow), var(--purple-glow), transparent);
+  box-shadow: 0 0 16px var(--cyan-glow), 0 0 24px rgba(109, 40, 217, 0.6);
+  animation: scanDown 2.5s ease-in-out infinite;
 }
-
-/* Volumetric bloom trailing the beam so it reads as light in a volume
-   rather than a hairline sliding down a flat plane. */
-.scanLine::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -28px;
-  height: 28px;
-  background: linear-gradient(to bottom, transparent, rgba(34, 211, 238, 0.16));
-  pointer-events: none;
-}
-
 @keyframes scanDown {
-  0%   { top: 0%;   opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
   100% { top: 100%; opacity: 0; }
 }
 
 .viewfinderLabel {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: 0.4rem;
   font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   z-index: 2;
   position: relative;
   margin-top: 1.5rem;
 }
 
-/* ── Photo review ──────────────────────────────────────────────────────── */
+/* Photo review / confirm step (front + optional back) */
 .photoReviewSection {
   padding: 1.5rem 1.25rem 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
+  gap: 1rem;
 }
 
 .photoSlotRow {
@@ -217,12 +136,10 @@
 .photoSlot {
   position: relative;
   aspect-ratio: 1;
-  border-radius: var(--r-md);
+  border-radius: 0.875rem;
   overflow: hidden;
-  border: 1px solid var(--edge-strong);
-  background: var(--bg-sunken);
-  box-shadow: var(--e2);
-  animation: scale-in var(--t-base) var(--ease-spring) both;
+  border: 1px solid var(--border-subtle);
+  background: #000;
 }
 
 .photoSlotImg {
@@ -236,56 +153,39 @@
   position: absolute;
   bottom: 0.5rem;
   left: 0.5rem;
-  background: var(--glass-3);
-  backdrop-filter: var(--blur-sm);
-  -webkit-backdrop-filter: var(--blur-sm);
+  background: rgba(245, 247, 251, 0.85);
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 600;
-  padding: 0.22rem 0.6rem;
-  border-radius: var(--r-pill);
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
   letter-spacing: 0.03em;
-  box-shadow: var(--e1);
 }
 
 .photoSlotRemove {
   position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  width: 32px;
-  height: 32px;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
-  background: var(--glass-3);
-  backdrop-filter: var(--blur-sm);
-  -webkit-backdrop-filter: var(--blur-sm);
-  border: 1px solid var(--edge-strong);
+  background: rgba(245, 247, 251, 0.85);
+  border: 1px solid var(--border-strong);
   color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--e1);
-  transition:
-    background-color var(--t-base) var(--ease-out),
-    color var(--t-base) var(--ease-out),
-    transform var(--t-fast) var(--ease-out);
+  transition: background 0.2s;
 }
-
-.photoSlotRemove:hover:not(:disabled) {
-  background: var(--verdict-counterfeit-soft);
-  border-color: var(--verdict-counterfeit-line);
-  color: var(--verdict-counterfeit);
-}
-
-.photoSlotRemove:active:not(:disabled) { transform: scale(0.9); }
+.photoSlotRemove:hover:not(:disabled) { background: rgba(190, 18, 60, 0.3); }
 .photoSlotRemove:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Dashed + recessed: clearly an empty slot awaiting content, not a card */
 .addBackSlot {
   aspect-ratio: 1;
-  border-radius: var(--r-md);
-  border: 1px dashed var(--edge-strong);
-  background: var(--glass-input);
+  border-radius: 0.875rem;
+  border: 1px dashed var(--border-interactive);
+  background: #f8fafc;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
@@ -295,29 +195,21 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.28);
-  transition:
-    border-color var(--t-base) var(--ease-out),
-    color var(--t-base) var(--ease-out),
-    background-color var(--t-base) var(--ease-out),
-    transform var(--t-fast) var(--ease-out);
+  transition: all 0.2s;
 }
-
 .addBackSlot:hover:not(:disabled) {
-  border-color: var(--brand-cyan);
-  color: var(--brand-cyan);
-  background: var(--brand-cyan-soft);
+  border-color: var(--cyan-glow);
+  color: var(--cyan-glow);
+  background: rgba(0, 119, 168, 0.05);
 }
-
-.addBackSlot:active:not(:disabled) { transform: scale(0.98); }
 .addBackSlot:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .optionalTag {
   font-size: 10px;
   font-weight: 500;
-  opacity: 0.7;
+  opacity: 0.6;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .photoReviewHint {
@@ -328,27 +220,25 @@
 }
 
 .errorBanner {
-  background: var(--verdict-counterfeit-soft);
-  border: 1px solid var(--verdict-counterfeit-line);
-  border-radius: var(--r-sm);
+  background: rgba(190, 18, 60, 0.12);
+  border: 1px solid rgba(190, 18, 60, 0.3);
+  border-radius: 12px;
   padding: 12px 16px;
   margin: 0 1.25rem 1rem;
   color: var(--verdict-counterfeit);
   font-size: 14px;
   display: flex;
   align-items: center;
-  gap: var(--s-2);
-  box-shadow: var(--e1);
-  animation: rise-in var(--t-base) var(--ease-out) both;
+  gap: 8px;
 }
 
-/* ── Manual entry ──────────────────────────────────────────────────────── */
+/* Manual input */
 .manualSection {
   padding: 1.5rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
-  border-bottom: 1px solid var(--edge);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .orDivider {
@@ -358,138 +248,70 @@
 }
 
 .scanBtn {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--s-2);
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.95rem;
-  min-height: 48px;
-  background: var(--grad-brand);
-  color: var(--text-on-brand);
-  font-family: var(--font-heading);
+  padding: 0.875rem;
+  background: var(--liquid-primary-grad);
+  color: #ffffff;
   font-weight: 700;
   font-size: 15px;
   border: none;
-  border-radius: var(--r-sm);
+  border-radius: 12px;
   cursor: pointer;
-  isolation: isolate;
-  box-shadow: var(--e2), var(--bloom-brand);
-  transition:
-    transform var(--t-fast) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    filter var(--t-base) var(--ease-out);
+  transition: all 0.2s;
+  font-family: var(--font-heading);
 }
+.scanBtn:hover:not(:disabled) { box-shadow: var(--accent-glow-shadow); }
+.scanBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.scanBtn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-.scanBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--e3), var(--bloom-brand);
-  filter: saturate(1.12) brightness(1.05);
-}
-
-.scanBtn:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: var(--e1), var(--bloom-brand);
-}
-
-.scanBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-/* ── Recent scans ──────────────────────────────────────────────────────── */
+/* Recent Scans */
 .recentSection {
   padding: 1.25rem;
   flex: 1;
 }
-
 .sectionHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--s-3);
-  margin-bottom: var(--s-4);
+  margin-bottom: 1rem;
 }
-
 .sectionTitle {
   font-family: var(--font-heading);
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
 }
-
 .viewAllBtn {
   font-size: 13px;
-  color: var(--brand-cyan);
+  color: var(--cyan-glow);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.viewAllBtn:hover { text-decoration: underline; }
-
-.recentList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-}
-
+.recentList { display: flex; flex-direction: column; gap: 0.75rem; }
 .recentItem {
   display: flex;
   align-items: center;
   gap: 0.875rem;
-  background: var(--glass-1);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-md);
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
   padding: 0.875rem 1rem;
-  box-shadow: var(--e1);
-  transition:
-    transform var(--t-base) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    border-color var(--t-base) var(--ease-out);
 }
-
-.recentItem:hover {
-  transform: translateY(-2px);
-  border-color: var(--edge-strong);
-  box-shadow: var(--e2);
-}
-
-/* Verdict dot carries a matching halo so status is readable at a glance
-   even before the text label is scanned. */
 .recentDot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
 }
-
-.recentInfo { flex: 1; min-width: 0; }
-
-.recentName {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.2rem;
-}
-
-.recentBatch {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
+.recentInfo { flex: 1; }
+.recentName { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 0.2rem; }
+.recentBatch { font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono); }
 .recentStatus {
   font-size: 12px;
   font-weight: 700;
@@ -499,17 +321,5 @@
 .emptyState {
   font-size: 14px;
   color: var(--text-muted);
-  padding: var(--s-2) 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scanLine { animation: none; opacity: 0.6; top: 50%; }
-  .cornerTL, .cornerTR, .cornerBL, .cornerBR { animation: none; }
-  .recentItem:hover,
-  .scanBtn:hover:not(:disabled),
-  .scanBtn:active:not(:disabled),
-  .addBackSlot:active:not(:disabled),
-  .photoSlotRemove:active:not(:disabled),
-  .backBtn:active,
-  .helpBtn:active { transform: none; }
+  padding: 8px 0;
 }

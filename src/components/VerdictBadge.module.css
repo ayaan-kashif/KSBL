@@ -1,91 +1,95 @@
-/* Verdict badges carry meaning, so each variant pairs its colour with a
-   distinct icon (supplied by the component) — colour is never the only
-   signal, which keeps the verdict legible to colour-blind users. */
 .badge {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--s-2);
-  border-radius: var(--r-pill);
-  font-family: var(--font-body);
+  gap: 0.625rem;
+  border-radius: 9999px;
   font-weight: 700;
-  letter-spacing: 0.01em;
-  border: 1px solid transparent;
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  isolation: isolate;
+  letter-spacing: 0.02em;
+  font-family: var(--font-body);
 }
 
-/* Inner gloss arc — makes the pill read as a raised lozenge */
-.badge::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, transparent 55%);
-  pointer-events: none;
+/* The two languages stack rather than being slashed together, so neither
+   reads as an afterthought of the other. */
+.labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
 }
 
-/* ── Sizes ─────────────────────────────────────────────────────────────── */
-.sm { padding: 0.3rem 0.8rem;   font-size: 12px; }
-.md { padding: 0.55rem 1.25rem; font-size: 14px; }
-.lg { padding: 0.85rem 1.85rem; font-size: 18px; }
+.labelPrimary {
+  font-weight: 700;
+}
+
+.labelSecondary {
+  font-weight: 600;
+  opacity: 0.82;
+}
+
+.urdu {
+  font-family: var(--font-urdu);
+  /* Naskh needs materially more leading than Latin or the glyphs clip. */
+  line-height: 1.9;
+}
+
+/* Sizes */
+.sm { padding: 0.3rem 0.75rem; font-size: 12px; }
+.md { padding: 0.5rem 1.1rem; font-size: 14px; }
+.lg { padding: 0.7rem 1.6rem; font-size: 18px; }
 .sm .icon { font-size: 16px; }
 .md .icon { font-size: 20px; }
 .lg .icon { font-size: 28px; }
 
-.icon { flex-shrink: 0; line-height: 1; }
+.sm .labelSecondary { font-size: 11px; }
+.md .labelSecondary { font-size: 12.5px; }
+.lg .labelSecondary { font-size: 15px; }
 
-/* ── Variants ──────────────────────────────────────────────────────────── */
+/* Urdu runs a touch larger to optically match the Latin line. */
+.sm .urdu { font-size: 13px; }
+.md .urdu { font-size: 15px; }
+.lg .urdu { font-size: 19px; }
+.sm .urdu.labelSecondary { font-size: 12px; }
+.md .urdu.labelSecondary { font-size: 13.5px; }
+.lg .urdu.labelSecondary { font-size: 16px; }
+
+/* Variants — tinted surface + 1px border + text colour, no glow. A coloured
+   halo does not register on a light canvas; the tint and border carry it. */
 .genuine {
-  background: var(--verdict-genuine-soft);
+  background: var(--verdict-genuine-bg);
   color: var(--verdict-genuine);
-  border-color: var(--verdict-genuine-line);
-  box-shadow: var(--e1), var(--bloom-genuine);
+  border: 1px solid var(--verdict-genuine-border);
 }
 
 .suspicious {
-  background: var(--verdict-suspicious-soft);
+  background: var(--verdict-suspicious-bg);
   color: var(--verdict-suspicious);
-  border-color: var(--verdict-suspicious-line);
-  box-shadow: var(--e1), var(--bloom-suspicious);
+  border: 1px solid var(--verdict-suspicious-border);
 }
 
 .counterfeit {
-  background: var(--verdict-counterfeit-soft);
+  background: var(--verdict-counterfeit-bg);
   color: var(--verdict-counterfeit);
-  border-color: var(--verdict-counterfeit-line);
-  box-shadow: var(--e1), var(--bloom-counterfeit);
+  border: 1px solid var(--verdict-counterfeit-border);
 }
 
 .unverified {
-  background: var(--glass-2);
+  background: #f1f5f9;
   color: var(--text-secondary);
-  border-color: var(--edge-strong);
-  box-shadow: var(--e1);
+  border: 1px solid var(--border-strong);
 }
 
 .processing {
-  background: var(--brand-cyan-soft);
-  color: var(--brand-cyan);
-  border-color: rgba(34, 211, 238, 0.32);
-  box-shadow: var(--e1);
+  background: #eff6ff;
+  color: var(--cyan-glow);
+  border: 1px solid #bae6fd;
+  animation: processingPulse 2s ease-in-out infinite;
 }
 
-/* Expanding halo — signals live work without the badge itself moving,
-   so surrounding layout stays perfectly still. */
-.processing::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  z-index: -2;
-  border-radius: inherit;
-  border: 1px solid var(--brand-cyan);
-  animation: pulse-ring 1.9s var(--ease-out) infinite;
-  pointer-events: none;
+@keyframes processingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .processing::after { animation: none; opacity: 0.35; }
+  .processing { animation: none; }
 }

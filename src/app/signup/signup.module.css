@@ -1,14 +1,12 @@
 .page {
-  min-height: 100dvh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem 1.25rem;
   position: relative;
   overflow: hidden;
-  /* transparent so the global aurora field shows through; an opaque fill
-     here would flatten every glass surface stacked above it */
-  background: transparent;
+  background: var(--bg-base);
 }
 
 .bgOrb1 {
@@ -17,7 +15,7 @@
   left: -15rem;
   width: 50rem;
   height: 50rem;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.07) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 119, 168, 0.07) 0%, transparent 70%);
   animation: drift1 12s ease-in-out infinite;
   pointer-events: none;
 }
@@ -27,7 +25,7 @@
   right: -10rem;
   width: 40rem;
   height: 40rem;
-  background: radial-gradient(circle, rgba(124, 92, 255, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(109, 40, 217, 0.06) 0%, transparent 70%);
   pointer-events: none;
 }
 @keyframes drift1 {
@@ -59,13 +57,13 @@
   width: 5rem;
   height: 5rem;
   background: var(--bg-glass-card);
-  border: 1px solid rgba(34, 211, 238, 0.3);
+  border: 1px solid rgba(0, 119, 168, 0.3);
   border-radius: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 2rem;
-  box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
+  box-shadow: 0 0 30px rgba(0, 119, 168, 0.15);
 }
 .logoMark .material-symbols-outlined {
   font-size: 40px;
@@ -100,8 +98,8 @@
   gap: 0.5rem;
   font-size: 14px;
   color: var(--text-secondary);
-  background: var(--glass-1);
-  border: 1px solid var(--edge);
+  background: #f8fafc;
+  border: 1px solid var(--border-subtle);
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   width: fit-content;
@@ -110,16 +108,9 @@
 /* Signup Card */
 .signupCard {
   flex: 1;
-  /* Flex items default to min-width:auto, which refuses to shrink below the
-     card's content width and pushes it past the viewport on narrow phones. */
-  min-width: 0;
   padding: 2.5rem;
   width: 100%;
   max-width: 440px;
-}
-
-@media (max-width: 420px) {
-  .signupCard { padding: 1.75rem 1.25rem; }
 }
 
 .cardTitle {
@@ -139,8 +130,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 77, 109, 0.12);
-  border: 1px solid rgba(255, 77, 109, 0.3);
+  background: rgba(190, 18, 60, 0.12);
+  border: 1px solid rgba(190, 18, 60, 0.3);
   color: var(--verdict-counterfeit);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
@@ -167,5 +158,5 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--glass-2);
+  background: #e9eef5;
 }

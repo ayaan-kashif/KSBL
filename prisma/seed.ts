@@ -10,9 +10,9 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 import { Pool } from "pg";
-import nextEnv from "@next/env";
-const { loadEnvConfig } = nextEnv;
+import { loadEnvConfig } from "@next/env";
 
 loadEnvConfig(process.cwd());
 
@@ -152,6 +152,241 @@ async function main() {
     }
 
     console.log(`\n🗺️  Demo scans + reports created for ${demoAreas.length} Karachi areas`);
+  }
+
+  // ── HORECA partners, offers and demo vouchers ──────────────────────────────
+  // Fictional restaurants — do NOT substitute real Karachi businesses, that
+  // would imply partnerships that don't exist. Areas match the demoAreas above
+  // so the rewards map lines up with the counterfeit heatmap.
+  // bulk_credit_pkr is held at ~40% of consumer_value_pkr; that ratio is the
+  // commercial pitch, so keep it consistent when adding offers.
+  const partners = [
+    {
+      id: "partner_horeca_001",
+      name: "Karachi Spice House",
+      cuisine: "Pakistani / BBQ",
+      area: "Clifton",
+      latitude: 24.8138,
+      longitude: 67.03,
+      nfl_account_ref: "NFL-HRC-1001",
+      offers: [
+        {
+          id: "offer_horeca_001",
+          title_en: "Rs 500 Dining Credit",
+          title_ur: "روپے 500 کھانے کا کریڈٹ",
+          description_en: "Rs 500 off your bill on any dine-in order.",
+          description_ur: "کسی بھی ڈائن اِن آرڈر پر بل میں 500 روپے کی رعایت۔",
+          points_cost: 400,
+          consumer_value_pkr: 500,
+          bulk_credit_pkr: 200,
+        },
+        {
+          id: "offer_horeca_002",
+          title_en: "Free Dessert for Two",
+          title_ur: "دو افراد کے لیے مفت میٹھا",
+          description_en: "Complimentary dessert platter for two guests.",
+          description_ur: "دو مہمانوں کے لیے مفت میٹھے کی پلیٹ۔",
+          points_cost: 150,
+          consumer_value_pkr: 350,
+          bulk_credit_pkr: 140,
+        },
+      ],
+    },
+    {
+      id: "partner_horeca_002",
+      name: "Gulshan Biryani Center",
+      cuisine: "Biryani / Desi",
+      area: "Gulshan-e-Iqbal",
+      latitude: 24.9216,
+      longitude: 67.0942,
+      nfl_account_ref: "NFL-HRC-1002",
+      offers: [
+        {
+          id: "offer_horeca_003",
+          title_en: "Rs 1,000 Family Meal Credit",
+          title_ur: "روپے 1,000 فیملی کھانے کا کریڈٹ",
+          description_en: "Rs 1,000 off a family biryani platter.",
+          description_ur: "فیملی بریانی پلیٹر پر 1,000 روپے کی رعایت۔",
+          points_cost: 800,
+          consumer_value_pkr: 1000,
+          bulk_credit_pkr: 400,
+        },
+        {
+          id: "offer_horeca_004",
+          title_en: "Rs 500 Dining Credit",
+          title_ur: "روپے 500 کھانے کا کریڈٹ",
+          description_en: "Rs 500 off your bill on any dine-in order.",
+          description_ur: "کسی بھی ڈائن اِن آرڈر پر بل میں 500 روپے کی رعایت۔",
+          points_cost: 400,
+          consumer_value_pkr: 500,
+          bulk_credit_pkr: 200,
+        },
+      ],
+    },
+    {
+      id: "partner_horeca_003",
+      name: "Saddar Chai Khana",
+      cuisine: "Cafe / Breakfast",
+      area: "Saddar Karachi",
+      latitude: 24.8608,
+      longitude: 67.0104,
+      nfl_account_ref: "NFL-HRC-1003",
+      offers: [
+        {
+          id: "offer_horeca_005",
+          title_en: "Free Dessert for Two",
+          title_ur: "دو افراد کے لیے مفت میٹھا",
+          description_en: "Complimentary kheer and chai for two.",
+          description_ur: "دو افراد کے لیے مفت کھیر اور چائے۔",
+          points_cost: 150,
+          consumer_value_pkr: 350,
+          bulk_credit_pkr: 140,
+        },
+      ],
+    },
+    {
+      id: "partner_horeca_004",
+      name: "Korangi Kebab Corner",
+      cuisine: "BBQ / Fast Food",
+      area: "Korangi Industrial Area",
+      latitude: 24.8328,
+      longitude: 67.1025,
+      nfl_account_ref: "NFL-HRC-1004",
+      offers: [
+        {
+          id: "offer_horeca_006",
+          title_en: "Rs 500 Dining Credit",
+          title_ur: "روپے 500 کھانے کا کریڈٹ",
+          description_en: "Rs 500 off any seekh kebab platter.",
+          description_ur: "کسی بھی سیخ کباب پلیٹر پر 500 روپے کی رعایت۔",
+          points_cost: 400,
+          consumer_value_pkr: 500,
+          bulk_credit_pkr: 200,
+        },
+        {
+          id: "offer_horeca_007",
+          title_en: "Rs 1,000 Family Meal Credit",
+          title_ur: "روپے 1,000 فیملی کھانے کا کریڈٹ",
+          description_en: "Rs 1,000 off a family BBQ platter.",
+          description_ur: "فیملی بار بی کیو پلیٹر پر 1,000 روپے کی رعایت۔",
+          points_cost: 800,
+          consumer_value_pkr: 1000,
+          bulk_credit_pkr: 400,
+        },
+      ],
+    },
+    {
+      id: "partner_horeca_005",
+      name: "Liaquatabad Karahi Co.",
+      cuisine: "Karahi / Desi",
+      area: "Liaquatabad",
+      latitude: 24.9148,
+      longitude: 67.0421,
+      nfl_account_ref: "NFL-HRC-1005",
+      offers: [
+        {
+          id: "offer_horeca_008",
+          title_en: "Free Dessert for Two",
+          title_ur: "دو افراد کے لیے مفت میٹھا",
+          description_en: "Complimentary halwa for two guests.",
+          description_ur: "دو مہمانوں کے لیے مفت حلوہ۔",
+          points_cost: 150,
+          consumer_value_pkr: 350,
+          bulk_credit_pkr: 140,
+        },
+      ],
+    },
+  ];
+
+  for (const { offers, ...partner } of partners) {
+    await prisma.partner.upsert({
+      where: { id: partner.id },
+      update: {},
+      create: partner,
+    });
+    for (const offer of offers) {
+      await prisma.rewardOffer.upsert({
+        where: { id: offer.id },
+        update: {},
+        create: { ...offer, partner_id: partner.id },
+      });
+    }
+    console.log(`  🍽️  Partner: ${partner.name} (${offers.length} offer(s))`);
+  }
+
+  // ── Demo customer ──────────────────────────────────────────────────────────
+  // A known account with a spendable balance, so the rewards → wallet →
+  // partner walkthrough can be run without hand-editing the database.
+  //
+  // 450 points is chosen so the catalog shows BOTH states on one screen: it
+  // affords the 150- and 400-point offers, and locks the 800-point one at
+  // "350 more points". A balance that affords everything demos half the UI.
+  const DEMO_POINTS = 450;
+  const demoUser = await prisma.user.upsert({
+    where: { email: "demo@shelfwatch.pk" },
+    // Reset the balance on every seed run so a rehearsal that spends the
+    // points doesn't leave the next run unable to redeem.
+    update: { score_points: DEMO_POINTS },
+    create: {
+      name: "Demo Consumer",
+      email: "demo@shelfwatch.pk",
+      password_hash: bcrypt.hashSync("Demo1234", 10),
+      score_points: DEMO_POINTS,
+    },
+  });
+  console.log(`\n👤 Demo customer: demo@shelfwatch.pk / Demo1234 (${DEMO_POINTS} points)`);
+
+  // Pre-redeemed vouchers so the dashboard HORECA tile shows real numbers on
+  // first load rather than zeros.
+  {
+    const day = 24 * 60 * 60 * 1000;
+    const demoVouchers = [
+      { id: "voucher_seed_001", offer_id: "offer_horeca_001", code: "K7M4XR29", redeemedDaysAgo: 7 },
+      { id: "voucher_seed_002", offer_id: "offer_horeca_003", code: "B8TQ5W3Z", redeemedDaysAgo: 5 },
+      { id: "voucher_seed_003", offer_id: "offer_horeca_002", code: "P2HJ6N4V", redeemedDaysAgo: 4 },
+      { id: "voucher_seed_004", offer_id: "offer_horeca_006", code: "D9SF3K7Y", redeemedDaysAgo: 2 },
+      { id: "voucher_seed_005", offer_id: "offer_horeca_004", code: "M5RC8T2X", redeemedDaysAgo: 1 },
+      { id: "voucher_seed_006", offer_id: "offer_horeca_005", code: "W4GB7Y6Q", redeemedDaysAgo: null },
+    ];
+
+    for (const v of demoVouchers) {
+      await prisma.voucher.upsert({
+        where: { id: v.id },
+        update: {},
+        create: {
+          id: v.id,
+          user_id: demoUser.id,
+          offer_id: v.offer_id,
+          code: v.code,
+          status: v.redeemedDaysAgo === null ? "issued" : "redeemed",
+          issued_at: new Date(Date.now() - ((v.redeemedDaysAgo ?? 0) + 2) * day),
+          expires_at: new Date(Date.now() + 28 * day),
+          redeemed_at: v.redeemedDaysAgo === null ? null : new Date(Date.now() - v.redeemedDaysAgo * day),
+        },
+      });
+    }
+
+    // Derive each partner's issued credit from the redeemed vouchers rather
+    // than hardcoding a total that could drift away from them.
+    const redeemed = await prisma.voucher.findMany({
+      where: { status: "redeemed" },
+      include: { offer: true },
+    });
+    const creditByPartner = new Map<string, number>();
+    for (const v of redeemed) {
+      creditByPartner.set(
+        v.offer.partner_id,
+        (creditByPartner.get(v.offer.partner_id) ?? 0) + v.offer.bulk_credit_pkr
+      );
+    }
+    for (const [partnerId, total] of creditByPartner) {
+      await prisma.partner.update({
+        where: { id: partnerId },
+        data: { bulk_credit_issued_pkr: total },
+      });
+    }
+
+    console.log(`\n🎟️  Demo vouchers seeded for ${demoUser.email} (${redeemed.length} redeemed)`);
   }
 
   console.log("\n✅ Seed complete!");

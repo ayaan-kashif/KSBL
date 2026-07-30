@@ -3,23 +3,21 @@
   top: 0;
   left: 0;
   width: 100%;
-  z-index: var(--z-nav);
+  z-index: 50;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.875rem 1.25rem;
-  background: var(--glass-2);
-  padding-top: max(0.875rem, env(safe-area-inset-top));
-  backdrop-filter: var(--blur-lg) saturate(1.5);
-  -webkit-backdrop-filter: var(--blur-lg) saturate(1.5);
-  border-bottom: 1px solid var(--edge);
-  box-shadow: 0 1px 0 var(--edge-specular) inset, 0 8px 24px rgba(0, 0, 0, 0.26);
+  background: rgba(245, 247, 251, 0.5);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .logo {
   font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 700;
-  background: var(--grad-brand);
+  background: var(--liquid-primary-grad);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -30,22 +28,14 @@
   color: var(--text-secondary);
   background: transparent;
   border: none;
-  /* 44px hit area even though the glyph is 24px */
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border-radius: var(--r-pill);
+  padding: 0.5rem;
+  border-radius: 50%;
   cursor: pointer;
+  transition: background 0.2s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition:
-    background-color var(--t-base) var(--ease-out),
-    color var(--t-base) var(--ease-out),
-    transform var(--t-fast) var(--ease-out);
 }
-.iconButton:hover { background: var(--glass-hover); color: var(--text-primary); }
-.iconButton:active { transform: scale(0.92); }
+.iconButton:hover { background: var(--bg-glass-hover); }
 
 .container {
   padding-top: 6rem;
@@ -53,7 +43,7 @@
   padding-left: 1.25rem;
   padding-right: 1.25rem;
   position: relative;
-  min-height: 100dvh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -102,11 +92,7 @@
   align-items: center;
   gap: 1rem;
 }
-/* Spherical medallion — the inner highlight sits up-left, matching the light
-   source assumed by every elevation shadow in the system. Colour comes from
-   the verdict via inline style, so this stays verdict-agnostic. */
 .warningIconWrapper {
-  position: relative;
   width: 5rem;
   height: 5rem;
   border-radius: 50%;
@@ -114,20 +100,6 @@
   align-items: center;
   justify-content: center;
   border: 2px solid;
-  box-shadow:
-    inset 0 2px 6px rgba(255, 255, 255, 0.18),
-    inset 0 -6px 14px rgba(0, 0, 0, 0.26),
-    var(--e3);
-  animation: scale-in var(--t-slow) var(--ease-spring) both;
-}
-
-.warningIconWrapper::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.22) 0%, transparent 58%);
-  pointer-events: none;
 }
 .warningIcon { font-size: 48px; }
 .verdictTitle {
@@ -136,10 +108,35 @@
   font-weight: 700;
   margin-bottom: 0.4rem;
   letter-spacing: 0.01em;
+  /* Languages stack instead of sharing one line with a slash. */
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  align-items: flex-start;
 }
 .urduText {
   font-family: var(--font-urdu);
   font-weight: 600;
+}
+.urduHeadline {
+  font-family: var(--font-urdu);
+  font-weight: 700;
+  /* Naskh clips at Latin leading. */
+  line-height: 1.9;
+}
+/* The non-leading language stays visible but recedes. It inherits the verdict
+   colour from .verdictTitle, so this only drops size/weight — keeping it well
+   above the 4.5:1 floor. */
+.secondaryHeadline {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.78;
+}
+.batchValue {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 .verdictSubtitle { font-size: 14px; color: var(--text-secondary); }
 
@@ -147,31 +144,25 @@
 .flexBetween { display: flex; justify-content: space-between; align-items: center; }
 .labelCaps { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; color: var(--text-secondary); text-transform: uppercase; }
 .confidenceValue { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
-/* Recessed channel + raised fill: the confidence bar reads as a physical
-   gauge, and the inset keeps it distinct from the raised cards around it. */
 .progressBarTrack {
   height: 1rem;
   width: 100%;
-  background: var(--bg-sunken);
-  border-radius: var(--r-pill);
+  background: #e9eef5;
+  border-radius: 9999px;
   overflow: hidden;
-  border: 1px solid var(--edge);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
 }
 .progressBarFill {
   height: 100%;
-  border-radius: var(--r-pill);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.32),
-    0 0 14px color-mix(in srgb, currentColor 45%, transparent);
-  transition: width var(--t-slow) var(--ease-out);
+  border-radius: 9999px;
 }
-.analysisNote { font-size: 14px; color: var(--text-secondary); font-style: italic; }
+/* Wraps a BilingualText block now, so no font-style here — italic renders
+   Arabic script poorly and the child handles its own colour/size. */
+.analysisNote { font-size: 14px; }
 
 .reasonsGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 .reasonChip {
   padding: 1rem;
-  transition: transform var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -190,32 +181,27 @@
 .telemetryTrack {
   height: 6px;
   width: 100%;
-  background: var(--bg-sunken);
-  border: 1px solid var(--edge);
-  border-radius: var(--r-pill);
+  background: #e9eef5;
+  border-radius: 999px;
   overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 .telemetryFill {
   height: 100%;
-  border-radius: var(--r-pill);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  transition: width var(--t-slow) var(--ease-out);
+  border-radius: 999px;
 }
 
 .productSnapshot { overflow: hidden; }
-.snapshotImage { width: 100%; height: 10rem; background-size: cover; background-position: center; border-bottom: 1px solid var(--edge-strong); }
+.snapshotImage { width: 100%; height: 10rem; background-size: cover; background-position: center; border-bottom: 1px solid var(--border-subtle); }
 .snapshotDetails { padding: 1.5rem; display: grid; grid-template-columns: repeat(2,1fr); gap: 1rem; width: 100%; }
 .detailValue { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-top: 0.25rem; }
 .mono { font-family: var(--font-mono); }
 
 .urgentWarning {
-  border-radius: var(--r-lg);
+  border-radius: 18px;
   padding: 1.5rem;
   display: flex;
   align-items: flex-start;
-  gap: var(--s-4);
-  box-shadow: var(--e2);
+  gap: 1rem;
 }
 .warningTitle { font-size: 15px; font-weight: 700; margin-bottom: 0.25rem; }
 .warningBody { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
@@ -229,19 +215,30 @@
   margin-top: 8px;
 }
 
-.reasonChip:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--e3);
+/* Provenance line under the verdict — which pipeline produced this result. */
+.pathLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
-/* Sits above the snapshot image, so it needs the shadow to separate it
-   from the photo behind rather than relying on the border alone. */
-.productSnapshot { box-shadow: var(--e2); }
+.pathLabel [lang="ur"] {
+  font-family: var(--font-urdu);
+  line-height: 1.9;
+}
 
-@media (prefers-reduced-motion: reduce) {
-  .pulseAmberBig,
-  .pulseAmberCenter { animation: none; }
-  .warningIconWrapper { animation: none; }
-  .reasonChip:hover,
-  .iconButton:active { transform: none; }
+.pathMetric {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: #f1f5f9;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  padding: 1px 8px;
 }

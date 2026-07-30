@@ -1,47 +1,57 @@
+'use client';
+
 import React from 'react';
 import styles from './VerdictBadge.module.css';
-
-type Verdict = 'genuine' | 'suspicious' | 'counterfeit' | 'unverified' | 'processing';
+import { VERDICT_LABEL, type BadgeVerdict } from '@/lib/verdictCopy';
+import { useLanguage } from './LanguageContext';
 
 interface VerdictBadgeProps {
-  verdict: Verdict;
+  verdict: BadgeVerdict;
   size?: 'sm' | 'md' | 'lg';
 }
 
-const verdictConfig = {
-  genuine: {
-    icon: 'verified',
-    label: 'Genuine / اصل',
-    className: 'genuine',
-  },
-  suspicious: {
-    icon: 'warning',
-    label: 'Suspicious / مشکوک',
-    className: 'suspicious',
-  },
-  counterfeit: {
-    icon: 'cancel',
-    label: 'Counterfeit / جعلی',
-    className: 'counterfeit',
-  },
-  unverified: {
-    icon: 'help_outline',
-    label: 'Unverified / غیر تصدیق شدہ',
-    className: 'unverified',
-  },
-  processing: {
-    icon: 'radar',
-    label: 'Processing...',
-    className: 'processing',
-  },
+const verdictIcon: Record<BadgeVerdict, string> = {
+  genuine: 'verified',
+  suspicious: 'warning',
+  counterfeit: 'cancel',
+  unverified: 'help_outline',
+  processing: 'radar',
 };
 
 export default function VerdictBadge({ verdict, size = 'md' }: VerdictBadgeProps) {
-  const config = verdictConfig[verdict];
+  const { lang } = useLanguage();
+  const label = VERDICT_LABEL[verdict];
+  const urduLeads = lang === 'ur';
+
+  // Both languages always render; the toggle only decides which one leads.
+  const urduLine = (
+    <span
+      lang="ur"
+      dir="rtl"
+      className={`${styles.urdu} ${urduLeads ? styles.labelPrimary : styles.labelSecondary}`}
+    >
+      {label.ur}
+    </span>
+  );
+  const englishLine = (
+    <span
+      lang="en"
+      dir="ltr"
+      className={urduLeads ? styles.labelSecondary : styles.labelPrimary}
+    >
+      {label.en}
+    </span>
+  );
+
   return (
-    <div className={`${styles.badge} ${styles[config.className]} ${styles[size]}`}>
-      <span className={`material-symbols-outlined ${styles.icon}`}>{config.icon}</span>
-      <span className={styles.label}>{config.label}</span>
+    <div className={`${styles.badge} ${styles[verdict]} ${styles[size]}`}>
+      <span className={`material-symbols-outlined ${styles.icon}`} aria-hidden="true">
+        {verdictIcon[verdict]}
+      </span>
+      <span className={styles.labels}>
+        {urduLeads ? urduLine : englishLine}
+        {urduLeads ? englishLine : urduLine}
+      </span>
     </div>
   );
 }

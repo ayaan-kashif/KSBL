@@ -97,6 +97,9 @@ export interface VerifyResult {
   verdict: Verdict;
   confidence: number;
   reason: string;
+  /** Urdu counterpart of `reason`. `reason` stays the English text so
+   *  existing consumers of this shape are unaffected. */
+  reason_ur: string;
   urdu_text: string;
   english_text: string;
   image_url: string;
@@ -402,13 +405,23 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   // image, ask Gemini to compare the two photos directly and use that as the
   // reason (richer, image-grounded) instead of the generic batch/score-based
   // reason — this also saves a second Gemini call.
-  let verdictText: { urdu_text: string; english_text: string; reason: string };
+  let verdictText: {
+    urdu_text: string;
+    english_text: string;
+    reason: string;
+    reason_ur: string;
+  };
   if (identifiedViaImage && product?.reference_image_url) {
+    // compareProductImages now returns {en, ur} rather than a bare string.
     const comparisonReason = await compareProductImages(imageUrl, product.reference_image_url, {
       product_name: product.product_name,
       brand_name: product.brand_name,
     });
-    verdictText = { ...getVerdictTextSync(verdict), reason: comparisonReason };
+    verdictText = {
+      ...getVerdictTextSync(verdict),
+      reason: comparisonReason.en,
+      reason_ur: comparisonReason.ur,
+    };
   } else {
     verdictText = await getVerdictText(verdict, {
       batch: ocrBatch,
@@ -511,6 +524,7 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
     verdict,
     confidence,
     reason: verdictText.reason,
+    reason_ur: verdictText.reason_ur,
     urdu_text: verdictText.urdu_text,
     english_text: verdictText.english_text,
     image_url: imageUrl,

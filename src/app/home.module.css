@@ -1,136 +1,110 @@
 .page {
-  min-height: 100dvh;
+  min-height: 100vh;
   position: relative;
   overflow: hidden;
   font-family: var(--font-body);
 }
 
-/* The global aurora field (body::before) supplies the ambient wash. These
-   orbs add page-local parallax on top of it at slightly different speeds,
-   so the background has depth of its own rather than one flat glow. */
-.bgOrb1,
-.bgOrb2,
+/* Animated BG */
+.bgGradient {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 50%, rgba(0, 119, 168, 0.07) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(109, 40, 217, 0.07) 0%, transparent 50%),
+              var(--bg-base);
+  z-index: 0;
+}
+.bgOrb1 {
+  position: fixed;
+  top: -10rem;
+  left: -10rem;
+  width: 40rem;
+  height: 40rem;
+  background: radial-gradient(circle, rgba(0, 119, 168, 0.08) 0%, transparent 70%);
+  animation: drift1 12s ease-in-out infinite;
+  z-index: 0;
+}
+.bgOrb2 {
+  position: fixed;
+  bottom: -10rem;
+  right: -5rem;
+  width: 30rem;
+  height: 30rem;
+  background: radial-gradient(circle, rgba(109, 40, 217, 0.07) 0%, transparent 70%);
+  animation: drift2 15s ease-in-out infinite;
+  z-index: 0;
+}
 .bgOrb3 {
   position: fixed;
-  z-index: 0;
-  pointer-events: none;
-  filter: blur(12px);
-}
-
-.bgOrb1 {
-  top: -12rem;
-  left: -10rem;
-  width: 42rem;
-  height: 42rem;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.13) 0%, transparent 68%);
-  animation: drift1 22s ease-in-out infinite;
-}
-
-.bgOrb2 {
-  bottom: -10rem;
-  right: -6rem;
-  width: 34rem;
-  height: 34rem;
-  background: radial-gradient(circle, rgba(124, 92, 255, 0.13) 0%, transparent 68%);
-  animation: drift2 27s ease-in-out infinite;
-}
-
-.bgOrb3 {
   top: 50%;
   left: 50%;
-  width: 52rem;
-  height: 32rem;
-  max-width: 150vw;
   transform: translate(-50%, -50%);
-  background: radial-gradient(ellipse, rgba(0, 229, 160, 0.06) 0%, transparent 70%);
+  width: 50rem;
+  height: 30rem;
+  background: radial-gradient(ellipse, rgba(4, 120, 87, 0.03) 0%, transparent 70%);
+  z-index: 0;
 }
 
 @keyframes drift1 {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(46px, 34px, 0); }
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(40px, 30px); }
 }
 @keyframes drift2 {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(-36px, -24px, 0); }
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-30px, -20px); }
 }
 
-/* ── Header ────────────────────────────────────────────────────────────── */
 .header {
   position: relative;
-  z-index: var(--z-raised);
+  z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--s-4);
-  padding: 1.25rem 2rem;
-  padding-top: max(1.25rem, env(safe-area-inset-top));
-  border-bottom: 1px solid var(--edge);
-  background: var(--glass-1);
-  backdrop-filter: var(--blur-lg) saturate(1.4);
-  -webkit-backdrop-filter: var(--blur-lg) saturate(1.4);
-  box-shadow: 0 1px 0 var(--edge-specular) inset;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(245, 247, 251, 0.4);
+  backdrop-filter: blur(10px);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: 0.5rem;
   font-family: var(--font-heading);
   font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-}
-
-.logoMark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-xs);
-  background: var(--grad-brand);
-  color: var(--text-on-brand);
-  box-shadow: var(--e1), var(--bloom-brand);
-  flex-shrink: 0;
-}
-
-.logoText {
-  background: var(--grad-brand);
+  background: var(--liquid-primary-grad);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  letter-spacing: -0.01em;
+}
+.logo .material-symbols-outlined {
+  color: var(--cyan-glow);
 }
 
-.nav {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-}
+.nav { display: flex; align-items: center; gap: 1rem; }
 
 .adminNavLink {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.5rem 0.6rem;
-  min-height: 44px;
-  border-radius: var(--r-xs);
+  padding: 0.5rem 0.25rem;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
+  transition: color 0.2s ease;
   white-space: nowrap;
-  transition: color var(--t-base) var(--ease-out), background-color var(--t-base) var(--ease-out);
 }
-
 .adminNavLink:hover {
-  color: var(--brand-cyan);
-  background: var(--glass-hover);
+  color: var(--cyan-glow);
+}
+.adminNavLink .material-symbols-outlined {
+  font-size: 16px;
 }
 
-.adminNavLink .material-symbols-outlined { font-size: 16px; }
-
-/* ── Hero ──────────────────────────────────────────────────────────────── */
+/* Hero */
 .hero {
   position: relative;
   z-index: 5;
@@ -143,36 +117,31 @@
 .heroBadge {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-2);
-  background: var(--glass-2);
-  backdrop-filter: var(--blur-md);
-  -webkit-backdrop-filter: var(--blur-md);
-  border: 1px solid var(--edge-strong);
-  color: var(--brand-cyan);
+  gap: 0.4rem;
+  background: var(--bg-glass-card);
+  border: 1px solid rgba(0, 119, 168, 0.25);
+  color: var(--cyan-glow);
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  padding: 0.4rem 1rem;
-  border-radius: var(--r-pill);
-  margin-bottom: var(--s-8);
+  letter-spacing: 0.05em;
+  padding: 0.35rem 1rem;
+  border-radius: 9999px;
+  margin-bottom: 2rem;
   text-transform: uppercase;
-  box-shadow: var(--e1);
-  animation: rise-in var(--t-slow) var(--ease-out) both;
 }
 
 .heroTitle {
   font-family: var(--font-heading);
   font-size: clamp(36px, 6vw, 64px);
   font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -0.035em;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
-  margin-bottom: var(--s-6);
-  animation: rise-in var(--t-slow) var(--ease-out) 60ms both;
+  margin-bottom: 1.5rem;
 }
 
 .heroAccent {
-  background: var(--grad-brand);
+  background: var(--liquid-primary-grad);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -180,152 +149,113 @@
 
 .heroSubtitle {
   font-size: 18px;
-  line-height: 1.6;
+  line-height: 28px;
   color: var(--text-secondary);
-  margin: 0 auto var(--s-3);
-  /* ~62ch keeps the measure inside the comfortable reading range */
-  max-width: 62ch;
-  animation: rise-in var(--t-slow) var(--ease-out) 120ms both;
+  margin-bottom: 0.75rem;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .heroUrdu {
   font-family: var(--font-urdu);
   font-size: 18px;
-  line-height: 2;
+  line-height: 32px;
   color: var(--text-secondary);
   direction: rtl;
   margin-bottom: 2.5rem;
-  opacity: 0.85;
-  animation: rise-in var(--t-slow) var(--ease-out) 180ms both;
+  opacity: 0.8;
 }
 
 .heroCta {
   display: flex;
-  gap: var(--s-4);
+  gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: var(--s-16);
-  animation: rise-in var(--t-slow) var(--ease-out) 240ms both;
+  margin-bottom: 4rem;
 }
 
+/* Stats */
 .statsRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--s-5);
+  gap: 1.25rem;
   max-width: 640px;
   margin: 0 auto;
 }
 
-/* ── Features ──────────────────────────────────────────────────────────── */
+/* Features */
 .features {
   position: relative;
   z-index: 5;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--s-5);
+  gap: 1.25rem;
   padding: 0 2rem 4rem;
   max-width: 1100px;
   margin: 0 auto;
 }
 
 .featureCard {
-  position: relative;
   padding: 1.75rem 1.5rem;
-  overflow: hidden;
-  transition:
-    transform var(--t-base) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    border-color var(--t-base) var(--ease-out);
+  transition: all 0.2s ease;
 }
-
-/* Wash inherits each card's own accent, so the four cards read as a set of
-   related-but-distinct objects rather than four identical grey tiles. */
-.featureCard::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -30%;
-  width: 80%;
-  height: 150%;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--card-accent, var(--brand-cyan)) 0%, transparent 70%);
-  opacity: 0.09;
-  filter: blur(30px);
-  pointer-events: none;
-  transition: opacity var(--t-base) var(--ease-out);
-}
-
 .featureCard:hover {
-  transform: translateY(-4px);
-  border-color: var(--edge-strong);
-  box-shadow: var(--e3);
+  background: var(--bg-glass-hover);
+  transform: translateY(-2px);
 }
-
-.featureCard:hover::after { opacity: 0.18; }
 
 .featureIcon {
-  position: relative;
   width: 3rem;
   height: 3rem;
-  border-radius: var(--r-sm);
+  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--s-4);
-  color: var(--card-accent, var(--brand-cyan));
-  /* color-mix keeps the tint tied to the accent without a second token */
-  background: color-mix(in srgb, var(--card-accent, var(--brand-cyan)) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--card-accent, var(--brand-cyan)) 28%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    var(--e1);
+  margin-bottom: 1rem;
+  font-size: 24px;
 }
-
 .featureIcon .material-symbols-outlined { font-size: 24px; }
 
 .featureTitle {
-  position: relative;
   font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--s-2);
+  margin-bottom: 0.5rem;
 }
-
 .featureDesc {
-  position: relative;
   font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 22px;
 }
 
-/* ── CTA banner ────────────────────────────────────────────────────────── */
+/* CTA Banner */
 .ctaBanner {
   position: relative;
   z-index: 5;
   text-align: center;
   padding: 4rem 1.25rem;
-  background: var(--grad-brand-wash);
-  border-top: 1px solid var(--edge);
-  border-bottom: 1px solid var(--edge);
+  background: rgba(0, 119, 168, 0.05);
+  border-top: 1px solid rgba(0, 119, 168, 0.1);
+  border-bottom: 1px solid rgba(0, 119, 168, 0.1);
+  margin-bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0;
 }
-
 .ctaTitle {
   font-family: var(--font-heading);
-  font-size: clamp(26px, 4vw, 32px);
+  font-size: 32px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: var(--s-3);
+  margin-bottom: 0.75rem;
 }
-
 .ctaDesc {
   font-size: 16px;
   color: var(--text-secondary);
-  margin-bottom: var(--s-8);
-  max-width: 56ch;
+  margin-bottom: 2rem;
 }
 
 .footer {
@@ -333,14 +263,7 @@
   z-index: 5;
   text-align: center;
   padding: 2rem;
-  padding-bottom: max(2rem, env(safe-area-inset-bottom));
   color: var(--text-muted);
   font-size: 13px;
-  border-top: 1px solid var(--edge);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bgOrb1,
-  .bgOrb2 { animation: none; }
-  .featureCard:hover { transform: none; }
+  border-top: 1px solid var(--border-subtle);
 }

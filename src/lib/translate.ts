@@ -20,9 +20,19 @@
 
 export type VerdictKey = "genuine" | "suspicious" | "unverified";
 
+/** A reason sentence in both languages. */
+export interface BilingualReason {
+  en: string;
+  ur: string;
+}
+
 export interface VerdictText {
   urdu_text: string;
   english_text: string;
+  reason_en: string;
+  reason_ur: string;
+  /** Alias of reason_en. Kept so existing API consumers that read
+   *  `reason` keep working unchanged. */
   reason: string;
 }
 
@@ -45,6 +55,37 @@ const GLOSSARY: Record<VerdictKey, { urdu: string; english: string }> = {
 
 // ─── Gemini reason generation ────────────────────────────────────────────────
 
+/**
+ * Strip markdown fences and pull a {"en","ur"} pair out of a model response.
+ * Never throws — returns null when the payload isn't usable, so callers can
+ * fall back to the fixed bilingual defaults.
+ */
+function parseBilingualJson(raw: string): BilingualReason | null {
+  if (!raw) return null;
+  let text = raw.trim();
+
+  // Gemini sometimes ignores the "no fences" instruction.
+  if (text.startsWith("```")) {
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+  }
+  // Or wraps the object in prose — take the outermost braces.
+  const first = text.indexOf("{");
+  const last = text.lastIndexOf("}");
+  if (first !== -1 && last > first) text = text.slice(first, last + 1);
+
+  try {
+    const parsed = JSON.parse(text);
+    const en = typeof parsed?.en === "string" ? parsed.en.trim() : "";
+    const ur = typeof parsed?.ur === "string" ? parsed.ur.trim() : "";
+    // Require BOTH: a half-filled pair would render one language blank on
+    // screen, which is worse than showing the fixed default in both.
+    if (!en || !ur) return null;
+    return { en, ur };
+  } catch {
+    return null;
+  }
+}
+
 async function callGemini(
   verdict: VerdictKey,
   context: {
@@ -52,7 +93,7 @@ async function callGemini(
     anomaly_score?: number | null;
     brand_name?: string | null;
   }
-): Promise<string> {
+): Promise<BilingualReason> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return getDefaultReason(verdict, context);
 
@@ -64,7 +105,14 @@ Batch number detected: ${context.batch ?? "N/A"}
 Packaging anomaly score (0=genuine, 1=suspicious): ${context.anomaly_score?.toFixed(2) ?? "N/A"}
 Brand: ${context.brand_name ?? "Unknown"}
 
-Write ONE concise sentence (max 20 words) in English explaining the reason for this verdict. Be factual, not alarming. No Urdu.`;
+Explain the reason for this verdict in ONE concise sentence, in BOTH English and Urdu.
+Be factual, not alarming. Maximum 20 words per language.
+The Urdu must be natural Urdu script (not transliteration) and must convey the
+same meaning as the English — it is not required to be a word-for-word translation.
+Keep any batch codes, barcodes and numbers in Latin digits in both languages.
+
+Return ONE raw JSON object and nothing else — no markdown code fences, no commentary:
+{"en": "...", "ur": "..."}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
 
@@ -87,6 +135,9 @@ Write ONE concise sentence (max 20 words) in English explaining the reason for t
             ],
           },
         ],
+        // Ask for JSON directly so the fence-stripping in parseBilingualJson
+        // is a fallback rather than the primary path.
+        generationConfig: { responseMimeType: "application/json" },
       }),
       signal: controller.signal,
     });
@@ -100,18 +151,21 @@ Write ONE concise sentence (max 20 words) in English explaining the reason for t
 
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (text) {
-      return text.trim();
-    }
-    
-    return getDefaultReason(verdict, context);
+
+    return parseBilingualJson(text) ?? getDefaultReason(verdict, context);
   } catch (err) {
     console.error("[Translate] Gemini call failed or timed out:", err);
     return getDefaultReason(verdict, context);
   }
 }
 
+/**
+ * Fixed bilingual fallback used whenever Gemini is unavailable, times out, or
+ * returns something unparseable. Bilingual on this path too — otherwise the
+ * no-API-key demo silently degrades to English-only.
+ *
+ * Batch codes and percentages stay in Latin digits in both languages.
+ */
 function getDefaultReason(
   verdict: VerdictKey,
   context: {
@@ -119,14 +173,27 @@ function getDefaultReason(
     anomaly_score?: number | null;
     brand_name?: string | null;
   }
-): string {
+): BilingualReason {
   switch (verdict) {
-    case "genuine":
-      return `Batch ${context.batch ?? "pattern"} matches manufacturer records and packaging appears authentic.`;
-    case "suspicious":
-      return `Packaging anomaly score ${((context.anomaly_score ?? 0.5) * 100).toFixed(0)}% — batch or visual indicators suggest potential counterfeit.`;
+    case "genuine": {
+      const batch = context.batch ?? "pattern";
+      return {
+        en: `Batch ${batch} matches manufacturer records and packaging appears authentic.`,
+        ur: `بیچ ${batch} کارخانہ دار کے ریکارڈ سے مطابقت رکھتا ہے اور پیکنگ اصل معلوم ہوتی ہے۔`,
+      };
+    }
+    case "suspicious": {
+      const pct = ((context.anomaly_score ?? 0.5) * 100).toFixed(0);
+      return {
+        en: `Packaging anomaly score ${pct}% — batch or visual indicators suggest potential counterfeit.`,
+        ur: `پیکنگ میں بے قاعدگی کا اسکور ${pct}% — بیچ یا ظاہری علامات ممکنہ جعل سازی کی نشاندہی کرتی ہیں۔`,
+      };
+    }
     case "unverified":
-      return "No matching product record found; manual verification recommended.";
+      return {
+        en: "No matching product record found; manual verification recommended.",
+        ur: "کوئی مماثل مصنوع کا ریکارڈ نہیں ملا؛ دستی تصدیق کی سفارش کی جاتی ہے۔",
+      };
   }
 }
 
@@ -150,7 +217,9 @@ export async function getVerdictText(
   return {
     urdu_text: phrase.urdu,
     english_text: phrase.english,
-    reason,
+    reason_en: reason.en,
+    reason_ur: reason.ur,
+    reason: reason.en,
   };
 }
 
@@ -158,7 +227,9 @@ export async function getVerdictText(
  * Synchronous fallback — returns glossary text without Gemini.
  * Use when you need an instant response and can't await.
  */
-export function getVerdictTextSync(verdict: VerdictKey): Omit<VerdictText, "reason"> {
+export function getVerdictTextSync(
+  verdict: VerdictKey
+): Pick<VerdictText, "urdu_text" | "english_text"> {
   return {
     urdu_text: GLOSSARY[verdict].urdu,
     english_text: GLOSSARY[verdict].english,
@@ -168,8 +239,10 @@ export function getVerdictTextSync(verdict: VerdictKey): Omit<VerdictText, "reas
 // ─── Reference-image comparison (RAG vector-match follow-up) ──────────────────
 
 const COMPARE_TIMEOUT_MS = 6000;
-const DEFAULT_COMPARISON_REASON =
-  "Reference image comparison unavailable — verdict based on standard pipeline.";
+const DEFAULT_COMPARISON_REASON: BilingualReason = {
+  en: "Reference image comparison unavailable — verdict based on standard pipeline.",
+  ur: "حوالہ جاتی تصویر کا موازنہ دستیاب نہیں — فیصلہ معیاری طریقہ کار پر مبنی ہے۔",
+};
 
 async function fetchImageAsBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
   try {
@@ -206,7 +279,7 @@ export async function compareProductImages(
   scanImageUrl: string,
   referenceImageUrl: string,
   context: { product_name?: string | null; brand_name?: string | null } = {}
-): Promise<string> {
+): Promise<BilingualReason> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return DEFAULT_COMPARISON_REASON;
 
@@ -222,7 +295,15 @@ export async function compareProductImages(
 
 The FIRST image is a photo just scanned by a user. The SECOND image is the verified reference/genuine product image for "${context.product_name ?? "this product"}" (brand: ${context.brand_name ?? "unknown"}), matched via image similarity search.
 
-Compare the two images and write ONE concise sentence (max 20 words) in English noting any visual discrepancies — logo, font, color, print quality, or batch code format. If they appear consistent, say so factually. Be factual, not alarming. No Urdu.`;
+Compare the two images and note any visual discrepancies — logo, font, color, print quality, or batch code format. If they appear consistent, say so factually.
+
+Write ONE concise sentence in BOTH English and Urdu. Be factual, not alarming.
+Maximum 20 words per language. The Urdu must be natural Urdu script (not
+transliteration) and convey the same meaning. Keep batch codes and numbers in
+Latin digits in both languages.
+
+Return ONE raw JSON object and nothing else — no markdown code fences, no commentary:
+{"en": "...", "ur": "..."}`;
 
     const model = process.env.GEMINI_VISION_MODEL ?? "gemini-3.1-flash-lite";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -243,6 +324,7 @@ Compare the two images and write ONE concise sentence (max 20 words) in English 
             ],
           },
         ],
+        generationConfig: { responseMimeType: "application/json" },
       }),
       signal: controller.signal,
     });
@@ -256,7 +338,7 @@ Compare the two images and write ONE concise sentence (max 20 words) in English 
     const data = await response.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    return text ? text.trim() : DEFAULT_COMPARISON_REASON;
+    return parseBilingualJson(text) ?? DEFAULT_COMPARISON_REASON;
   } catch (err) {
     console.error("[Translate] compareProductImages failed or timed out:", err);
     return DEFAULT_COMPARISON_REASON;

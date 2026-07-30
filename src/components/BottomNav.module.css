@@ -1,28 +1,27 @@
-/* Floating pill dock. Detaching it from the screen edge (and giving it the
-   deepest elevation) is what makes it read as hovering above the content
-   rather than being welded to the bottom of the viewport. */
 .nav {
   position: fixed;
-  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  bottom: 0.75rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: var(--z-nav);
+  z-index: 60;
   display: flex;
   align-items: center;
-  gap: var(--s-1);
-  padding: var(--s-2);
-  background: var(--glass-3);
-  backdrop-filter: var(--blur-lg);
-  -webkit-backdrop-filter: var(--blur-lg);
-  border: 1px solid var(--edge-strong);
-  border-radius: var(--r-xl);
-  box-shadow: var(--e4);
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow), var(--inset-glow);
   width: calc(100% - 1.5rem);
   max-width: 420px;
 }
 
 @media (min-width: 768px) {
-  .nav { display: none; }
+  .nav {
+    display: none;
+  }
 }
 
 .link {
@@ -31,45 +30,36 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 0.15rem;
-  /* 52px keeps every destination above the 44px touch-target minimum */
-  min-height: 52px;
-  padding: 0.5rem 0.25rem;
+  padding: 0.55rem 0.25rem;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  border-radius: var(--r-md);
-  isolation: isolate;
-  transition: color var(--t-base) var(--ease-out);
-  -webkit-tap-highlight-color: transparent;
+  border-radius: 14px;
+  transition: color 0.2s ease;
 }
 
-.link:active { transform: scale(0.94); transition-duration: var(--t-fast); }
-
-.linkActive { color: var(--text-on-brand); }
+.linkActive {
+  color: #ffffff;
+}
 
 .linkActive .pill {
   opacity: 1;
   transform: scale(1);
 }
 
-/* Spring-scaled indicator: grows into place rather than cross-fading, so the
-   active destination feels selected rather than merely highlighted. */
 .pill {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  border-radius: var(--r-md);
-  background: var(--grad-brand);
+  border-radius: 14px;
+  background: var(--liquid-primary-grad);
   opacity: 0;
-  transform: scale(0.8);
-  transition:
-    opacity var(--t-base) var(--ease-out),
-    transform var(--t-base) var(--ease-spring);
-  box-shadow: var(--e2), var(--bloom-brand);
+  transform: scale(0.85);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: -1;
+  box-shadow: var(--accent-glow-shadow);
 }
 
 .icon {
@@ -77,6 +67,13 @@
   line-height: 1;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .link:active { transform: none; }
+/* Language switch sits outside the equal-width link row so the four nav
+   items keep their spacing; it only takes the width it needs. */
+.langSlot {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-inline-start: 0.25rem;
+  margin-inline-start: 0.25rem;
+  border-inline-start: 1px solid var(--border-subtle);
 }

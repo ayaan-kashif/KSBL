@@ -1,13 +1,13 @@
 .viewport {
   position: fixed;
-  top: max(1rem, env(safe-area-inset-top));
+  top: 1rem;
   right: 1rem;
   left: 1rem;
-  z-index: var(--z-toast);
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--s-3);
+  gap: 0.75rem;
   pointer-events: none;
 }
 
@@ -18,57 +18,46 @@
   }
 }
 
-/* Toasts float highest in the stack, so they take the deepest elevation —
-   that separation is what stops them reading as part of the page. */
 .toast {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: var(--s-3);
+  gap: 0.75rem;
   width: 100%;
   padding: 0.9rem 1rem;
-  background: var(--glass-3);
-  backdrop-filter: var(--blur-lg);
-  -webkit-backdrop-filter: var(--blur-lg);
-  border-radius: var(--r-md);
-  box-shadow: var(--e4);
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow), var(--inset-glow);
   pointer-events: auto;
+  animation: slideIn 0.25s ease-out;
   overflow: hidden;
-  animation: toast-in var(--t-base) var(--ease-spring) both;
 }
 
-/* Tinted hairline conveys severity without flooding the surface with colour */
 .toast::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  border-radius: 14px;
   padding: 1px;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
 }
 
-/* Left accent bar — a second, non-colour cue for the toast's severity */
-.toast::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 3px;
-  pointer-events: none;
+.success::before {
+  background: linear-gradient(135deg, rgba(4, 120, 87, 0.7) 0%, rgba(0, 119, 168, 0.5) 100%);
 }
 
-.success::before { background: linear-gradient(135deg, var(--verdict-genuine-line) 0%, rgba(34, 211, 238, 0.4) 100%); }
-.error::before   { background: linear-gradient(135deg, var(--verdict-counterfeit-line) 0%, rgba(124, 92, 255, 0.4) 100%); }
-.info::before    { background: var(--grad-brand-dim); }
+.error::before {
+  background: linear-gradient(135deg, rgba(190, 18, 60, 0.7) 0%, rgba(109, 40, 217, 0.5) 100%);
+}
 
-.success::after { background: var(--verdict-genuine); }
-.error::after   { background: var(--verdict-counterfeit); }
-.info::after    { background: var(--brand-cyan); }
+.info::before {
+  background: var(--liquid-border-grad);
+}
 
 .icon {
   flex-shrink: 0;
@@ -78,14 +67,14 @@
 }
 
 .success .icon { color: var(--verdict-genuine); }
-.error .icon   { color: var(--verdict-counterfeit); }
-.info .icon    { color: var(--brand-cyan); }
+.error .icon { color: var(--verdict-counterfeit); }
+.info .icon { color: var(--cyan-glow); }
 
 .message {
   flex: 1;
   font-family: var(--font-body);
   font-size: 13.5px;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--text-primary);
 }
 
@@ -97,25 +86,24 @@
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
-  /* Visually 18px but a 32px hit area — meets the touch-target minimum
-     without the glyph looking oversized next to the message text. */
-  width: 32px;
-  height: 32px;
-  margin: -6px -6px 0 0;
   padding: 0;
-  border-radius: var(--r-xs);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+  transition: color 0.15s ease;
 }
 
 .closeBtn:hover {
   color: var(--text-primary);
-  background: var(--glass-hover);
 }
 
-@keyframes toast-in {
-  from { opacity: 0; transform: translate3d(0, -12px, 0) scale(0.96); }
-  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

@@ -53,9 +53,12 @@ export async function GET(req: NextRequest) {
       area_name: s.area_name,
       product_name: s.product?.product_name ?? s.product_name ?? null,
       brand_name: s.product?.brand_name ?? s.brand_name ?? null,
+      category: s.category ?? null,
+      barcode: s.barcode ?? null,
       extracted_batch: s.extracted_batch,
       image_url: s.image_url,
       created_at: s.created_at,
+      ai_flags: s.ocr_raw_json ?? null,
     }));
 
     return NextResponse.json(result, { status: 200 });

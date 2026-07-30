@@ -15,6 +15,10 @@ export interface GeminiComparisonResult {
   tampering: boolean;
   confidence: number;
   reason: string;
+  /** Urdu rendering of `reason`. Produced by this same call rather than a
+   *  follow-up translation request — the scan is already multi-second, and a
+   *  second round-trip just to translate one sentence would be felt. */
+  reasonUr: string;
 }
 
 const DEFAULT_FALLBACK_RESULT: GeminiComparisonResult = {
@@ -26,7 +30,93 @@ const DEFAULT_FALLBACK_RESULT: GeminiComparisonResult = {
   tampering: false,
   confidence: 40,
   reason: "Failed to verify packaging visual details securely. Falling back to safe default analysis.",
+  reasonUr: "پیکنگ کی ظاہری تفصیلات کی محفوظ تصدیق نہیں ہو سکی۔ معیاری تجزیے پر انحصار کیا جا رہا ہے۔",
 };
+
+export interface BrandDetection {
+  brand: string;
+  confidence: number; // 0–1
+}
+
+/**
+ * Read the brand wordmark off a packaging photo. Deliberately narrow: no
+ * comparison, no scoring, no authenticity judgement — it exists only so
+ * brandRouter can decide WHICH verification path a scan belongs on, before
+ * any of the heavy work runs. Kept to one short call with a 4s ceiling so it
+ * doesn't add meaningful latency to the scan.
+ *
+ * Never throws — returns null on any failure so the router falls through to
+ * its "unknown" branch and defaults to the external path.
+ */
+export async function detectBrandFromImage(
+  imageBase64: string,
+  mimeType = "image/jpeg"
+): Promise<BrandDetection | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const prompt = `Look at this product packaging photo and identify ONLY the manufacturer/brand wordmark printed on it.
+
+Rules:
+- Report the brand exactly as printed (e.g. "National Foods", "Unilever", "Nestle").
+- Do NOT judge authenticity, quality, or anything else. Brand name only.
+- If no brand wordmark is legible, return {"brand": "", "confidence": 0}.
+- confidence is your certainty the wordmark reads as that brand, 0.0 to 1.0.
+
+Return ONE raw JSON object and nothing else — no markdown code fences, no commentary:
+{"brand": "...", "confidence": 0.0}`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const model = process.env.GEMINI_VISION_MODEL ?? "gemini-3.1-flash-lite";
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            { parts: [{ inlineData: { mimeType, data: imageBase64 } }, { text: prompt }] },
+          ],
+          generationConfig: { responseMimeType: "application/json" },
+        }),
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      console.warn(`[GeminiVision] detectBrandFromImage returned ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    let text: string = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+    if (!text) return null;
+
+    // Defensive parse — same treatment as the other JSON-returning calls here:
+    // strip fences, then take the outermost braces in case of stray prose.
+    if (text.startsWith("```")) {
+      text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+    }
+    const first = text.indexOf("{");
+    const last = text.lastIndexOf("}");
+    if (first !== -1 && last > first) text = text.slice(first, last + 1);
+
+    const parsed = JSON.parse(text);
+    const brand = typeof parsed?.brand === "string" ? parsed.brand.trim() : "";
+    if (!brand) return null;
+
+    const raw = Number(parsed?.confidence);
+    const confidence = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0.5;
+    return { brand, confidence };
+  } catch (err) {
+    console.error("[GeminiVision] detectBrandFromImage failed:", err);
+    return null;
+  }
+}
 
 // Helper to download an image from a URL and convert it to a base64 string
 async function fetchImageBase64(url: string): Promise<{ data: string; mimeType: string } | null> {
@@ -118,8 +208,13 @@ Required JSON Structure:
   "designMatch": 89,
   "tampering": false,
   "confidence": 94,
-  "reason": "Write a concise explanation of the verdict, highlighting any typography or printing anomalies."
+  "reason": "Write a concise explanation of the verdict, highlighting any typography or printing anomalies.",
+  "reasonUr": "The SAME explanation written in natural Urdu script."
 }
+
+"reasonUr" must be natural Urdu script (not Latin transliteration) and must
+convey the same meaning as "reason". Keep batch codes, barcodes, dates and
+numbers in Latin digits inside the Urdu sentence.
 
 Note: If no official reference data/image is available (unregistered product), compare the captured product photo against generic industry standards for authentic packaging for that brand and calculate matches accordingly based purely on what you observe. Do not artificially lower your confidence score just because reference data is unavailable — base confidence solely on the visual evidence itself (print sharpness, logo accuracy, packaging consistency, absence of tampering). A clean, well-printed, tamper-free product should still score highly even with no reference data to compare against.
 
@@ -211,6 +306,12 @@ Normalise all numeric scores to a scale of 0 to 100.`;
         tampering: Boolean(parsed.tampering) ?? false,
         confidence: Number(parsed.confidence) ?? 50,
         reason: parsed.reason || "Verification completed.",
+        // Fall back to the fixed Urdu string rather than echoing the English
+        // one — an English sentence in the Urdu slot reads as a bug on screen.
+        reasonUr:
+          typeof parsed.reasonUr === "string" && parsed.reasonUr.trim()
+            ? parsed.reasonUr.trim()
+            : "تصدیق مکمل ہو گئی۔",
       };
     } catch (parseErr) {
       console.error("[GeminiVision] Failed to parse response text as JSON:", cleanJsonStr, parseErr);

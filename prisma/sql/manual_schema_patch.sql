@@ -11,13 +11,15 @@
 -- conflict either way.
 --
 -- IMPORTANT: writes in this app go through the Supabase REST API (PostgREST),
--- not Prisma Client — so Prisma's `@default(cuid())` on the "id" column NEVER
+-- not Prisma Client — so a plain `@default(cuid())` on an "id" column NEVER
 -- actually fires at the database level (cuid() is a Prisma Client-side
--- behavior, not a Postgres default). The new "ScrapeRun" table below is given
--- an explicit `DEFAULT gen_random_uuid()::text` so REST inserts that omit
--- "id" (as src/app/api/scraper/national-foods/route.ts does) still work.
--- gen_random_uuid() is built into Postgres 13+ (Supabase's Postgres qualifies
--- — no extra extension needed).
+-- behavior, not a Postgres default). ScrapeRun, Scan, and Report all need (and,
+-- as of schema.prisma, now declare via `@default(dbgenerated(...))`) an actual
+-- `DEFAULT gen_random_uuid()::text` so REST inserts that omit "id" (as
+-- src/app/api/scraper/national-foods/route.ts, src/app/api/verify/route.ts,
+-- and src/app/api/report/route.ts all do) still work. gen_random_uuid() is
+-- built into Postgres 13+ (Supabase's Postgres qualifies — no extra extension
+-- needed).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── Product: new columns ────────────────────────────────────────────────────
@@ -52,6 +54,37 @@ CREATE TABLE IF NOT EXISTS "ScrapeRun" (
 
 CREATE INDEX IF NOT EXISTS "ScrapeRun_source_idx" ON "ScrapeRun"("source");
 CREATE INDEX IF NOT EXISTS "ScrapeRun_status_idx" ON "ScrapeRun"("status");
+
+-- ── Scan / Report: give "id" the same DB-level default as ScrapeRun above ───
+-- src/app/api/verify/route.ts (real product scans) and src/app/api/report/route.ts
+-- + src/app/api/incidents/[id]/flag/route.ts (incident reports) all insert via
+-- the REST API without an "id". Without this default every one of those
+-- inserts fails with "null value in column \"id\" ... violates not-null
+-- constraint" — silently, since those routes log the DB error and still
+-- return a success response to the client. This was the cause of the
+-- dashboard/analytics "Recent Scans" table only ever showing seeded demo
+-- rows and never real scans.
+--
+-- UPDATE: this is now also declared directly in schema.prisma as
+-- `@default(dbgenerated("gen_random_uuid()::text"))` on Scan.id, Report.id,
+-- and ScrapeRun.id (instead of only existing as an out-of-band default only
+-- this file knew about). That matters because `db push` treats any DB default
+-- schema.prisma doesn't know about as unwanted drift and SILENTLY DROPS it —
+-- which is exactly what happened here once, wiping this fix out again right
+-- after it was applied. With the default declared in schema.prisma, `db push`
+-- preserves it instead. These ALTERs stay here only as the SQL-Editor fallback
+-- path described at the top of this file.
+ALTER TABLE "Scan" ALTER COLUMN "id" SET DEFAULT gen_random_uuid()::text;
+ALTER TABLE "Report" ALTER COLUMN "id" SET DEFAULT gen_random_uuid()::text;
+
+-- ── Scan: created_at needs a UTC offset in its wire format ──────────────────
+-- "timestamp without time zone" holds a UTC instant here (CURRENT_TIMESTAMP
+-- under a UTC DB session) but PostgREST serializes it with no "Z"/offset, so
+-- the browser's `new Date(row.created_at)` misparses it as local time instead
+-- of UTC — every scan's displayed time was off by the viewer's UTC offset.
+-- timestamptz makes PostgREST include the offset, fixing that at the source.
+ALTER TABLE "Scan" ALTER COLUMN "created_at" TYPE timestamptz USING "created_at" AT TIME ZONE 'UTC';
+ALTER TABLE "Scan" ALTER COLUMN "created_at" SET DEFAULT CURRENT_TIMESTAMP;
 
 -- ── Sanity check: confirm whether Product/Scan/Report already have a DB-level
 -- id default (they should, for existing REST-insert routes like

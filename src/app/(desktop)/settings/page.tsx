@@ -87,8 +87,8 @@ function SettingsGate() {
           <section className={styles.card} style={{ maxWidth: '420px' }}>
             {loginError && (
               <div style={{
-                background: 'rgba(255,80,80,0.12)',
-                border: '1px solid rgba(255,80,80,0.3)',
+                background: 'rgba(190,18,60,0.12)',
+                border: '1px solid rgba(190,18,60,0.3)',
                 borderRadius: '8px',
                 padding: '10px 14px',
                 marginBottom: '16px',
@@ -225,7 +225,7 @@ function SettingsContent({ onLogout }: { onLogout: () => void }) {
         {/* Notification Preferences */}
         <section className={styles.card}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon} style={{ background: 'rgba(255,185,95,0.12)', color: 'var(--color-secondary)' }}>
+            <div className={styles.cardIcon} style={{ background: 'rgba(180,83,9,0.12)', color: 'var(--color-secondary)' }}>
               <span className="material-symbols-outlined">notifications</span>
             </div>
             <div>
@@ -261,7 +261,7 @@ function SettingsContent({ onLogout }: { onLogout: () => void }) {
         {/* Language & Region */}
         <section className={styles.card}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon} style={{ background: 'var(--verdict-genuine-soft)', color: 'var(--color-primary)' }}>
+            <div className={styles.cardIcon} style={{ background: 'rgba(4,120,87,0.12)', color: 'var(--color-primary)' }}>
               <span className="material-symbols-outlined">language</span>
             </div>
             <div>
@@ -307,7 +307,7 @@ function SettingsContent({ onLogout }: { onLogout: () => void }) {
         {/* API Keys */}
         <section className={styles.card}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon} style={{ background: 'rgba(255,180,171,0.12)', color: 'var(--color-error)' }}>
+            <div className={styles.cardIcon} style={{ background: 'rgba(190,18,60,0.12)', color: 'var(--color-error)' }}>
               <span className="material-symbols-outlined">key</span>
             </div>
             <div>

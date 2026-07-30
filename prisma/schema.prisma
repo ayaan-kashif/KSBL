@@ -53,6 +53,12 @@ enum ScrapeRunStatus {
   failed
 }
 
+enum VoucherStatus {
+  issued
+  redeemed
+  expired
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -92,7 +98,12 @@ model Product {
 }
 
 model ScrapeRun {
-  id               String          @id @default(cuid())
+  // dbgenerated (not cuid()): src/app/api/scraper/national-foods/route.ts
+  // inserts via the REST API, which never sees Prisma's client-side cuid()
+  // default — it needs an actual Postgres-level default. Declaring it here
+  // (instead of only in prisma/sql/manual_schema_patch.sql) keeps `db push`
+  // from dropping it as undeclared drift the next time the schema changes.
+  id               String          @id @default(dbgenerated("gen_random_uuid()::text"))
   source           String          // e.g. "national_foods_scrape"
   status           ScrapeRunStatus @default(running)
   products_found   Int             @default(0)
@@ -115,14 +126,30 @@ model User {
   score_points  Int      @default(0)
   created_at    DateTime @default(now())
 
-  scans Scan[]
+  scans    Scan[]
+  vouchers Voucher[]
+}
+
+model Admin {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
 }
 
 model Scan {
-  id               String        @id @default(cuid())
+  // dbgenerated (not cuid()): src/app/api/verify/route.ts inserts via the
+  // REST API, bypassing Prisma's client-side cuid() default entirely — it
+  // needs an actual Postgres-level default or every real scan insert fails
+  // with a NOT NULL violation on "id". Declaring it here (instead of only in
+  // prisma/sql/manual_schema_patch.sql) keeps `db push` from dropping it as
+  // undeclared drift the next time the schema changes.
+  id               String        @id @default(dbgenerated("gen_random_uuid()::text"))
   product_id       String?       // nullable — no match found = unverified
   product_name     String?       // Cache product name for fallback lookups (UPCItemDB/OpenFoodFacts)
   brand_name       String?       // Cache brand name for fallback lookups (UPCItemDB/OpenFoodFacts)
+  category         String?       // Cache product category from local catalog / UPCItemDB / OpenFoodFacts / BarcodeLookup
+  barcode          String?       // Scanned/detected barcode (UI shows this under "Barcode" — no real factory/plant-code data exists anywhere in this app)
   scanned_by_role  ScannedByRole @default(consumer)
   customer_id      String?       // nullable — set when a logged-in consumer performed the scan
   image_url        String
@@ -137,7 +164,12 @@ model Scan {
   latitude         Float?
   longitude        Float?
   area_name        String?
-  created_at       DateTime      @default(now())
+  // @db.Timestamptz: REST inserts (src/app/api/verify/route.ts) never provide
+  // this column, and the plain "timestamp" type Prisma defaults to here has no
+  // UTC offset in its PostgREST JSON output — browsers then misparse it as
+  // local time instead of UTC, showing scan times off by the viewer's UTC
+  // offset. timestamptz fixes the wire format; see prisma/sql/manual_schema_patch.sql.
+  created_at       DateTime      @default(now()) @db.Timestamptz(3)
 
   product  Product? @relation(fields: [product_id], references: [id])
   customer User?    @relation(fields: [customer_id], references: [id])
@@ -150,8 +182,93 @@ model Scan {
   @@index([customer_id])
 }
 
+// ─────────────────────────────────────────────
+// HORECA voucher model
+//
+// Consumers redeem scan points for dining vouchers at partner restaurants
+// that cook with National Foods bulk condiments. The partner settles with NFL
+// in bulk product credit rather than cash, so a voucher costs NFL wholesale
+// COGS while reading as full retail value to the consumer.
+//
+// All three tables use dbgenerated ids for the same reason Scan/Report do:
+// the routes under src/app/api/rewards, /vouchers and /partner insert over
+// PostgREST, which never sees Prisma's client-side cuid().
+// ─────────────────────────────────────────────
+
+model Partner {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  name                   String
+  cuisine                String
+  area                   String
+  latitude               Float?
+  longitude              Float?
+  logo_url               String?
+  nfl_account_ref        String?
+  // Running total of bulk product credit NFL has issued this partner, in PKR.
+  // Incremented by POST /api/partner/redeem on each successful redemption —
+  // this is the B2B pull-through number the dashboard tile reports.
+  bulk_credit_issued_pkr Float    @default(0)
+  active                 Boolean  @default(true)
+  created_at             DateTime @default(now()) @db.Timestamptz(3)
+
+  offers RewardOffer[]
+
+  @@index([area])
+  @@index([active])
+}
+
+model RewardOffer {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  partner_id         String
+  title_en           String
+  title_ur           String
+  description_en     String
+  description_ur     String
+  points_cost        Int
+  consumer_value_pkr Float
+  // What NFL credits the partner per redemption — held at ~40% of
+  // consumer_value_pkr. That spread is the entire commercial argument.
+  bulk_credit_pkr    Float
+  active             Boolean  @default(true)
+  created_at         DateTime @default(now()) @db.Timestamptz(3)
+
+  partner  Partner   @relation(fields: [partner_id], references: [id])
+  vouchers Voucher[]
+
+  @@index([partner_id])
+  @@index([active])
+}
+
+model Voucher {
+  id       String @id @default(dbgenerated("gen_random_uuid()::text"))
+  user_id  String
+  offer_id String
+  // 8 chars, uppercase alphanumeric, ambiguous glyphs (O/0/I/1) excluded —
+  // restaurant staff read these aloud and type them by hand.
+  code     String @unique
+
+  status      VoucherStatus @default(issued)
+  issued_at   DateTime      @default(now()) @db.Timestamptz(3)
+  expires_at  DateTime      @db.Timestamptz(3)
+  // Nothing ever sets status = expired (the expiry cron is deliberately out of
+  // scope — see TODO-horeca.md), so expiry is decided by comparing expires_at
+  // to now at read time, never by trusting this enum.
+  redeemed_at DateTime?     @db.Timestamptz(3)
+
+  user  User        @relation(fields: [user_id], references: [id])
+  offer RewardOffer @relation(fields: [offer_id], references: [id])
+
+  @@index([user_id])
+  @@index([offer_id])
+  @@index([status])
+}
+
 model Report {
-  id         String       @id @default(cuid())
+  // dbgenerated (not cuid()): src/app/api/report/route.ts and
+  // src/app/api/incidents/[id]/flag/route.ts both insert via the REST API,
+  // bypassing Prisma's client-side cuid() default — same reasoning as Scan.id
+  // above.
+  id         String       @id @default(dbgenerated("gen_random_uuid()::text"))
   scan_id    String
   brand_id   String
   status     ReportStatus @default(pending)

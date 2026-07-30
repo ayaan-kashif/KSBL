@@ -1,0 +1,254 @@
+/* ============================================================
+   partner.module.css — Restaurant-side redemption
+
+   A waiter uses this one-handed, on a phone, in a busy restaurant. Every
+   target is oversized, the result panel is full-bleed and readable across
+   a counter, and there is exactly one thing to do on the screen.
+   ============================================================ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg-base);
+  font-family: var(--font-body);
+}
+
+.header {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brandIcon {
+  color: var(--verdict-genuine);
+  font-size: 24px;
+}
+
+.brandName {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 14px;
+}
+
+.subtitle {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+/* ── Input ───────────────────────────────────────────────── */
+.form {
+  padding: 26px 20px 0;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.input {
+  width: 100%;
+  padding: 20px 18px;
+  border-radius: 16px;
+  background: var(--bg-glass-input-solid);
+  border: 2px solid var(--border-interactive);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+  letter-spacing: 0.16em;
+  font-weight: 500;
+}
+
+.input:focus {
+  border-color: var(--cyan-glow);
+  box-shadow: 0 0 0 4px rgba(0, 119, 168, 0.15);
+}
+
+.hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 9px;
+}
+
+.submit {
+  width: 100%;
+  min-height: 62px;
+  margin-top: 18px;
+  border: none;
+  border-radius: 16px;
+  background: var(--liquid-primary-grad-text);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.submit:hover:not(:disabled) {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2);
+}
+
+.submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.submit:disabled {
+  background: var(--color-surface-container-highest);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ── Result panel ────────────────────────────────────────── */
+.result {
+  margin: 24px 20px 32px;
+  padding: 28px 22px;
+  border-radius: 20px;
+  border: 2px solid;
+  text-align: center;
+}
+
+.resultValid {
+  background: var(--verdict-genuine-bg);
+  border-color: var(--verdict-genuine);
+  color: var(--verdict-genuine);
+}
+
+.resultWarn {
+  background: var(--verdict-suspicious-bg);
+  border-color: var(--verdict-suspicious);
+  color: var(--verdict-suspicious);
+}
+
+.resultError {
+  background: var(--verdict-counterfeit-bg);
+  border-color: var(--verdict-counterfeit);
+  color: var(--verdict-counterfeit);
+}
+
+.resultIcon {
+  font-size: 62px;
+  line-height: 1;
+}
+
+.resultHeadline {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: 10px;
+  color: inherit;
+}
+
+.resultHeadlineUr {
+  font-family: var(--font-urdu);
+  font-size: 20px;
+  line-height: 1.9;
+  margin-top: 4px;
+  color: inherit;
+}
+
+.resultDetail {
+  /* Detail text drops to primary ink: the panel colour carries the verdict,
+     but the specifics have to stay comfortably readable. */
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.55;
+  margin-top: 14px;
+}
+
+.resultCode {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid currentColor;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  color: inherit;
+}
+
+.resultMeta {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid currentColor;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.metaLabel {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.metaValue {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.nextBtn {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 20px;
+  border-radius: 14px;
+  background: var(--bg-surface);
+  border: 2px solid currentColor;
+  color: inherit;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nextBtn:active {
+  transform: scale(0.98);
+}
