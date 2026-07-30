@@ -53,6 +53,12 @@ enum ScrapeRunStatus {
   failed
 }
 
+enum VoucherStatus {
+  issued
+  redeemed
+  expired
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -120,7 +126,8 @@ model User {
   score_points  Int      @default(0)
   created_at    DateTime @default(now())
 
-  scans Scan[]
+  scans    Scan[]
+  vouchers Voucher[]
 }
 
 model Admin {
@@ -173,6 +180,87 @@ model Scan {
   @@index([area_name])
   @@index([created_at])
   @@index([customer_id])
+}
+
+// ─────────────────────────────────────────────
+// HORECA voucher model
+//
+// Consumers redeem scan points for dining vouchers at partner restaurants
+// that cook with National Foods bulk condiments. The partner settles with NFL
+// in bulk product credit rather than cash, so a voucher costs NFL wholesale
+// COGS while reading as full retail value to the consumer.
+//
+// All three tables use dbgenerated ids for the same reason Scan/Report do:
+// the routes under src/app/api/rewards, /vouchers and /partner insert over
+// PostgREST, which never sees Prisma's client-side cuid().
+// ─────────────────────────────────────────────
+
+model Partner {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  name                   String
+  cuisine                String
+  area                   String
+  latitude               Float?
+  longitude              Float?
+  logo_url               String?
+  nfl_account_ref        String?
+  // Running total of bulk product credit NFL has issued this partner, in PKR.
+  // Incremented by POST /api/partner/redeem on each successful redemption —
+  // this is the B2B pull-through number the dashboard tile reports.
+  bulk_credit_issued_pkr Float    @default(0)
+  active                 Boolean  @default(true)
+  created_at             DateTime @default(now()) @db.Timestamptz(3)
+
+  offers RewardOffer[]
+
+  @@index([area])
+  @@index([active])
+}
+
+model RewardOffer {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  partner_id         String
+  title_en           String
+  title_ur           String
+  description_en     String
+  description_ur     String
+  points_cost        Int
+  consumer_value_pkr Float
+  // What NFL credits the partner per redemption — held at ~40% of
+  // consumer_value_pkr. That spread is the entire commercial argument.
+  bulk_credit_pkr    Float
+  active             Boolean  @default(true)
+  created_at         DateTime @default(now()) @db.Timestamptz(3)
+
+  partner  Partner   @relation(fields: [partner_id], references: [id])
+  vouchers Voucher[]
+
+  @@index([partner_id])
+  @@index([active])
+}
+
+model Voucher {
+  id       String @id @default(dbgenerated("gen_random_uuid()::text"))
+  user_id  String
+  offer_id String
+  // 8 chars, uppercase alphanumeric, ambiguous glyphs (O/0/I/1) excluded —
+  // restaurant staff read these aloud and type them by hand.
+  code     String @unique
+
+  status      VoucherStatus @default(issued)
+  issued_at   DateTime      @default(now()) @db.Timestamptz(3)
+  expires_at  DateTime      @db.Timestamptz(3)
+  // Nothing ever sets status = expired (the expiry cron is deliberately out of
+  // scope — see TODO-horeca.md), so expiry is decided by comparing expires_at
+  // to now at read time, never by trusting this enum.
+  redeemed_at DateTime?     @db.Timestamptz(3)
+
+  user  User        @relation(fields: [user_id], references: [id])
+  offer RewardOffer @relation(fields: [offer_id], references: [id])
+
+  @@index([user_id])
+  @@index([offer_id])
+  @@index([status])
 }
 
 model Report {
