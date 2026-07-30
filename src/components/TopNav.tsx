@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './TopNav.module.css';
+import LanguageToggle from './LanguageToggle';
 
 export default function TopNav() {
   const pathname = usePathname();
@@ -23,18 +24,14 @@ export default function TopNav() {
           <Link href="/inventory" className={pathname === '/inventory' ? styles.navLinkActive : styles.navLink}>Inventory</Link>
         </nav>
         <div className={styles.headerIcons}>
-          <button className={styles.iconButton}>
-            <span className="material-symbols-outlined">language</span>
-          </button>
+          <LanguageToggle />
           <Link href="/login" className={styles.iconButton}>
             <span className="material-symbols-outlined">account_circle</span>
           </Link>
         </div>
       </div>
       <div className={styles.mobileActions}>
-        <button className={styles.iconButton}>
-          <span className="material-symbols-outlined">language</span>
-        </button>
+        <LanguageToggle compact />
         <Link href="/login" className={styles.iconButton}>
           <span className="material-symbols-outlined">account_circle</span>
         </Link>

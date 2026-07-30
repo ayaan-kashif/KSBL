@@ -1,0 +1,55 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  /* Logical property: in an RTL container this becomes a right margin
+     automatically, so the block never needs a [dir="rtl"] override. */
+  margin-inline-start: 0;
+}
+
+/* The leading language: full weight and colour. */
+.primary {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* The secondary language stays on screen but recedes. --text-secondary is
+   7.48:1 on the canvas, so this is still comfortably AA body text, not a
+   decorative whisper. */
+.secondary {
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin: 0;
+}
+
+.urdu {
+  font-family: var(--font-urdu);
+  /* Naskh/Nastaliq sit taller than Latin and clip at Latin line-heights. */
+  line-height: 1.9;
+  text-align: start;
+}
+
+.english {
+  font-family: var(--font-body);
+  line-height: 1.45;
+  text-align: start;
+}
+
+/* Size ramp applies to the leading line; the secondary line stays a step
+   down so the hierarchy reads at projector distance. */
+.sm .primary { font-size: 0.875rem; }
+.sm .secondary { font-size: 0.8125rem; }
+
+.md .primary { font-size: 1rem; }
+.md .secondary { font-size: 0.9375rem; }
+
+.lg .primary { font-size: 1.375rem; }
+.lg .secondary { font-size: 1rem; }
+
+/* Urdu needs a slightly larger optical size to match Latin at the same
+   nominal font-size. */
+.sm .urdu { font-size: 0.9375rem; }
+.md .urdu { font-size: 1.0625rem; }
+.lg .urdu.primary { font-size: 1.5rem; }
+.lg .urdu.secondary { font-size: 1.0625rem; }

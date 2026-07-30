@@ -22,6 +22,7 @@ import { getCachedProduct, setCachedProduct, UnifiedProduct } from "@/services/c
 import { uploadImage } from "@/lib/blob";
 import { getCustomerIdFromRequest, incrementCustomerScore } from "@/lib/customer";
 import { findProductByImage } from "@/lib/vectorSearch";
+import { getVerdictTextSync } from "@/lib/translate";
 /** Maps a row from our own local "Product" table (sku, brand_name, product_name,
  * reference_image_url, pack_size...) to the same shape used everywhere else
  * (UnifiedProduct) — local catalog and scraper-matched rows share this shape
@@ -279,6 +280,9 @@ export async function POST(req: NextRequest) {
       dbVerdict = "suspicious";
     }
 
+    // Fixed-glossary verdict phrase, looked up synchronously — no API call.
+    const verdictPhrase = getVerdictTextSync(dbVerdict);
+
     // Use the device's real GPS coordinates only — never fabricate a location.
     const rawLat = formData.get("latitude") as string | null;
     const rawLng = formData.get("longitude") as string | null;
@@ -389,6 +393,14 @@ export async function POST(req: NextRequest) {
       },
       apiSource,
       reason: gemini.reason,
+      // Bilingual output. The verdict phrase comes from the fixed glossary and
+      // is never free-translated (see src/lib/translate.ts); only the reason
+      // sentence is model-generated, and it comes from the same Gemini call
+      // that produced the English one, so this costs no extra latency.
+      reason_en: gemini.reason,
+      reason_ur: gemini.reasonUr,
+      urdu_text: verdictPhrase.urdu_text,
+      english_text: verdictPhrase.english_text,
       barcodeDetected: !!barcode,
     };
 

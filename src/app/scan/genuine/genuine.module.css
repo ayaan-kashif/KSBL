@@ -342,3 +342,11 @@
 .btnOutline:active {
   transform: scale(0.97);
 }
+
+/* .verdictSub now wraps a BilingualText block rather than a single <p>. */
+.verdictSub {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  padding-inline: 1.25rem;
+}

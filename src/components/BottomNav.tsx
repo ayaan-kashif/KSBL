@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './BottomNav.module.css';
+import LanguageToggle from './LanguageToggle';
 
 const navItems = [
   { href: '/', icon: 'home', label: 'Home' },
@@ -30,6 +31,9 @@ export default function BottomNav() {
           </Link>
         );
       })}
+      <span className={styles.langSlot}>
+        <LanguageToggle compact />
+      </span>
     </nav>
   );
 }

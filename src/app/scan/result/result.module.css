@@ -108,10 +108,35 @@
   font-weight: 700;
   margin-bottom: 0.4rem;
   letter-spacing: 0.01em;
+  /* Languages stack instead of sharing one line with a slash. */
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  align-items: flex-start;
 }
 .urduText {
   font-family: var(--font-urdu);
   font-weight: 600;
+}
+.urduHeadline {
+  font-family: var(--font-urdu);
+  font-weight: 700;
+  /* Naskh clips at Latin leading. */
+  line-height: 1.9;
+}
+/* The non-leading language stays visible but recedes. It inherits the verdict
+   colour from .verdictTitle, so this only drops size/weight — keeping it well
+   above the 4.5:1 floor. */
+.secondaryHeadline {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.78;
+}
+.batchValue {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 .verdictSubtitle { font-size: 14px; color: var(--text-secondary); }
 
@@ -131,7 +156,9 @@
   height: 100%;
   border-radius: 9999px;
 }
-.analysisNote { font-size: 14px; color: var(--text-secondary); font-style: italic; }
+/* Wraps a BilingualText block now, so no font-style here — italic renders
+   Arabic script poorly and the child handles its own colour/size. */
+.analysisNote { font-size: 14px; }
 
 .reasonsGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 .reasonChip {

@@ -323,4 +323,29 @@
   padding: 4px 10px;
   border-radius: 20px;
   white-space: nowrap;
+  /* Two stacked language lines instead of one. */
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.25;
+}
+
+.badgeUrdu {
+  font-family: var(--font-urdu);
+  /* Urdu has no letter case; uppercasing does nothing but the tracking
+     applied for Latin caps breaks the joined script. */
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 11px;
+  line-height: 1.9;
+}
+
+.badgeSecondary {
+  font-weight: 600;
+  opacity: 0.8;
+  font-size: 9px;
+}
+
+.badgeUrdu.badgeSecondary {
+  font-size: 10px;
 }

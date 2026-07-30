@@ -100,3 +100,12 @@
   border-radius:0.75rem; text-decoration:none; transition:all 0.2s;
 }
 .secondaryBtn:hover { background:#e9eef5; }
+
+/* Wrapper for the bilingual verdict phrase under the badge. */
+.verdictCopy {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  padding-inline: 1.25rem;
+  margin-block: 0.5rem 0.25rem;
+}

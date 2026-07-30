@@ -4,9 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './simplified.module.css';
 import { readScanResult, ScanResult, formatConfidence } from '@/lib/api';
+import VerdictBadge from '@/components/VerdictBadge';
+import BilingualText from '@/components/BilingualText';
+import { useLanguage } from '@/components/LanguageContext';
+import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
 
 export default function SimplifiedVerdictPage() {
   const [result, setResult] = useState<ScanResult | null>(null);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     const data = readScanResult();
@@ -42,12 +47,19 @@ export default function SimplifiedVerdictPage() {
           </div>
         </div>
 
-        <h2 className={styles.verdictTitle}>Genuine</h2>
-        <p className={styles.verdictUrdu} dir="rtl">اصل مصنوع — تصدیق شدہ</p>
+        <VerdictBadge verdict="genuine" size="lg" />
+        <div className={styles.verdictCopy}>
+          <BilingualText
+            en={VERDICT_PHRASE.genuine.en}
+            ur={VERDICT_PHRASE.genuine.ur}
+            size="sm"
+          />
+        </div>
 
         <div className={styles.confBadge}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>analytics</span>
-          {confidence}% Confidence Score
+          {/* Score stays in Latin digits in both languages. */}
+          {confidence}% {pick(UI_COPY.confidence, lang)}
         </div>
 
         <div className={styles.detailCard}>
@@ -69,9 +81,13 @@ export default function SimplifiedVerdictPage() {
           </div>
         </div>
 
-        <p className={styles.message}>
-          {result?.reason || 'This product has been verified as authentic by ShelfWatch AI. Safe to purchase and consume.'}
-        </p>
+        <div className={styles.message}>
+          <BilingualText
+            en={result?.reason ?? 'This product has been verified as authentic by ShelfWatch AI. Safe to purchase and consume.'}
+            ur={result?.reason_ur ?? 'شیلف واچ اے آئی نے اس مصنوع کی اصل ہونے کی تصدیق کی ہے۔ خریدنا اور استعمال کرنا محفوظ ہے۔'}
+            size="sm"
+          />
+        </div>
 
         <div className={styles.actions}>
           <Link href="/scan" className={styles.primaryBtn}>

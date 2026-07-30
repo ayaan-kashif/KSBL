@@ -19,7 +19,8 @@ export interface ScanResult {
   scan_id: string;
   verdict: VerdictType;
   confidence: number;       // 0–1
-  reason: string;
+  reason: string;           // English (alias of reason_en, kept for compatibility)
+  reason_ur?: string;       // Urdu counterpart of `reason`
   english_text: string;
   urdu_text: string;
   product_name: string | null;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit, Noto_Sans_Arabic, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ToastContext";
+import { LanguageProvider } from "@/components/LanguageContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -24,7 +25,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body className={inter.className}>
-        <ToastProvider>{children}</ToastProvider>
+        {/* Providers wrap {children} rather than <html> so the static parts of
+            the server tree stay server-rendered. */}
+        <LanguageProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

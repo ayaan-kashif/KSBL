@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 import styles from './result.module.css';
 import Button from '@/components/Button';
+import BilingualText from '@/components/BilingualText';
+import LanguageToggle from '@/components/LanguageToggle';
+import { useLanguage } from '@/components/LanguageContext';
+import { UI_COPY, pick } from '@/lib/verdictCopy';
 
 interface ProductData {
   name: string;
@@ -33,6 +37,12 @@ interface VerificationResult {
   gemini: GeminiData;
   apiSource: "LocalCatalog" | "ScraperMatch" | "UPCItemDB" | "OpenFoodFacts" | "BarcodeLookup" | "none";
   reason: string;
+  /** Bilingual fields from /api/verify. Optional so a result cached in
+   *  sessionStorage from before this change still renders. */
+  reason_en?: string;
+  reason_ur?: string;
+  urdu_text?: string;
+  english_text?: string;
   barcodeDetected: boolean;
 }
 
@@ -40,6 +50,7 @@ export default function ResultPage() {
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     const stored = sessionStorage.getItem('shelfwatch_verify_result');
@@ -117,6 +128,7 @@ export default function ResultPage() {
   let statusHeadline = "NEEDS MANUAL REVIEW";
   let statusUrdu = "مشکوک";
   let statusSub = "Visual discrepancies detected. Manual check recommended.";
+  let statusSubUrdu = "ظاہری تضادات پائے گئے۔ دستی جانچ کی سفارش کی جاتی ہے۔";
 
   if (status === "Likely Original") {
     themeColor = "#047857"; // --verdict-genuine
@@ -124,20 +136,29 @@ export default function ResultPage() {
     statusHeadline = "LIKELY ORIGINAL";
     statusUrdu = "اصلی";
     statusSub = "This product matches all official manufacturer specifications.";
+    statusSubUrdu = "یہ مصنوع کارخانہ دار کی تمام سرکاری تفصیلات سے مطابقت رکھتی ہے۔";
   } else if (status === "Likely Counterfeit") {
     themeColor = "#be123c"; // --verdict-counterfeit
     themeIcon = "gpp_maybe";
     statusHeadline = "LIKELY COUNTERFEIT";
     statusUrdu = "جعلی";
     statusSub = "High packaging discrepancy indicates potential counterfeit.";
+    statusSubUrdu = "پیکنگ میں نمایاں فرق ممکنہ جعل سازی کی نشاندہی کرتا ہے۔";
   }
+
+  // Both languages stay on screen; `lang` only decides which one leads.
+  const urduLeads = lang === 'ur';
+  const reasonEn = result?.reason_en ?? reason;
+  // Pre-bilingual cached results have no Urdu reason — show the fixed glossary
+  // line rather than repeating the English sentence in the Urdu slot.
+  const reasonUr = result?.reason_ur ?? statusSubUrdu;
 
   return (
     <>
       <header className={styles.appBar}>
         <h1 className={styles.logo}>ShelfWatch</h1>
         <div className={styles.appBarActions}>
-          <button className={`material-symbols-outlined ${styles.iconButton}`}>language</button>
+          <LanguageToggle compact />
           <button className={`material-symbols-outlined ${styles.iconButton}`}>account_circle</button>
         </div>
       </header>
@@ -162,20 +183,39 @@ export default function ResultPage() {
             </span>
           </div>
           <div>
+            {/* Stacked, not slashed — each language gets its own line, correct
+                direction and correct font. */}
             <h2 className={styles.verdictTitle} style={{ color: themeColor }}>
-              {statusHeadline} <span className={styles.urduText}>/ {statusUrdu}</span>
+              {urduLeads ? (
+                <>
+                  <span lang="ur" dir="rtl" className={styles.urduHeadline}>{statusUrdu}</span>
+                  <span lang="en" dir="ltr" className={styles.secondaryHeadline}>{statusHeadline}</span>
+                </>
+              ) : (
+                <>
+                  <span lang="en" dir="ltr">{statusHeadline}</span>
+                  <span lang="ur" dir="rtl" className={`${styles.urduHeadline} ${styles.secondaryHeadline}`}>{statusUrdu}</span>
+                </>
+              )}
             </h2>
-            <p className={styles.verdictSubtitle}>{statusSub}</p>
+            <BilingualText en={statusSub} ur={statusSubUrdu} size="sm" />
           </div>
         </div>
 
         {/* Confidence & Score Section */}
         <div className={`liquid-glass-gradient-border ${styles.confidenceSection}`}>
           <div className={styles.flexBetween}>
-            <span className={styles.labelCaps}>Authenticity Score</span>
+            <span className={styles.labelCaps}>
+              {pick(UI_COPY.confidence, lang)}
+              {/* Score itself stays Latin digits in both languages. */}
+            </span>
             <span className={styles.confidenceValue} style={{ color: themeColor }}>
               {score}%
             </span>
+          </div>
+          <div className={styles.flexBetween}>
+            <span className={styles.labelCaps}>{pick(UI_COPY.batchCode, lang)}</span>
+            <span className={styles.batchValue}>{product.barcode || '—'}</span>
           </div>
           <div className={styles.progressBarTrack}>
             <div
@@ -187,7 +227,9 @@ export default function ResultPage() {
               }}
             ></div>
           </div>
-          <p className={styles.analysisNote}>{reason}</p>
+          <div className={styles.analysisNote}>
+            <BilingualText en={reasonEn} ur={reasonUr} size="sm" />
+          </div>
         </div>
 
         {/* Gemini Visual Evaluation Details — telemetry bars */}

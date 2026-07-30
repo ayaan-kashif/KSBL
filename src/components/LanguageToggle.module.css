@@ -1,0 +1,53 @@
+.toggle {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-interactive);
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.option {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  line-height: 1.6;
+}
+
+.option:hover:not(.active) {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+/* Selected state carries colour AND weight, not colour alone. */
+.active {
+  background: var(--purple-glow);
+  color: #ffffff; /* 7.10:1 on --purple-glow */
+}
+
+.urdu {
+  font-family: var(--font-urdu);
+  font-size: 13px;
+  /* Naskh clips at Latin leading. */
+  line-height: 1.9;
+  padding-block: 0.15rem;
+}
+
+.compact .option {
+  padding: 0.2rem 0.55rem;
+  font-size: 11px;
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--purple-glow);
+  outline-offset: -2px;
+}

@@ -15,6 +15,10 @@ export interface GeminiComparisonResult {
   tampering: boolean;
   confidence: number;
   reason: string;
+  /** Urdu rendering of `reason`. Produced by this same call rather than a
+   *  follow-up translation request — the scan is already multi-second, and a
+   *  second round-trip just to translate one sentence would be felt. */
+  reasonUr: string;
 }
 
 const DEFAULT_FALLBACK_RESULT: GeminiComparisonResult = {
@@ -26,6 +30,7 @@ const DEFAULT_FALLBACK_RESULT: GeminiComparisonResult = {
   tampering: false,
   confidence: 40,
   reason: "Failed to verify packaging visual details securely. Falling back to safe default analysis.",
+  reasonUr: "پیکنگ کی ظاہری تفصیلات کی محفوظ تصدیق نہیں ہو سکی۔ معیاری تجزیے پر انحصار کیا جا رہا ہے۔",
 };
 
 // Helper to download an image from a URL and convert it to a base64 string
@@ -118,8 +123,13 @@ Required JSON Structure:
   "designMatch": 89,
   "tampering": false,
   "confidence": 94,
-  "reason": "Write a concise explanation of the verdict, highlighting any typography or printing anomalies."
+  "reason": "Write a concise explanation of the verdict, highlighting any typography or printing anomalies.",
+  "reasonUr": "The SAME explanation written in natural Urdu script."
 }
+
+"reasonUr" must be natural Urdu script (not Latin transliteration) and must
+convey the same meaning as "reason". Keep batch codes, barcodes, dates and
+numbers in Latin digits inside the Urdu sentence.
 
 Note: If no official reference data/image is available (unregistered product), compare the captured product photo against generic industry standards for authentic packaging for that brand and calculate matches accordingly based purely on what you observe. Do not artificially lower your confidence score just because reference data is unavailable — base confidence solely on the visual evidence itself (print sharpness, logo accuracy, packaging consistency, absence of tampering). A clean, well-printed, tamper-free product should still score highly even with no reference data to compare against.
 
@@ -211,6 +221,12 @@ Normalise all numeric scores to a scale of 0 to 100.`;
         tampering: Boolean(parsed.tampering) ?? false,
         confidence: Number(parsed.confidence) ?? 50,
         reason: parsed.reason || "Verification completed.",
+        // Fall back to the fixed Urdu string rather than echoing the English
+        // one — an English sentence in the Urdu slot reads as a bug on screen.
+        reasonUr:
+          typeof parsed.reasonUr === "string" && parsed.reasonUr.trim()
+            ? parsed.reasonUr.trim()
+            : "تصدیق مکمل ہو گئی۔",
       };
     } catch (parseErr) {
       console.error("[GeminiVision] Failed to parse response text as JSON:", cleanJsonStr, parseErr);

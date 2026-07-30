@@ -3,12 +3,17 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './genuine.module.css';
+import VerdictBadge from '@/components/VerdictBadge';
+import BilingualText from '@/components/BilingualText';
+import { useLanguage } from '@/components/LanguageContext';
+import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
 
 interface ScanResult {
   scan_id: string;
   verdict: string;
   confidence: number;
   reason: string;
+  reason_ur?: string;
   urdu_text: string;
   english_text: string;
   extracted_batch: string | null;
@@ -20,6 +25,7 @@ interface ScanResult {
 
 export default function GenuineResultPage() {
   const [result, setResult] = useState<ScanResult | null>(null);
+  const { lang } = useLanguage();
 
   useEffect(() => {
     const stored = sessionStorage.getItem('shelfwatch_scan_result');
@@ -57,13 +63,29 @@ export default function GenuineResultPage() {
           </div>
         </div>
 
-        <h2 className={styles.verdictTitle}>Genuine / اصل</h2>
-        <p className={styles.verdictSub}>This product is authentic and safe</p>
+        <VerdictBadge verdict="genuine" size="lg" />
+        <div className={styles.verdictSub}>
+          <BilingualText
+            en={VERDICT_PHRASE.genuine.en}
+            ur={VERDICT_PHRASE.genuine.ur}
+            size="sm"
+          />
+        </div>
+
+        {/* Reason — bilingual, from the scan payload when present. */}
+        <div className={styles.verdictSub}>
+          <BilingualText
+            en={result?.reason ?? 'This product is authentic and safe.'}
+            ur={result?.reason_ur ?? 'یہ مصنوع اصل اور محفوظ ہے۔'}
+            size="sm"
+          />
+        </div>
 
         {/* Confidence meter */}
         <div className={styles.confidenceCard}>
           <div className={styles.confRow}>
-            <span className={styles.confLabel}>AI Confidence Score</span>
+            <span className={styles.confLabel}>{pick(UI_COPY.confidence, lang)}</span>
+            {/* Latin digits in both languages. */}
             <span className={styles.confValue}>{confidence}%</span>
           </div>
           <div className={styles.confTrack}>
