@@ -87,7 +87,12 @@ function StepHowToScan() {
             <div className={styles.scanStepNumber} style={{ borderColor: s.color, color: s.color }}>
               {i + 1}
             </div>
-            <div className={styles.scanStepIcon} style={{ background: s.color + '18', color: s.color }}>
+            {/* color-mix, not hex-alpha concatenation: s.color is a var()
+                reference, and appending "18" to that produces invalid CSS. */}
+            <div
+              className={styles.scanStepIcon}
+              style={{ background: `color-mix(in srgb, ${s.color} 12%, transparent)`, color: s.color }}
+            >
               <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>{s.icon}</span>
             </div>
             <div className={styles.scanStepText}>

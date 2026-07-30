@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
       }
 
       // Dynamic color/accent matching the verdict
-      let color = "rgba(70,241,197,0.1)";
-      let accent = "#46f1c5";
+      let color = "var(--verdict-genuine-soft)";
+      let accent = "#00e5a0";
       if (displayVerdict === "suspicious") {
         color = "rgba(255,185,95,0.1)";
         accent = "#ffb95f";

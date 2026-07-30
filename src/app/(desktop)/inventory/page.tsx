@@ -82,17 +82,17 @@ export default function InventoryPage() {
           else if (newStatus === "recalled") displayVerdict = "counterfeit";
           else if (p.stock === 0) displayVerdict = "unverified";
 
-          let color = "rgba(70,241,197,0.1)";
-          let accent = "#46f1c5";
+          let color = "var(--verdict-genuine-soft)";
+          let accent = "var(--verdict-genuine)";
           if (displayVerdict === "suspicious") {
-            color = "rgba(255,185,95,0.1)";
-            accent = "#ffb95f";
+            color = "var(--verdict-suspicious-soft)";
+            accent = "var(--verdict-suspicious)";
           } else if (displayVerdict === "counterfeit") {
-            color = "rgba(255,107,107,0.1)";
-            accent = "#ff6b6b";
+            color = "var(--verdict-counterfeit-soft)";
+            accent = "var(--verdict-counterfeit)";
           } else if (displayVerdict === "unverified") {
-            color = "rgba(255,255,255,0.05)";
-            accent = "#bacac2";
+            color = "var(--glass-2)";
+            accent = "var(--text-secondary)";
           }
 
           return { ...p, status: newStatus, verdict: displayVerdict, color, accent };
@@ -216,7 +216,12 @@ export default function InventoryPage() {
         <div className={styles.grid}>
           {paginated.map(p => (
             <div key={p.id} className={styles.card}>
-              <div className={styles.cardImage} style={{ background: p.color, borderColor: p.accent + '40' }}>
+              {/* color-mix, not hex-alpha concatenation: p.accent is a var()
+                  reference, so appending "40" would be invalid CSS. */}
+              <div
+                className={styles.cardImage}
+                style={{ background: p.color, borderColor: `color-mix(in srgb, ${p.accent} 40%, transparent)` }}
+              >
                 <span className="material-symbols-outlined" style={{ color: p.accent, fontSize: '36px' }}>
                   {p.status === 'recalled' ? 'cancel' : 'medication'}
                 </span>

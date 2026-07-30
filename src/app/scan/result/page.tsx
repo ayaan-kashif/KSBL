@@ -112,20 +112,20 @@ export default function ResultPage() {
   // globals.css) rather than a var() reference, because it gets alpha-suffixed
   // below (`${themeColor}40`) to derive translucent fills/borders — that
   // hex-alpha trick only works on literal hex colors, not on var() calls.
-  let themeColor = "#ffb800"; // --verdict-suspicious
+  let themeColor = "#ffb020"; // --verdict-suspicious
   let themeIcon = "warning";
   let statusHeadline = "NEEDS MANUAL REVIEW";
   let statusUrdu = "مشکوک";
   let statusSub = "Visual discrepancies detected. Manual check recommended.";
 
   if (status === "Likely Original") {
-    themeColor = "#00e6a8"; // --verdict-genuine
+    themeColor = "#00e5a0"; // --verdict-genuine
     themeIcon = "verified";
     statusHeadline = "LIKELY ORIGINAL";
     statusUrdu = "اصلی";
     statusSub = "This product matches all official manufacturer specifications.";
   } else if (status === "Likely Counterfeit") {
-    themeColor = "#ff3366"; // --verdict-counterfeit
+    themeColor = "#ff4d6d"; // --verdict-counterfeit
     themeIcon = "gpp_maybe";
     statusHeadline = "LIKELY COUNTERFEIT";
     statusUrdu = "جعلی";
@@ -149,7 +149,7 @@ export default function ResultPage() {
         </div>
 
         {/* Verdict Hero Badge */}
-        <div className={`liquid-glass-gradient-border ${styles.headerCard}`} style={{ boxShadow: `var(--glass-shadow), 0 0 40px ${themeColor}26` }}>
+        <div className={`liquid-glass-gradient-border ${styles.headerCard}`} style={{ boxShadow: `var(--e3), 0 0 40px ${themeColor}26` }}>
           <div
             className={styles.warningIconWrapper}
             style={{
@@ -182,7 +182,7 @@ export default function ResultPage() {
               className={styles.progressBarFill}
               style={{
                 width: `${score}%`,
-                background: `linear-gradient(to right, var(--cyan-glow), ${themeColor})`,
+                background: `linear-gradient(to right, var(--brand-cyan), ${themeColor})`,
                 boxShadow: `0 0 10px ${themeColor}80`
               }}
             ></div>
@@ -208,7 +208,7 @@ export default function ResultPage() {
                 <div className={styles.telemetryTrack}>
                   <div
                     className={styles.telemetryFill}
-                    style={{ width: `${item.val}%`, background: `linear-gradient(to right, var(--cyan-glow), ${barColor})` }}
+                    style={{ width: `${item.val}%`, background: `linear-gradient(to right, var(--brand-cyan), ${barColor})` }}
                   ></div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function ResultPage() {
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <p className={styles.labelCaps}>API Lookup Source</p>
-              <p className={styles.detailValue} style={{ color: 'var(--cyan-glow)' }}>
+              <p className={styles.detailValue} style={{ color: 'var(--brand-cyan)' }}>
                 {apiSourceLabels[apiSource] || apiSource}
               </p>
             </div>

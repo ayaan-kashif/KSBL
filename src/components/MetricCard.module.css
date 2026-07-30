@@ -1,61 +1,89 @@
 .card {
-  padding: 1.25rem;
+  position: relative;
+  padding: var(--s-5);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  min-height: 110px;
+  gap: var(--s-2);
+  min-height: 118px;
+  overflow: hidden;
 }
+
+/* Brand wash bleeding in from the top-right corner. Gives the card an
+   implied light source and stops a grid of metrics reading as flat tiles. */
+.card::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 70%;
+  height: 140%;
+  border-radius: 50%;
+  background: var(--grad-brand-wash);
+  filter: blur(28px);
+  opacity: 0.65;
+  pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+
+.card:hover::after { opacity: 1; }
 
 .topRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--s-3);
+  position: relative;
 }
 
 .label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .iconWrap {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 10px;
-  background: var(--liquid-primary-grad);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--r-sm);
+  background: var(--grad-brand);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: var(--e1), var(--bloom-brand);
 }
 
 .icon {
-  font-size: 18px;
-  color: #ffffff;
+  font-size: 19px;
+  color: var(--text-on-brand);
 }
 
+/* Tabular figures so a ticking value never nudges the layout sideways */
 .value {
+  position: relative;
   font-family: var(--font-mono);
-  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-size: 32px;
   font-weight: 600;
+  line-height: 1.1;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .trendRow {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: var(--s-1);
   font-size: 12.5px;
   font-weight: 600;
 }
 
-.trendUp { color: var(--verdict-genuine); }
+.trendUp   { color: var(--verdict-genuine); }
 .trendDown { color: var(--verdict-counterfeit); }
 .trendFlat { color: var(--text-muted); }
 
-.trendIcon {
-  font-size: 16px;
-}
+.trendIcon { font-size: 16px; }

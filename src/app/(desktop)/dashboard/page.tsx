@@ -106,7 +106,7 @@ export default function DashboardPage() {
 
   const confidencePct = activeIncident ? Math.round(activeIncident.confidence * 100) : 97;
   const isCritical = activeIncident?.verdict === 'suspicious';
-  const verdictHex = isCritical ? '#ff3366' : '#ffb800';
+  const verdictHex = isCritical ? '#ff4d6d' : '#ffb020';
 
   return (
     <div className={styles.page}>
@@ -121,14 +121,14 @@ export default function DashboardPage() {
         </defs>
         <rect width="800" height="600" fill="var(--bg-surface)" />
         {Array.from({ length: 17 }).map((_, i) => (
-          <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="600" stroke="rgba(0,210,255,0.08)" strokeWidth="1" />
+          <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="600" stroke="rgba(34, 211, 238, 0.08)" strokeWidth="1" />
         ))}
         {Array.from({ length: 13 }).map((_, i) => (
-          <line key={`h${i}`} x1="0" y1={i * 50} x2="800" y2={i * 50} stroke="rgba(0,210,255,0.08)" strokeWidth="1" />
+          <line key={`h${i}`} x1="0" y1={i * 50} x2="800" y2={i * 50} stroke="rgba(34, 211, 238, 0.08)" strokeWidth="1" />
         ))}
-        <path d="M0,420 C150,380 250,460 400,400 S650,340 800,380" stroke="rgba(138,43,226,0.35)" strokeWidth="3" fill="none" />
-        <path d="M120,0 C160,150 100,300 180,600" stroke="rgba(0,210,255,0.25)" strokeWidth="3" fill="none" />
-        <path d="M0,180 C220,140 500,220 800,150" stroke="rgba(0,210,255,0.18)" strokeWidth="2" fill="none" />
+        <path d="M0,420 C150,380 250,460 400,400 S650,340 800,380" stroke="rgba(124, 92, 255, 0.35)" strokeWidth="3" fill="none" />
+        <path d="M120,0 C160,150 100,300 180,600" stroke="rgba(34, 211, 238, 0.25)" strokeWidth="3" fill="none" />
+        <path d="M0,180 C220,140 500,220 800,150" stroke="rgba(34, 211, 238, 0.18)" strokeWidth="2" fill="none" />
         <rect width="800" height="600" fill="url(#mapFade)" />
       </svg>
 
@@ -142,7 +142,7 @@ export default function DashboardPage() {
       )}
 
       {/* Incident Panel */}
-      <div className={`liquid-glass ${styles.incidentPanel}`}>
+      <div className={styles.incidentPanel}>
         <div className={styles.panelInner}>
           {loading ? (
             <div className={styles.stateMessage}>

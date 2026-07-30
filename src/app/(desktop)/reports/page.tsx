@@ -80,9 +80,9 @@ const REPORTS: Report[] = [
 ];
 
 const formatColors: Record<ReportFormat, string> = {
-  PDF: '#ff6b6b',
-  CSV: '#46f1c5',
-  XLSX: '#4ecdc4',
+  PDF: 'var(--verdict-counterfeit)',
+  CSV: 'var(--verdict-genuine)',
+  XLSX: 'var(--brand-cyan)',
 };
 
 export default function ReportsPage() {
@@ -195,7 +195,12 @@ export default function ReportsPage() {
       <div className={styles.list}>
         {REPORTS.map(report => (
           <div key={report.id} className={styles.row}>
-            <div className={styles.rowIcon} style={{ background: report.color + '18', color: report.color }}>
+            {/* color-mix, not hex-alpha concatenation: report.color is a
+                var() reference, so appending "18" would be invalid CSS. */}
+            <div
+              className={styles.rowIcon}
+              style={{ background: `color-mix(in srgb, ${report.color} 12%, transparent)`, color: report.color }}
+            >
               <span className="material-symbols-outlined">{report.icon}</span>
             </div>
             <div className={styles.rowContent}>
@@ -244,20 +249,22 @@ export default function ReportsPage() {
           position: 'fixed',
           bottom: '24px',
           right: '24px',
-          background: toast.type === 'success' ? '#1c2e24' : '#331a1a',
-          color: 'white',
-          border: toast.type === 'success' ? '1px solid #46f1c5' : '1px solid #ff6b6b',
+          background: 'var(--glass-3)',
+          backdropFilter: 'var(--blur-lg)',
+          WebkitBackdropFilter: 'var(--blur-lg)',
+          color: 'var(--text-primary)',
+          border: `1px solid ${toast.type === 'success' ? 'var(--verdict-genuine-line)' : 'var(--verdict-counterfeit-line)'}`,
           padding: '12px 20px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-          zIndex: 9999,
+          borderRadius: 'var(--r-md)',
+          boxShadow: 'var(--e4)',
+          zIndex: 'var(--z-toast)',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           fontSize: '14px',
           fontFamily: 'var(--font-inter), sans-serif'
         }}>
-          <span className="material-symbols-outlined" style={{ color: toast.type === 'success' ? '#46f1c5' : '#ff6b6b', fontSize: '18px' }}>
+          <span className="material-symbols-outlined" style={{ color: toast.type === 'success' ? '#00e5a0' : '#ff4d6d', fontSize: '18px' }}>
             {toast.type === 'success' ? 'check_circle' : 'error'}
           </span>
           {toast.message}

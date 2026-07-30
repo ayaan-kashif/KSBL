@@ -1,10 +1,12 @@
 .page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: linear-gradient(135deg, #070e1d 0%, #0c1322 100%);
+  /* transparent so the global aurora field shows through; an opaque fill
+     here would flatten every glass surface stacked above it */
+  background: transparent;
 }
 
 .chatContainer {
@@ -14,8 +16,8 @@
   max-height: 800px;
   display: flex;
   flex-direction: column;
-  background: rgba(25, 31, 47, 0.9);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--glass-1);
+  border: 1px solid var(--edge);
   border-radius: 1.25rem;
   overflow: hidden;
   backdrop-filter: blur(20px);
@@ -28,8 +30,8 @@
   align-items: center;
   gap: 0.875rem;
   padding: 1rem 1.25rem;
-  background: rgba(35, 42, 58, 0.8);
-  border-bottom: 1px solid rgba(59, 74, 68, 0.2);
+  background: var(--glass-3);
+  border-bottom: 1px solid var(--edge);
   flex-shrink: 0;
 }
 
@@ -37,8 +39,8 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 50%;
-  background: rgba(70, 241, 197, 0.1);
-  border: 1px solid rgba(70, 241, 197, 0.25);
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,7 +94,7 @@
   justify-content: center;
   transition: background 0.2s;
 }
-.headerBtn:hover { background: rgba(255,255,255,0.06); }
+.headerBtn:hover { background: var(--glass-1); }
 
 /* Messages */
 .messagesArea {
@@ -106,13 +108,13 @@
 }
 .messagesArea::-webkit-scrollbar { width: 4px; }
 .messagesArea::-webkit-scrollbar-track { background: transparent; }
-.messagesArea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.messagesArea::-webkit-scrollbar-thumb { background: var(--edge-strong); border-radius: 2px; }
 
 .dateSeparator {
   text-align: center;
   font-size: 11px;
   color: var(--color-on-surface-variant);
-  background: rgba(255,255,255,0.04);
+  background: var(--glass-1);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   align-self: center;
@@ -137,8 +139,8 @@
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 50%;
-  background: rgba(70, 241, 197, 0.1);
-  border: 1px solid rgba(70, 241, 197, 0.2);
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,8 +149,8 @@
 }
 
 .botBubble {
-  background: rgba(35, 42, 58, 0.9);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: var(--glass-3);
+  border: 1px solid var(--edge);
   border-radius: 0 1rem 1rem 1rem;
   padding: 0.75rem 1rem;
   font-size: 14px;
@@ -158,8 +160,8 @@
 }
 
 .userBubble {
-  background: rgba(70, 241, 197, 0.12);
-  border: 1px solid rgba(70, 241, 197, 0.2);
+  background: rgba(34, 211, 238, 0.12);
+  border: 1px solid rgba(34, 211, 238, 0.2);
   border-radius: 1rem 0 1rem 1rem;
   padding: 0.75rem 1rem;
   font-size: 14px;
@@ -200,8 +202,8 @@
 /* Input Area */
 .inputArea {
   padding: 0.75rem 1rem;
-  background: rgba(25, 31, 47, 0.95);
-  border-top: 1px solid rgba(59, 74, 68, 0.2);
+  background: var(--glass-1);
+  border-top: 1px solid var(--edge);
   flex-shrink: 0;
 }
 
@@ -212,8 +214,8 @@
   overflow-x: auto;
 }
 .quickReply {
-  background: rgba(70,241,197,0.08);
-  border: 1px solid rgba(70,241,197,0.2);
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.2);
   color: var(--color-primary);
   padding: 0.3rem 0.875rem;
   border-radius: 9999px;
@@ -223,7 +225,7 @@
   white-space: nowrap;
   transition: all 0.15s;
 }
-.quickReply:hover { background: rgba(70,241,197,0.15); }
+.quickReply:hover { background: rgba(34, 211, 238, 0.15); }
 
 .inputRow {
   display: flex;
@@ -245,7 +247,7 @@
 .input {
   flex: 1;
   background: rgba(17, 24, 39, 0.8);
-  border: 1px solid rgba(59, 74, 68, 0.4);
+  border: 1px solid var(--edge);
   border-radius: 1.25rem;
   color: var(--color-on-surface);
   font-size: 14px;
@@ -259,7 +261,7 @@
   transition: border-color 0.2s;
 }
 .input::placeholder { color: var(--color-on-surface-variant); opacity: 0.5; }
-.input:focus { border-color: rgba(70,241,197,0.3); }
+.input:focus { border-color: rgba(34, 211, 238, 0.3); }
 
 .sendBtn {
   width: 2.5rem;
@@ -275,5 +277,5 @@
   flex-shrink: 0;
   transition: all 0.2s;
 }
-.sendBtn:hover:not(:disabled) { box-shadow: 0 0 15px rgba(70,241,197,0.4); }
+.sendBtn:hover:not(:disabled) { box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); }
 .sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }

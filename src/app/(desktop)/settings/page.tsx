@@ -261,7 +261,7 @@ function SettingsContent({ onLogout }: { onLogout: () => void }) {
         {/* Language & Region */}
         <section className={styles.card}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon} style={{ background: 'rgba(70,241,197,0.12)', color: 'var(--color-primary)' }}>
+            <div className={styles.cardIcon} style={{ background: 'var(--verdict-genuine-soft)', color: 'var(--color-primary)' }}>
               <span className="material-symbols-outlined">language</span>
             </div>
             <div>

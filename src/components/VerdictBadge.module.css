@@ -1,59 +1,91 @@
+/* Verdict badges carry meaning, so each variant pairs its colour with a
+   distinct icon (supplied by the component) — colour is never the only
+   signal, which keeps the verdict legible to colour-blind users. */
 .badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  border-radius: 9999px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  gap: var(--s-2);
+  border-radius: var(--r-pill);
   font-family: var(--font-body);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  backdrop-filter: var(--blur-md);
+  -webkit-backdrop-filter: var(--blur-md);
+  isolation: isolate;
 }
 
-/* Sizes */
-.sm { padding: 0.25rem 0.75rem; font-size: 12px; }
-.md { padding: 0.5rem 1.25rem; font-size: 14px; }
-.lg { padding: 0.75rem 1.75rem; font-size: 18px; }
+/* Inner gloss arc — makes the pill read as a raised lozenge */
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* ── Sizes ─────────────────────────────────────────────────────────────── */
+.sm { padding: 0.3rem 0.8rem;   font-size: 12px; }
+.md { padding: 0.55rem 1.25rem; font-size: 14px; }
+.lg { padding: 0.85rem 1.85rem; font-size: 18px; }
 .sm .icon { font-size: 16px; }
 .md .icon { font-size: 20px; }
 .lg .icon { font-size: 28px; }
 
-/* Variants */
+.icon { flex-shrink: 0; line-height: 1; }
+
+/* ── Variants ──────────────────────────────────────────────────────────── */
 .genuine {
-  background: rgba(0, 230, 168, 0.12);
+  background: var(--verdict-genuine-soft);
   color: var(--verdict-genuine);
-  border: 1px solid rgba(0, 230, 168, 0.35);
-  box-shadow: 0 0 20px rgba(0, 230, 168, 0.15);
+  border-color: var(--verdict-genuine-line);
+  box-shadow: var(--e1), var(--bloom-genuine);
 }
 
 .suspicious {
-  background: rgba(255, 184, 0, 0.12);
+  background: var(--verdict-suspicious-soft);
   color: var(--verdict-suspicious);
-  border: 1px solid rgba(255, 184, 0, 0.35);
-  box-shadow: 0 0 20px rgba(255, 184, 0, 0.15);
+  border-color: var(--verdict-suspicious-line);
+  box-shadow: var(--e1), var(--bloom-suspicious);
 }
 
 .counterfeit {
-  background: rgba(255, 51, 102, 0.12);
+  background: var(--verdict-counterfeit-soft);
   color: var(--verdict-counterfeit);
-  border: 1px solid rgba(255, 51, 102, 0.35);
-  box-shadow: 0 0 20px rgba(255, 51, 102, 0.15);
+  border-color: var(--verdict-counterfeit-line);
+  box-shadow: var(--e1), var(--bloom-counterfeit);
 }
 
 .unverified {
-  background: rgba(154, 161, 185, 0.1);
+  background: var(--glass-2);
   color: var(--text-secondary);
-  border: 1px solid rgba(154, 161, 185, 0.3);
+  border-color: var(--edge-strong);
+  box-shadow: var(--e1);
 }
 
 .processing {
-  background: rgba(0, 210, 255, 0.1);
-  color: var(--cyan-glow);
-  border: 1px solid rgba(0, 210, 255, 0.25);
-  animation: processingPulse 2s ease-in-out infinite;
+  background: var(--brand-cyan-soft);
+  color: var(--brand-cyan);
+  border-color: rgba(34, 211, 238, 0.32);
+  box-shadow: var(--e1);
 }
 
-@keyframes processingPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+/* Expanding halo — signals live work without the badge itself moving,
+   so surrounding layout stays perfectly still. */
+.processing::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -2;
+  border-radius: inherit;
+  border: 1px solid var(--brand-cyan);
+  animation: pulse-ring 1.9s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .processing::after { animation: none; opacity: 0.35; }
 }

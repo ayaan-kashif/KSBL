@@ -13,8 +13,8 @@ type FilterType = 'all' | 'genuine' | 'suspicious' | 'unverified';
 // can't be hex-alpha-suffixed for translucent fills/borders. This local map
 // mirrors the new --verdict-* token values as literal hex for that purpose.
 const VERDICT_HEX: Record<'genuine' | 'suspicious' | 'unverified', string> = {
-  genuine: '#00e6a8',
-  suspicious: '#ffb800',
+  genuine: '#00e5a0',
+  suspicious: '#ffb020',
   unverified: '#9aa1b9',
 };
 

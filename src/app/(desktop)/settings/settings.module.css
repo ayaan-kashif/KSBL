@@ -36,10 +36,10 @@
 }
 
 .card {
-  background: rgba(25, 31, 47, 0.7);
+  background: var(--glass-1);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--edge);
   border-radius: 18px;
   padding: 24px;
   display: flex;
@@ -49,7 +49,7 @@
 }
 
 .card:hover {
-  border-color: rgba(255, 255, 255, 0.13);
+  border-color: var(--edge-strong);
 }
 
 .cardHeader {
@@ -62,7 +62,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(70, 241, 197, 0.12);
+  background: rgba(34, 211, 238, 0.12);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -114,7 +114,7 @@
   padding: 12px 40px 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-1);
   color: var(--color-on-surface);
   font-family: var(--font-inter), sans-serif;
   font-size: 14px;
@@ -124,7 +124,7 @@
 
 .input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(70, 241, 197, 0.1);
+  box-shadow: 0 0 0 3px var(--brand-cyan-soft);
 }
 
 .inputDisabled {
@@ -148,7 +148,7 @@
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: rgba(25, 31, 47, 0.8);
+  background: var(--glass-1);
   color: var(--color-on-surface);
   font-family: var(--font-inter), sans-serif;
   font-size: 14px;
@@ -165,7 +165,7 @@
 
 .select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(70, 241, 197, 0.1);
+  box-shadow: 0 0 0 3px var(--brand-cyan-soft);
 }
 
 /* Card Actions */
@@ -194,11 +194,11 @@
 
 .btnPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(70, 241, 197, 0.35);
+  box-shadow: var(--e2), var(--bloom-brand);
 }
 
 .btnSaved {
-  background: rgba(70, 241, 197, 0.2) !important;
+  background: rgba(34, 211, 238, 0.2) !important;
   color: var(--color-primary) !important;
 }
 
@@ -219,8 +219,8 @@
 }
 
 .btnOutlined:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--edge-strong);
+  background: var(--glass-1);
 }
 
 .btnDanger {
@@ -258,7 +258,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 14px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--edge);
 }
 
 .toggleRow:last-child {
@@ -306,8 +306,8 @@
   position: absolute;
   inset: 0;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-2);
+  border: 1px solid var(--edge-strong);
   transition: background 0.25s ease, border-color 0.25s ease;
 }
 
@@ -321,11 +321,11 @@
   top: 2px;
   left: 2px;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--e1);
 }
 
 .toggleInput:checked + .toggleSlider {
-  background: rgba(70, 241, 197, 0.2);
+  background: rgba(34, 211, 238, 0.2);
   border-color: var(--color-primary);
 }
 
@@ -374,7 +374,7 @@
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--glass-1);
 }
 
 .apiKeyCode {
@@ -407,7 +407,7 @@
 
 .apiBtn:hover {
   color: var(--color-primary);
-  background: rgba(70, 241, 197, 0.08);
+  background: rgba(34, 211, 238, 0.08);
 }
 
 .apiWarning {
@@ -434,14 +434,14 @@
 }
 
 .modal {
-  background: rgba(25, 31, 47, 0.97);
+  background: var(--glass-1);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--edge-strong);
   border-radius: 20px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--e4);
 }
 
 .modalHeader {
@@ -449,7 +449,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--edge);
 }
 
 .modalTitle {
@@ -483,6 +483,6 @@
   display: flex;
   gap: 10px;
   padding: 16px 24px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid var(--edge);
   justify-content: flex-end;
 }
