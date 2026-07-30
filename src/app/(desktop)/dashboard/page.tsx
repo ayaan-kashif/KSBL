@@ -97,12 +97,35 @@ export default function DashboardPage() {
     }
   };
 
-  // Mock flags detected based on confidence & type for the UI presentation
-  const mockFlags = [
-    { icon: 'print_disabled', text: 'Print Quality Anomaly' },
-    { icon: 'qr_code', text: 'Barcode/Batch Pattern Inconsistency' },
-    { icon: 'gpp_maybe', text: 'Visual Asset Discrepancy' }
-  ];
+  // Derives real AI flags from this scan's stored Gemini per-check scores
+  // (src/app/api/verify/route.ts persists these into ocr_raw_json at scan
+  // time). Scans made before that change have ai_flags = null — those fall
+  // back to a message rather than showing fabricated flags.
+  const MATCH_THRESHOLD = 70;
+  function deriveFlags(incident: ScanHistoryItem): { icon: string; text: string }[] {
+    const flags = incident.ai_flags;
+    if (!flags) return [];
+
+    const result: { icon: string; text: string }[] = [];
+    if (flags.tampering) {
+      result.push({ icon: 'gpp_maybe', text: 'Tampering Detected' });
+    }
+    if (flags.packagingMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'print_disabled', text: 'Print Quality Anomaly' });
+    }
+    if (flags.barcodeMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'qr_code', text: 'Barcode/Batch Pattern Inconsistency' });
+    }
+    if (flags.logoMatch < MATCH_THRESHOLD || flags.brandMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'branding_watermark', text: 'Logo/Brand Mark Discrepancy' });
+    }
+    if (flags.designMatch < MATCH_THRESHOLD) {
+      result.push({ icon: 'visibility', text: 'Visual Asset Discrepancy' });
+    }
+    return result;
+  }
+
+  const activeFlags = activeIncident ? deriveFlags(activeIncident) : [];
 
   const confidencePct = activeIncident ? Math.round(activeIncident.confidence * 100) : 97;
   const isCritical = activeIncident?.verdict === 'suspicious';
@@ -197,11 +220,11 @@ export default function DashboardPage() {
                 <div className={styles.detailsGrid}>
                   {[
                     { label: 'Batch No.', value: activeIncident.extracted_batch || 'Unknown', mono: true },
-                    { label: 'Factory ID', value: 'KHI-F7', mono: true },
+                    { label: 'Barcode', value: activeIncident.barcode || 'No Barcode', mono: true },
                     { label: 'Time Logged', value: new Date(activeIncident.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
                     { label: 'Verdict', value: activeIncident.verdict.toUpperCase() },
                     { label: 'Brand', value: activeIncident.brand_name || 'Unknown Brand' },
-                    { label: 'Category', value: activeIncident.product_name || 'FMCG Goods' },
+                    { label: 'Category', value: activeIncident.category || 'Uncategorized' },
                   ].map((d, i) => (
                     <div key={i} className={styles.detailItem}>
                       <p className={styles.detailLabel}>{d.label}</p>
@@ -214,12 +237,20 @@ export default function DashboardPage() {
               {/* AI Flags */}
               <div className={styles.flagsCard}>
                 <p className={styles.sectionLabel}>AI FLAGS DETECTED</p>
-                {mockFlags.map((flag, i) => (
+                {activeFlags.map((flag, i) => (
                   <div key={i} className={styles.flagItem}>
                     <span className="material-symbols-outlined" style={{ color: 'var(--verdict-counterfeit)', fontSize: '18px' }}>{flag.icon}</span>
                     <span className={styles.flagText}>{flag.text}</span>
                   </div>
                 ))}
+                {activeFlags.length === 0 && (
+                  <div className={styles.flagItem}>
+                    <span className="material-symbols-outlined" style={{ color: 'var(--verdict-genuine)', fontSize: '18px' }}>check_circle</span>
+                    <span className={styles.flagText}>
+                      {activeIncident.ai_flags ? 'No anomalies detected' : 'AI signal not recorded for this scan'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

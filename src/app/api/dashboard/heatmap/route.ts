@@ -155,8 +155,19 @@ export async function GET(req: NextRequest) {
           : 0,
     }));
 
-    // Sort by report_count descending for the client
-    clusters.sort((a, b) => b.report_count - a.report_count);
+    // Rank by counterfeit (suspicious) scan count descending — a "hotspot" is
+    // about where counterfeits are turning up, not raw scan volume, so an
+    // area with fewer total scans but more suspicious ones should outrank an
+    // area with more total scans but none suspicious. Ties fall back to total
+    // report_count, then alphabetically by area_name — the underlying Scan
+    // query has no ORDER BY, so without a full deterministic tiebreak, tied
+    // areas would shuffle order on every 45s dashboard auto-refresh instead
+    // of holding a stable position.
+    clusters.sort((a, b) =>
+      b.suspicious_count - a.suspicious_count ||
+      b.report_count - a.report_count ||
+      a.area_name.localeCompare(b.area_name)
+    );
 
     return NextResponse.json(clusters);
   } catch (err) {

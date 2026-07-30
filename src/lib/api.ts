@@ -56,6 +56,16 @@ export interface HeatmapCluster {
   suspicious_rate: number;
 }
 
+export interface ScanAiFlags {
+  logoMatch: number;
+  packagingMatch: number;
+  barcodeMatch: number;
+  brandMatch: number;
+  designMatch: number;
+  tampering: boolean;
+  reason: string;
+}
+
 export interface ScanHistoryItem {
   id: string;
   verdict: VerdictType;
@@ -63,9 +73,12 @@ export interface ScanHistoryItem {
   area_name: string | null;
   product_name: string | null;
   brand_name: string | null;
+  category: string | null;
+  barcode: string | null;
   extracted_batch: string | null;
   image_url: string;
   created_at: string;
+  ai_flags: ScanAiFlags | null;
 }
 
 // ─── Result wrapper ───────────────────────────────────────────────────────────
@@ -302,22 +315,38 @@ export function readScanResult(): ScanResult | null {
 
 // ─── Geolocation helper ───────────────────────────────────────────────────────
 
+type GeoAttempt =
+  | { ok: true; latitude: number; longitude: number }
+  | { ok: false; deniedPermission: boolean };
+
+function getPosition(options: PositionOptions): Promise<GeoAttempt> {
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ ok: true, latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      (err) => resolve({ ok: false, deniedPermission: err.code === err.PERMISSION_DENIED }),
+      options
+    );
+  });
+}
+
 export async function getGeolocation(): Promise<{
   latitude: number;
   longitude: number;
 } | null> {
-  return new Promise((resolve) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      resolve(null);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => resolve(null),
-      { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }
-    );
-  });
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return null;
+  }
+
+  // First attempt: GPS-priority, short timeout — best accuracy, but many
+  // laptops/desktops have no GPS chip and will time out here.
+  const first = await getPosition({ timeout: 6000, maximumAge: 60000, enableHighAccuracy: true });
+  if (first.ok) return { latitude: first.latitude, longitude: first.longitude };
+  if (first.deniedPermission) return null; // retrying won't help
+
+  // Fallback: Wi-Fi/IP-based positioning, longer timeout — much more likely
+  // to succeed on devices without a GPS chip, just less precise.
+  const second = await getPosition({ timeout: 10000, maximumAge: 60000, enableHighAccuracy: false });
+  return second.ok ? { latitude: second.latitude, longitude: second.longitude } : null;
 }
 
 // ─── Format helpers ───────────────────────────────────────────────────────────

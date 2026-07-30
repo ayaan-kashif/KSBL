@@ -309,12 +309,24 @@ export async function POST(req: NextRequest) {
             // covers all three source paths, not just external DB lookups.
             product_name: product?.name || null,
             brand_name: product?.brand || null,
+            category: product?.category || null,
+            barcode: barcode?.trim() || product?.barcode || null,
             scanned_by_role: (formData.get("role") as any) || "consumer",
             image_url: imageUrl,
             extracted_batch: gemini.tampering ? "Tampered" : "Standard Batch",
             extracted_mfg_date: new Date().toLocaleDateString(),
             extracted_mrp: null,
-            ocr_raw_json: {},
+            // Per-check Gemini signals, kept so the dashboard can render real
+            // "AI Flags Detected" for this specific scan instead of static text.
+            ocr_raw_json: {
+              logoMatch: gemini.logoMatch,
+              packagingMatch: gemini.packagingMatch,
+              barcodeMatch: gemini.barcodeMatch,
+              brandMatch: gemini.brandMatch,
+              designMatch: gemini.designMatch,
+              tampering: gemini.tampering,
+              reason: gemini.reason,
+            },
             cv_anomaly_score: (100 - gemini.packagingMatch) / 100,
             verdict: dbVerdict,
             confidence: finalScore / 100,
