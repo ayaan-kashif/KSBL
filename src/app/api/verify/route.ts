@@ -12,17 +12,16 @@ import { NextRequest, NextResponse } from "next/server";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 import { scanBarcodeFromImage } from "@/services/barcodeScanner";
-import { lookupUPCItemDB } from "@/services/upcItemDb";
-import { lookupOpenFoodFacts } from "@/services/openFoodFacts";
-import { lookupBarcodeLookup } from "@/services/barcodeLookup";
-import { compareImagesWithGemini } from "@/services/geminiVision";
-import { runComparisonEngine } from "@/services/comparisonEngine";
-import { calculateAuthenticityScore } from "@/services/scoreEngine";
-import { getCachedProduct, setCachedProduct, UnifiedProduct } from "@/services/cacheService";
+import { UnifiedProduct } from "@/services/cacheService";
 import { uploadImage } from "@/lib/blob";
 import { getCustomerIdFromRequest, incrementCustomerScore } from "@/lib/customer";
-import { findProductByImage } from "@/lib/vectorSearch";
 import { getVerdictTextSync } from "@/lib/translate";
+import { resolveBrandContext } from "@/services/brandRouter";
+import {
+  runNationalRagPath,
+  runExternalDbPath,
+  type VerificationPath,
+} from "@/services/verificationPaths";
 /** Maps a row from our own local "Product" table (sku, brand_name, product_name,
  * reference_image_url, pack_size...) to the same shape used everywhere else
  * (UnifiedProduct) — local catalog and scraper-matched rows share this shape
@@ -184,101 +183,58 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // RAG-style match against the scraped product catalog (Product.embedding,
-    // via the match_products RPC — see prisma/sql/pgvector_setup.sql). Only
-    // run if a barcode match didn't already identify the product, since it's
-    // the same catalog either way.
-    const vectorMatch = localProductRow ? null : await findProductByImage(imageUrl);
-    if (vectorMatch && !dbProductId) {
-      dbProductId = vectorMatch.product.id;
-    }
-
-    // 4. External DB Lookup & Fallbacks — only when our own catalog didn't
-    // already identify the product (only if barcode exists).
-    let product: UnifiedProduct | null = null;
-    let apiSource: "LocalCatalog" | "ScraperMatch" | "UPCItemDB" | "OpenFoodFacts" | "BarcodeLookup" | "none" = "none";
-
-    if (localProductRow) {
-      product = mapLocalProductToUnified(localProductRow);
-      apiSource = "LocalCatalog";
-    } else if (vectorMatch) {
-      product = mapLocalProductToUnified(vectorMatch.product);
-      apiSource = "ScraperMatch";
-    } else if (barcode) {
-      const cleanBarcode = barcode.trim();
-
-      // Check Cache Service (24 hours)
-      const cached = await getCachedProduct(cleanBarcode);
-      if (cached) {
-        product = cached;
-        apiSource = "UPCItemDB"; // Map cached to source or use generic cache indication
-      } else {
-        // Step 4.1: UPCItemDB
-        product = await lookupUPCItemDB(cleanBarcode);
-        if (product) {
-          apiSource = "UPCItemDB";
-        } else {
-          // Step 4.2: Open Food Facts
-          product = await lookupOpenFoodFacts(cleanBarcode);
-          if (product) {
-            apiSource = "OpenFoodFacts";
-          } else {
-            // Step 4.3: Barcode Lookup
-            product = await lookupBarcodeLookup(cleanBarcode);
-            if (product) {
-              apiSource = "BarcodeLookup";
-            }
-          }
-        }
-
-        // Cache successful response
-        if (product) {
-          await setCachedProduct(cleanBarcode, product);
-        }
-      }
-    }
-
-    // 5. Gemini Vision Packaging Verification — now sees whichever reference
-    // product we actually identified (local catalog / scraper match /
-    // external DB), not just external-API results.
-    console.log("[VerifyAPI] Running Gemini Vision Comparison...");
-    const gemini = await compareImagesWithGemini(imageBase64, product, mimeType, {
-      data: backImageBase64,
-      mimeType: backMimeType,
+    // 4. Decide WHICH verification path this scan belongs on, then run it.
+    // National Foods has no public barcode database (that's why the scraper
+    // and the pgvector catalog exist), while the external databases carry
+    // international SKUs but not National Foods ones — so the two categories
+    // need different evidence, and a miss means something different on each.
+    const brandContext = await resolveBrandContext({
+      localCatalogBrand: localProductRow?.brand_name ?? null,
+      barcode,
+      imageBase64,
+      mimeType,
     });
 
-    // 6. Comparison Engine Match Verification
-    const comparison = runComparisonEngine(barcode, product, gemini);
+    const verificationPath: VerificationPath = brandContext.isNationalFoods
+      ? "national_rag"
+      : "external_db";
 
-    // 7. Calculate authenticity score
-    const scoring = calculateAuthenticityScore(comparison);
-    const finalScore = scoring.score;
+    console.log(
+      `[VerifyAPI] path=${verificationPath} brand=${brandContext.detectedBrand ?? "unknown"} via=${brandContext.source}`
+    );
 
-    // Status Rules — mirrors the dbVerdict thresholds below exactly, so the
-    // on-screen result never contradicts what gets stored/shown everywhere
-    // else (dashboard, leaderboard, scan history).
-    let status: "Likely Original" | "Needs Manual Review" | "Likely Counterfeit";
-    if (finalScore > 50) {
-      status = "Likely Original";
-    } else if (finalScore < 10) {
-      status = "Likely Counterfeit";
-    } else {
-      status = "Needs Manual Review";
-    }
+    const pathInput = {
+      imageUrl,
+      imageBase64,
+      mimeType,
+      backImageBase64,
+      backMimeType,
+      barcode,
+      localProduct: localProductRow ? mapLocalProductToUnified(localProductRow) : null,
+      localProductId: dbProductId,
+    };
 
-    // A confirmed match against our own catalog (local barcode/SKU match or
-    // scraper visual match) is treated as a confirmed genuine identification,
-    // independent of the barcode/Gemini score below.
-    let dbVerdict: "genuine" | "suspicious" | "unverified" = "unverified";
-    if (localProductRow || vectorMatch) {
-      dbVerdict = "genuine";
-    } else if (finalScore > 50) {
-      dbVerdict = "genuine";
-    } else if (finalScore < 10) {
-      dbVerdict = "unverified";
-    } else {
-      dbVerdict = "suspicious";
-    }
+    const outcome =
+      verificationPath === "national_rag"
+        ? await runNationalRagPath(pathInput)
+        : await runExternalDbPath(pathInput);
+
+    const { gemini } = outcome;
+    const product = outcome.product;
+    const apiSource = outcome.apiSource;
+    const finalScore = outcome.score;
+    const dbVerdict = outcome.dbVerdict;
+    const displayVerdict = outcome.displayVerdict;
+    dbProductId = outcome.dbProductId;
+
+    // Status mirrors displayVerdict so the headline can never contradict the
+    // verdict shown beside it.
+    const status: "Likely Original" | "Needs Manual Review" | "Likely Counterfeit" =
+      displayVerdict === "genuine"
+        ? "Likely Original"
+        : displayVerdict === "counterfeit"
+          ? "Likely Counterfeit"
+          : "Needs Manual Review";
 
     // Fixed-glossary verdict phrase, looked up synchronously — no API call.
     const verdictPhrase = getVerdictTextSync(dbVerdict);
@@ -392,16 +348,28 @@ export async function POST(req: NextRequest) {
         reason: gemini.reason,
       },
       apiSource,
-      reason: gemini.reason,
+      // The reason now comes from the path that actually decided the verdict —
+      // for a National Foods catalogue miss that's the explicit "not in the
+      // reference catalogue" finding, not a generic Gemini remark.
+      reason: outcome.reasonEn,
       // Bilingual output. The verdict phrase comes from the fixed glossary and
       // is never free-translated (see src/lib/translate.ts); only the reason
       // sentence is model-generated, and it comes from the same Gemini call
       // that produced the English one, so this costs no extra latency.
-      reason_en: gemini.reason,
-      reason_ur: gemini.reasonUr,
+      reason_en: outcome.reasonEn,
+      reason_ur: outcome.reasonUr,
       urdu_text: verdictPhrase.urdu_text,
       english_text: verdictPhrase.english_text,
       barcodeDetected: !!barcode,
+
+      // ── Routing transparency ────────────────────────────────────────────
+      verificationPath,
+      brandContext,
+      vectorSimilarity: outcome.vectorSimilarity,
+      // Display-only superset of the DB verdict: `counterfeit` is rendered by
+      // VerdictBadge but is NOT a Prisma Verdict value, so the row above
+      // stored `suspicious`. Result screens read this field.
+      displayVerdict,
     };
 
     return NextResponse.json(responsePayload, { status: 200 });

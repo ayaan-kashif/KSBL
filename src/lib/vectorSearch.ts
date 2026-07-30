@@ -21,7 +21,11 @@
 
 import { getImageEmbedding } from "./embeddings";
 
-const DEFAULT_MATCH_THRESHOLD = 0.85;
+// This is the FLOOR handed to the RPC, not a verdict cutoff. Path A in
+// services/verificationPaths.ts bands the returned similarity, so the RPC has
+// to return middle-band candidates rather than discarding them — hence the
+// floor tracks VECTOR_MATCH_LOW (0.82) rather than the old 0.85.
+const DEFAULT_MATCH_THRESHOLD = 0.82;
 const RPC_TIMEOUT_MS = 6000;
 
 export interface VectorMatch {
@@ -53,7 +57,13 @@ export async function findProductByImage(
   const embedding = await getImageEmbedding(imageUrl);
   if (!embedding) return null;
 
-  const threshold = Number(process.env.VECTOR_MATCH_THRESHOLD) || DEFAULT_MATCH_THRESHOLD;
+  // VECTOR_MATCH_LOW is the band boundary Path A adjudicates from; honour it
+  // as the RPC floor so the two can't drift apart and silently drop the
+  // bottom of the middle band.
+  const threshold =
+    Number(process.env.VECTOR_MATCH_THRESHOLD) ||
+    Number(process.env.VECTOR_MATCH_LOW) ||
+    DEFAULT_MATCH_THRESHOLD;
 
   try {
     const controller = new AbortController();
