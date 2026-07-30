@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import styles from './dashboard.module.css';
 import { getScanHistory, ScanHistoryItem } from '@/lib/api';
 import Button from '@/components/Button';
+import HorecaTile from '@/components/HorecaTile';
 import { useToast } from '@/components/ToastContext';
 
 export default function DashboardPage() {
@@ -163,6 +164,9 @@ export default function DashboardPage() {
           <div className={styles.pingDot} style={{ background: verdictHex }}></div>
         </div>
       )}
+
+      {/* HORECA pull-through — top-left, opposite the incident panel */}
+      <HorecaTile />
 
       {/* Incident Panel */}
       <div className={`liquid-glass ${styles.incidentPanel}`}>
