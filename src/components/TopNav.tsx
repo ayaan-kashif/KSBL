@@ -7,7 +7,6 @@ import LanguageToggle from './LanguageToggle';
 
 export default function TopNav() {
   const pathname = usePathname();
-  const isMobile = !pathname.startsWith('/dashboard') && !pathname.startsWith('/analytics') && !pathname.startsWith('/login') && !pathname.startsWith('/reports') && !pathname.startsWith('/inventory') && !pathname.startsWith('/settings');
 
   return (
     <header className={styles.header}>
@@ -25,14 +24,14 @@ export default function TopNav() {
         </nav>
         <div className={styles.headerIcons}>
           <LanguageToggle />
-          <Link href="/login" className={styles.iconButton}>
+          <Link href="/login" className={styles.iconButton} aria-label="Account">
             <span className="material-symbols-outlined">account_circle</span>
           </Link>
         </div>
       </div>
       <div className={styles.mobileActions}>
         <LanguageToggle compact />
-        <Link href="/login" className={styles.iconButton}>
+        <Link href="/login" className={styles.iconButton} aria-label="Account">
           <span className="material-symbols-outlined">account_circle</span>
         </Link>
       </div>

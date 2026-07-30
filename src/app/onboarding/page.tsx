@@ -209,7 +209,7 @@ export default function OnboardingPage() {
         {/* Navigation */}
         <div className={styles.nav}>
           {step > 0 && (
-            <button className={styles.backBtn} onClick={() => setStep(s => s - 1)}>
+            <button className={styles.backBtn} aria-label="Go back" onClick={() => setStep(s => s - 1)}>
               <span className="material-symbols-outlined">arrow_back</span>
               Back
             </button>

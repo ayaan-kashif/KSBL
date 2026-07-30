@@ -35,18 +35,22 @@ export async function GET(req: NextRequest) {
         displayVerdict = "unverified";
       }
 
-      // Dynamic color/accent matching the verdict
-      let color = "var(--verdict-genuine-soft)";
-      let accent = "#00e5a0";
+      // Dynamic color/accent matching the verdict.
+      // These mirror the --verdict-* tokens in globals.css but are emitted as
+      // literal hex, not var() references: the inventory card appends a hex
+      // alpha suffix to `accent` (`accent + '40'`), which only works on a
+      // literal colour — a var() call would produce invalid CSS.
+      let color = "#ecfdf5";   // --verdict-genuine-bg
+      let accent = "#047857";  // --verdict-genuine
       if (displayVerdict === "suspicious") {
-        color = "rgba(255,185,95,0.1)";
-        accent = "#ffb95f";
+        color = "#fffbeb";     // --verdict-suspicious-bg
+        accent = "#b45309";    // --verdict-suspicious
       } else if (displayVerdict === "counterfeit") {
-        color = "rgba(255,107,107,0.1)";
-        accent = "#ff6b6b";
+        color = "#fff1f2";     // --verdict-counterfeit-bg
+        accent = "#be123c";    // --verdict-counterfeit
       } else if (displayVerdict === "unverified") {
-        color = "rgba(255,255,255,0.05)";
-        accent = "#bacac2";
+        color = "#f1f5f9";     // neutral slate surface
+        accent = "#5f6b7d";    // --text-muted
       }
 
       return {

@@ -195,7 +195,12 @@ export default function ReportsPage() {
       <div className={styles.list}>
         {REPORTS.map(report => (
           <div key={report.id} className={styles.row}>
-            <div className={styles.rowIcon} style={{ background: report.color + '18', color: report.color }}>
+            {/* color-mix, not hex-alpha concatenation: report.color is a
+                var() reference, so appending "18" would be invalid CSS. */}
+            <div
+              className={styles.rowIcon}
+              style={{ background: `color-mix(in srgb, ${report.color} 12%, transparent)`, color: report.color }}
+            >
               <span className="material-symbols-outlined">{report.icon}</span>
             </div>
             <div className={styles.rowContent}>

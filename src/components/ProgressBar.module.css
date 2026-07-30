@@ -42,3 +42,20 @@
   box-shadow: 0 0 12px rgba(0, 119, 168, 0.5);
   transition: width 0.35s ease;
 }
+
+/* ── Depth layer ───────────────────────────────────────────────────────────
+   Recessed channel with a raised fill — the bar reads as a physical gauge
+   rather than two stacked rectangles. */
+.track {
+  background: #e9eef5;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
+  overflow: hidden;
+}
+
+.fill {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: width var(--t-slow) var(--ease-out);
+}
+
+.percent { font-variant-numeric: tabular-nums; }

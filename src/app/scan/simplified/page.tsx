@@ -29,11 +29,11 @@ export default function SimplifiedVerdictPage() {
       <div className={styles.bgOrb}></div>
 
       <header className={styles.appBar}>
-        <Link href="/scan" className={styles.backBtn}>
+        <Link href="/scan" className={styles.backBtn} aria-label="Back to scanner">
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
         <h1 className={styles.appBarTitle}>Verification Result</h1>
-        <button className={styles.shareBtn}>
+        <button className={styles.shareBtn} aria-label="Share result">
           <span className="material-symbols-outlined">share</span>
         </button>
       </header>

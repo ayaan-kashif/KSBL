@@ -24,7 +24,7 @@ const trendClass: Record<NonNullable<MetricCardProps['trend']>, string> = {
 
 export default function MetricCard({ label, value, icon, trend, trendLabel }: MetricCardProps) {
   return (
-    <div className={`surface surface-brand-edge lift ${styles.card}`}>
+    <div className={`liquid-glass-gradient-border lift ${styles.card}`}>
       <div className={styles.topRow}>
         <span className={styles.label}>{label}</span>
         {icon && (

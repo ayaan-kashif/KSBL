@@ -93,3 +93,39 @@
 @media (prefers-reduced-motion: reduce) {
   .processing { animation: none; }
 }
+
+/* ── Depth layer ───────────────────────────────────────────────────────────
+   Raised lozenge. Each variant already pairs its colour with a distinct icon
+   in the component, so the verdict never depends on colour alone. */
+.badge {
+  position: relative;
+  isolation: isolate;
+  box-shadow: var(--e1);
+}
+
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* Expanding halo signals live work without the badge itself moving, so
+   surrounding layout stays perfectly still. */
+.processing::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -2;
+  border-radius: inherit;
+  border: 1px solid var(--cyan-glow);
+  animation: pulse-ring 1.9s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .processing::after { animation: none; opacity: 0.3; }
+}

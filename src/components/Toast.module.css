@@ -107,3 +107,29 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* ── Depth layer ───────────────────────────────────────────────────────────
+   Toasts float highest in the stack, so they take the top of the elevation
+   scale — that separation is what stops them reading as part of the page. */
+.toast {
+  box-shadow: var(--e4);
+  animation: toast-in var(--t-base) var(--ease-spring) both;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate3d(0, -12px, 0) scale(0.96); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Visually 18px but a 32px hit area — meets the touch-target minimum without
+   the glyph looking oversized next to the message text. */
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px 0 0;
+  border-radius: var(--r-xs);
+  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+.closeBtn:hover { background: var(--bg-glass-hover); }
+
+.viewport { top: max(1rem, env(safe-area-inset-top)); }

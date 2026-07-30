@@ -133,3 +133,28 @@
   font-size: 12px;
   color: var(--verdict-counterfeit);
 }
+
+/* ── Depth layer ───────────────────────────────────────────────────────────
+   Inputs are *recessed*: an inset shadow reads as a well cut into the
+   surface, which is the natural affordance for "put text here" and reads as
+   physically opposite to the raised buttons beside them. */
+.wrapper {
+  box-shadow: var(--inset-well);
+  transition:
+    border-color var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out),
+    background-color var(--t-base) var(--ease-out);
+}
+
+.wrapper:hover:not(.focused) { border-color: var(--border-interactive); }
+
+/* Focus ring uses a soft brand halo on top of the well, so the recess is
+   still legible while focused. */
+.focused {
+  box-shadow: var(--inset-well), 0 0 0 4px rgba(0, 119, 168, 0.15);
+}
+
+.focused .leadingIcon { color: var(--cyan-glow); }
+
+/* 16px prevents iOS Safari auto-zooming the page on focus */
+.field { font-size: 16px; }

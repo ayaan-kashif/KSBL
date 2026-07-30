@@ -120,6 +120,79 @@
   --spacing-stack-sm: 8px;
   --spacing-stack-md: 16px;
   --spacing-stack-lg: 32px;
+
+  /* ============================================================
+     DEPTH SCALE
+     Colour-independent, so it layers onto the light palette above
+     without touching any of its audited contrast decisions.
+
+     On a light canvas depth cannot come from a glow — a coloured halo
+     over white is nearly invisible (see .glow-teal below). It comes from
+     three cues applied together at every raised surface:
+       1. a white specular top edge (light source sits above)
+       2. a soft slate ambient shadow (the "room")
+       3. a tight contact shadow (anchors the surface to what's below)
+     --e1..--e4 bundle all three. Use these instead of hand-rolled
+     shadows so elevation stays consistent across the app.
+     --glass-shadow above is preserved and equals --e2.
+     ============================================================ */
+  --e0: none;
+  --e1:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 2px 6px rgba(15, 23, 42, 0.04);
+  --e2:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 8px 24px rgba(15, 23, 42, 0.08);
+  --e3:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 4px rgba(15, 23, 42, 0.07),
+    0 16px 40px rgba(15, 23, 42, 0.11);
+  --e4:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 8px rgba(15, 23, 42, 0.09),
+    0 32px 72px rgba(15, 23, 42, 0.16);
+
+  /* Recessed wells — inputs and progress tracks invert the elevation cue
+     so "type here" reads as physically different from "press me". */
+  --inset-well: inset 0 2px 4px rgba(15, 23, 42, 0.07);
+  --inset-well-deep: inset 0 2px 6px rgba(15, 23, 42, 0.10);
+
+  /* Radius */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* Spacing (4pt rhythm) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 140ms;
+  --t-base: 220ms;
+  --t-slow: 360ms;
+
+  /* Layering */
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-nav: 40;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-toast: 300;
 }
 
 * {
@@ -268,3 +341,176 @@ p {
 .bg-primary { background-color: var(--color-primary); }
 .bg-error-container { background-color: var(--color-error-container); }
 .bg-secondary-container { background-color: var(--color-secondary-container); }
+
+/* ============================================================
+   DEPTH & MOTION LAYER
+   Built on the light palette's own tokens — adds dimension and
+   interaction feedback without redefining any colour.
+   ============================================================ */
+
+html { -webkit-text-size-adjust: 100%; }
+
+/* dvh accounts for mobile browser chrome, which 100vh does not */
+body { min-height: 100dvh; }
+
+/* Numeric columns must not jitter as values change */
+.tabular,
+[data-tabular] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Upstream ships no visible focus ring. --cyan-glow is 5.00:1 on white,
+   comfortably clearing the 3:1 WCAG 1.4.11 bar for a focus indicator. */
+:where(a, button, [role='button'], input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--cyan-glow);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────────────── */
+
+/* `--surface-elevation` lets a caller re-elevate without redeclaring the
+   whole recipe: <div class="surface" style="--surface-elevation:var(--e3)"> */
+.surface {
+  position: relative;
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  box-shadow: var(--surface-elevation, var(--e2));
+}
+
+.surface-flat   { --surface-elevation: var(--e1); }
+.surface-raised { --surface-elevation: var(--e3); }
+.surface-float  { --surface-elevation: var(--e4); }
+
+/* Diagonal specular sweep — suggests a glossy plane catching light.
+   Kept far weaker than the dark theme's: white-on-white needs only a hint. */
+.surface-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.12) 30%,
+    transparent 55%
+  );
+}
+
+/* Interactive lift — hover raises toward the viewer, press pushes past rest
+   for a physical rebound. Transform-only, so it never triggers layout. */
+.lift {
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out),
+    border-color var(--t-base) var(--ease-out),
+    background-color var(--t-base) var(--ease-out);
+}
+.lift:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: var(--e3);
+}
+.lift:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: var(--e1);
+  transition-duration: var(--t-fast);
+}
+
+/* Perspective container: children on their own Z planes get real parallax
+   rather than a faked offset. */
+.tilt { perspective: 1200px; transform-style: preserve-3d; }
+.tilt-layer { transform: translateZ(40px); transform-style: preserve-3d; }
+
+.text-gradient {
+  /* the -text variant: the plain gradient fails AA as text (see :root) */
+  background: var(--liquid-primary-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Entrance motion ──────────────────────────────────────────────────── */
+@keyframes rise-in {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.985); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scale-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes shimmer  { from { background-position: -180% 0; } to { background-position: 180% 0; } }
+@keyframes pulse-ring {
+  0%   { transform: scale(0.94); opacity: 0.6; }
+  70%  { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+
+.animate-rise  { animation: rise-in var(--t-slow) var(--ease-out) both; }
+.animate-fade  { animation: fade-in var(--t-base) var(--ease-out) both; }
+.animate-scale { animation: scale-in var(--t-base) var(--ease-spring) both; }
+
+/* Staggered entrance — 50ms cadence reads as a wave without dragging */
+.stagger > * { animation: rise-in var(--t-slow) var(--ease-out) both; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(8) { animation-delay: 350ms; }
+.stagger > *:nth-child(n + 9) { animation-delay: 400ms; }
+
+.skeleton {
+  background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%);
+  background-size: 220% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--r-sm);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Depth applied to the existing glass utilities ────────────────────── */
+.liquid-glass { box-shadow: var(--e2); }
+.liquid-glass-gradient-border { box-shadow: var(--e2); }
+.glass-modal { box-shadow: var(--e4); }
+
+/* ============================================================
+   Reduced motion — upstream shipped no guard, so this is the
+   safety net for every animation in the app. Ambient/decorative
+   motion is stripped; state changes stay perceptible but near
+   instant, so no affordance is ever removed.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .lift:hover { transform: none; }
+}
+
+/* Backdrop-filter is still unsupported in a few engines; fall back to opaque
+   surfaces so text keeps its contrast instead of sitting on transparency. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --bg-glass-card: #ffffff;
+    --bg-glass-hover: #f1f5f9;
+    --bg-glass-input: #ffffff;
+  }
+}

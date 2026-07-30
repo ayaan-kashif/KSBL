@@ -120,11 +120,11 @@ export default function ScanPage() {
   return (
     <div className={styles.page}>
       <header className={styles.appBar}>
-        <Link href="/" className={styles.backBtn}>
+        <Link href="/" className={styles.backBtn} aria-label="Back to home">
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
         <h1 className={styles.appBarTitle}>Scan Product</h1>
-        <button className={styles.helpBtn}>
+        <button className={styles.helpBtn} aria-label="Scanning help">
           <span className="material-symbols-outlined">help_outline</span>
         </button>
       </header>

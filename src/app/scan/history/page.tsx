@@ -76,7 +76,7 @@ export default function ScanHistoryPage() {
   return (
     <div className={styles.page}>
       <header className={styles.appBar}>
-        <Link href="/scan" className={styles.backBtn}>
+        <Link href="/scan" className={styles.backBtn} aria-label="Back to scanner">
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
         <h1 className={styles.appBarTitle}>Scan History</h1>

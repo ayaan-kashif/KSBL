@@ -77,3 +77,33 @@
   margin-inline-start: 0.25rem;
   border-inline-start: 1px solid var(--border-subtle);
 }
+
+/* ── Depth layer ───────────────────────────────────────────────────────────
+   Detaching the dock from the screen edge and giving it the top of the
+   elevation scale is what makes it read as hovering above the content
+   rather than welded to the bottom of the viewport. */
+.nav {
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  box-shadow: var(--e4);
+}
+
+/* 52px keeps every destination above the 44px touch-target minimum */
+.link {
+  min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--t-base) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.link:active { transform: scale(0.94); }
+
+/* Spring-scaled indicator grows into place rather than cross-fading, so the
+   active destination feels selected rather than merely highlighted. */
+.pill {
+  box-shadow: var(--e2);
+  transition:
+    opacity var(--t-base) var(--ease-out),
+    transform var(--t-base) var(--ease-spring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link:active { transform: none; }
+}
