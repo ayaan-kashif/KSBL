@@ -10,6 +10,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 import { Pool } from "pg";
 import { loadEnvConfig } from "@next/env";
 
@@ -313,13 +314,31 @@ async function main() {
     console.log(`  🍽️  Partner: ${partner.name} (${offers.length} offer(s))`);
   }
 
+  // ── Demo customer ──────────────────────────────────────────────────────────
+  // A known account with a spendable balance, so the rewards → wallet →
+  // partner walkthrough can be run without hand-editing the database.
+  //
+  // 450 points is chosen so the catalog shows BOTH states on one screen: it
+  // affords the 150- and 400-point offers, and locks the 800-point one at
+  // "350 more points". A balance that affords everything demos half the UI.
+  const DEMO_POINTS = 450;
+  const demoUser = await prisma.user.upsert({
+    where: { email: "demo@shelfwatch.pk" },
+    // Reset the balance on every seed run so a rehearsal that spends the
+    // points doesn't leave the next run unable to redeem.
+    update: { score_points: DEMO_POINTS },
+    create: {
+      name: "Demo Consumer",
+      email: "demo@shelfwatch.pk",
+      password_hash: bcrypt.hashSync("Demo1234", 10),
+      score_points: DEMO_POINTS,
+    },
+  });
+  console.log(`\n👤 Demo customer: demo@shelfwatch.pk / Demo1234 (${DEMO_POINTS} points)`);
+
   // Pre-redeemed vouchers so the dashboard HORECA tile shows real numbers on
-  // first load rather than zeros. Attached to the oldest existing customer —
-  // skipped if nobody has signed up yet.
-  const demoUser = await prisma.user.findFirst({ orderBy: { created_at: "asc" } });
-  if (!demoUser) {
-    console.log("\n⏭️  No User rows yet — skipping demo voucher seed. Sign up, then re-run.");
-  } else {
+  // first load rather than zeros.
+  {
     const day = 24 * 60 * 60 * 1000;
     const demoVouchers = [
       { id: "voucher_seed_001", offer_id: "offer_horeca_001", code: "K7M4XR29", redeemedDaysAgo: 7 },
