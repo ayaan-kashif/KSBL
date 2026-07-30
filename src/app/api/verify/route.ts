@@ -310,9 +310,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Award scorecard points for catching a suspicious/counterfeit scan
-    if (dbVerdict === "suspicious" && customerId) {
-      await incrementCustomerScore(customerId, 10);
+    // Award scorecard points on every completed scan, not just suspicious
+    // ones. Points now redeem for HORECA dining vouchers (/rewards), and when
+    // only suspicious scans earned, a consumer scanning genuine product --
+    // which is most scans -- never accumulated anything and never reached a
+    // reward. Suspicious still pays the most: catching a counterfeit is the
+    // behaviour worth paying for.
+    const POINTS_BY_VERDICT: Record<string, number> = {
+      genuine: 5,
+      suspicious: 15,
+      unverified: 2,
+    };
+    if (customerId) {
+      const points = POINTS_BY_VERDICT[dbVerdict] ?? 0;
+      if (points > 0) await incrementCustomerScore(customerId, points);
     }
 
     // Return structured payload
