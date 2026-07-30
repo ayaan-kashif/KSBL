@@ -1,20 +1,18 @@
 /* ============================================================
    HorecaTile.module.css — B2B pull-through tile (desktop dashboard)
 
-   This is the tile that sells the voucher model, so it takes the most
-   prominent open space on the dashboard: top-left, over the basemap,
-   opposite the incident panel.
+   This is the tile that sells the voucher model, so it leads the
+   dashboard's main column. It is a normal grid child — no absolute
+   positioning, no z-index; dashboard.module.css .grid places it.
+
+   Padding (24px) and eyebrow styling deliberately match
+   dashboard.module.css so the two cards share one internal rhythm.
    ============================================================ */
 
 .tile {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  width: 390px;
-  max-width: calc(100% - 32px);
-  z-index: 10;
+  width: 100%;
   border-radius: 20px;
-  padding: 22px 22px 18px;
+  padding: 24px;
 }
 
 .head {
@@ -24,7 +22,9 @@
   gap: 12px;
 }
 
-.eyebrow {
+/* Matches .panelEyebrow / .sectionLabel in dashboard.module.css. */
+.eyebrow,
+.partnersLabel {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.09em;
@@ -128,13 +128,8 @@
 
 /* ── Top partners ────────────────────────────────────────── */
 .partnersLabel {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -204,11 +199,10 @@
   line-height: 1.5;
 }
 
-@media (max-width: 900px) {
-  .tile {
-    position: static;
-    width: auto;
-    max-width: none;
-    margin: 16px;
+/* The two supporting metrics spread rather than staying locked at 1fr 1fr
+   when the main column is wide. */
+@media (min-width: 700px) {
+  .metrics {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }

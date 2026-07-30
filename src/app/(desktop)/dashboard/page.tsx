@@ -128,49 +128,29 @@ export default function DashboardPage() {
 
   const activeFlags = activeIncident ? deriveFlags(activeIncident) : [];
 
-  const confidencePct = activeIncident ? Math.round(activeIncident.confidence * 100) : 97;
+  // confidence is 0 for an unverified verdict — nothing was scored. Rendering
+  // that as "0%" with an empty bar reads as a broken component rather than an
+  // absent measurement, so the two cases are kept distinct.
+  const hasConfidence = !!activeIncident && activeIncident.confidence > 0;
+  const confidencePct = hasConfidence ? Math.round(activeIncident!.confidence * 100) : null;
+
   const isCritical = activeIncident?.verdict === 'suspicious';
-  const verdictHex = isCritical ? '#be123c' : '#b45309';
+  // Verdict colour comes from a modifier class that maps the light-theme
+  // --verdict-* tokens onto local --verdict-accent* properties, so no hex
+  // values are duplicated in JS.
+  const verdictClass = isCritical ? styles.panelCritical : styles.panelCaution;
 
   return (
     <div className={styles.page}>
-      {/* Vector SVG map */}
-      <svg className={styles.mapSvg} viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <linearGradient id="mapFade" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--bg-base)" stopOpacity="0.2" />
-            <stop offset="55%" stopColor="var(--bg-base)" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="var(--bg-base)" stopOpacity="0.97" />
-          </linearGradient>
-        </defs>
-        <rect width="800" height="600" fill="var(--bg-surface)" />
-        {Array.from({ length: 17 }).map((_, i) => (
-          <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="600" stroke="#e2e8f0" strokeWidth="1" />
-        ))}
-        {Array.from({ length: 13 }).map((_, i) => (
-          <line key={`h${i}`} x1="0" y1={i * 50} x2="800" y2={i * 50} stroke="#e2e8f0" strokeWidth="1" />
-        ))}
-        <path d="M0,420 C150,380 250,460 400,400 S650,340 800,380" stroke="rgba(109,40,217,0.35)" strokeWidth="3" fill="none" />
-        <path d="M120,0 C160,150 100,300 180,600" stroke="rgba(0,119,168,0.25)" strokeWidth="3" fill="none" />
-        <path d="M0,180 C220,140 500,220 800,150" stroke="rgba(0,119,168,0.18)" strokeWidth="2" fill="none" />
-        <rect width="800" height="600" fill="url(#mapFade)" />
-      </svg>
-
-      {/* Pulsing ping marker for the active incident */}
-      {activeIncident && (
-        <div className={styles.pingWrapper} style={{ top: '38%', left: '42%', color: verdictHex }}>
-          <div className={styles.pingRipple}></div>
-          <div className={styles.pingRipple2}></div>
-          <div className={styles.pingDot} style={{ background: verdictHex }}></div>
+      <div className={styles.grid}>
+        {/* HORECA pull-through — main column */}
+        <div className={styles.mainCol}>
+          <HorecaTile />
         </div>
-      )}
 
-      {/* HORECA pull-through — top-left, opposite the incident panel */}
-      <HorecaTile />
-
-      {/* Incident Panel */}
-      <div className={`liquid-glass ${styles.incidentPanel}`}>
-        <div className={styles.panelInner}>
+        {/* Incident Panel — side column */}
+        <div className={`liquid-glass ${styles.incidentPanel} ${verdictClass}`}>
+          <div className={styles.panelInner}>
           {loading ? (
             <div className={styles.stateMessage}>
               <span className="material-symbols-outlined spin" style={{ fontSize: '32px' }}>sync</span>
@@ -187,11 +167,8 @@ export default function DashboardPage() {
                     {activeIncident.area_name || 'Karachi, Pakistan'}
                   </p>
                 </div>
-                <span
-                  className={styles.counterfeitBadge}
-                  style={{ background: `${verdictHex}26`, color: verdictHex, border: `1px solid ${verdictHex}4d` }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>
+                <span className={styles.counterfeitBadge}>
+                  <span className={`material-symbols-outlined ${styles.badgeIcon}`}>
                     {isCritical ? 'cancel' : 'warning'}
                   </span>
                   {isCritical ? 'Counterfeit' : 'Unverified'}
@@ -201,21 +178,25 @@ export default function DashboardPage() {
               {/* Confidence */}
               <div className={styles.confSection}>
                 <div className={styles.confHeader}>
-                  <span className={styles.sectionLabel}>AI Confidence Score</span>
-                  <span className={styles.confValue} style={{ color: verdictHex }}>
-                    {confidencePct}%
-                  </span>
+                  <span className={styles.sectionLabel}>AI CONFIDENCE SCORE</span>
+                  {hasConfidence ? (
+                    <span className={styles.confValue}>{confidencePct}%</span>
+                  ) : (
+                    <span className={styles.confValueEmpty}>Not scored</span>
+                  )}
                 </div>
                 <div className={styles.confTrack}>
-                  <div
-                    className={styles.confFill}
-                    style={{
-                      width: `${confidencePct}%`,
-                      background: `linear-gradient(to right, var(--cyan-glow), ${verdictHex})`,
-                      boxShadow: `0 0 10px ${verdictHex}80`,
-                    }}
-                  ></div>
+                  {/* No fill at all when unscored — a 0%-width bar and a real
+                      0% score are indistinguishable to the eye otherwise. */}
+                  {hasConfidence && (
+                    <div className={styles.confFill} style={{ width: `${confidencePct}%` }} />
+                  )}
                 </div>
+                {!hasConfidence && (
+                  <p className={styles.confNote}>
+                    This scan was not scored — no reference product was matched.
+                  </p>
+                )}
               </div>
 
               {/* Product Details */}
@@ -243,13 +224,15 @@ export default function DashboardPage() {
                 <p className={styles.sectionLabel}>AI FLAGS DETECTED</p>
                 {activeFlags.map((flag, i) => (
                   <div key={i} className={styles.flagItem}>
-                    <span className="material-symbols-outlined" style={{ color: 'var(--verdict-counterfeit)', fontSize: '18px' }}>{flag.icon}</span>
+                    <span className={`material-symbols-outlined ${styles.flagIcon}`}>{flag.icon}</span>
                     <span className={styles.flagText}>{flag.text}</span>
                   </div>
                 ))}
                 {activeFlags.length === 0 && (
-                  <div className={styles.flagItem}>
-                    <span className="material-symbols-outlined" style={{ color: 'var(--verdict-genuine)', fontSize: '18px' }}>check_circle</span>
+                  // "No anomalies" is a clean result, not a finding — it must
+                  // not inherit the red treatment the actual flags use.
+                  <div className={`${styles.flagItem} ${styles.flagItemOk}`}>
+                    <span className={`material-symbols-outlined ${styles.flagIcon}`}>check_circle</span>
                     <span className={styles.flagText}>
                       {activeIncident.ai_flags ? 'No anomalies detected' : 'AI signal not recorded for this scan'}
                     </span>
@@ -282,11 +265,12 @@ export default function DashboardPage() {
               </div>
             </>
           ) : (
-            <div className={styles.stateMessage}>
-              <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>info</span>
-              <p style={{ marginTop: '8px' }}>No incidents logged in the database yet.</p>
-            </div>
-          )}
+              <div className={styles.stateMessage}>
+                <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>info</span>
+                <p style={{ marginTop: '8px' }}>No incidents logged in the database yet.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
