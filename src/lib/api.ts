@@ -293,6 +293,172 @@ export async function getScanHistory(limit = 20): Promise<ApiResult<ScanHistoryI
   }
 }
 
+// ─── HORECA rewards / vouchers ────────────────────────────────────────────────
+
+export type VoucherStatus = 'issued' | 'redeemed' | 'expired';
+
+export interface RewardPartner {
+  id: string;
+  name: string;
+  cuisine: string;
+  area: string;
+  logo_url: string | null;
+}
+
+export interface RewardOffer {
+  id: string;
+  title_en: string;
+  title_ur: string;
+  description_en: string;
+  description_ur: string;
+  points_cost: number;
+  consumer_value_pkr: number;
+  bulk_credit_pkr: number;
+  partner: RewardPartner | null;
+}
+
+export interface Voucher {
+  id: string;
+  code: string;
+  status: VoucherStatus;
+  issued_at: string;
+  expires_at: string;
+  redeemed_at: string | null;
+  offer: (Omit<RewardOffer, 'bulk_credit_pkr'> & { partner: RewardPartner | null }) | null;
+}
+
+export interface RedeemResult {
+  voucher: { id: string; code: string; expires_at: string; status: VoucherStatus };
+  offer: {
+    id: string;
+    title_en: string;
+    consumer_value_pkr: number;
+    points_cost: number;
+    partner_name: string | null;
+  };
+  balance: number;
+}
+
+/** A 400 from /api/rewards/redeem carries the shortfall so the catalog can say
+ *  "240 more points" rather than a bare failure. */
+export interface RedeemShortfall {
+  shortfall: number;
+  points_cost: number;
+  balance: number;
+}
+
+export type PartnerRedeemResult = 'valid' | 'not_found' | 'already_redeemed' | 'expired';
+
+export interface PartnerRedeemResponse {
+  result: PartnerRedeemResult;
+  code: string;
+  redeemed_at?: string | null;
+  expires_at?: string;
+  offer_title?: string | null;
+  offer_title_ur?: string | null;
+  consumer_value_pkr?: number | null;
+  bulk_credit_pkr?: number;
+  partner_name?: string | null;
+  partner_area?: string | null;
+}
+
+export interface PartnerStats {
+  vouchers_redeemed: number;
+  consumer_value_pkr: number;
+  bulk_credit_pkr: number;
+  top_partners: {
+    partner_id: string;
+    name: string;
+    area: string;
+    redemptions: number;
+    bulk_credit_pkr: number;
+  }[];
+}
+
+export async function getRewards(): Promise<ApiResult<RewardOffer[]>> {
+  try {
+    const res = await fetch('/api/rewards');
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Failed to load rewards (${res.status})`);
+    return ok(json as RewardOffer[]);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
+type RedeemApiResult =
+  | { data: RedeemResult; error: null; shortfall?: undefined }
+  | { data: null; error: string; shortfall?: RedeemShortfall };
+
+export async function postRedeemReward(offerId: string): Promise<RedeemApiResult> {
+  try {
+    const res = await fetch('/api/rewards/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ offer_id: offerId }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      const message: string = json.error ?? `Redemption failed (${res.status})`;
+      // Insufficient points is a normal outcome, not a fault — pass the numbers
+      // through so the UI can show the gap instead of just the message.
+      if (typeof json.shortfall === 'number') {
+        return {
+          data: null,
+          error: message,
+          shortfall: { shortfall: json.shortfall, points_cost: json.points_cost, balance: json.balance },
+        };
+      }
+      return { data: null, error: message };
+    }
+    return { data: json as RedeemResult, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Network error — check your connection' };
+  }
+}
+
+export async function getMyVouchers(): Promise<ApiResult<Voucher[]>> {
+  try {
+    const res = await fetch('/api/vouchers/mine');
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Failed to load vouchers (${res.status})`);
+    return ok(json as Voucher[]);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
+export async function postPartnerRedeem(code: string): Promise<ApiResult<PartnerRedeemResponse>> {
+  try {
+    const res = await fetch('/api/partner/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Redemption failed (${res.status})`);
+    return ok(json as PartnerRedeemResponse);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
+export async function getPartnerStats(): Promise<ApiResult<PartnerStats>> {
+  try {
+    const res = await fetch('/api/partners/stats');
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Failed to load partner stats (${res.status})`);
+    return ok(json as PartnerStats);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
+/** Whole days until expiry; negative once lapsed. */
+export function daysUntil(iso: string): number {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+}
+
 // ─── sessionStorage helpers ───────────────────────────────────────────────────
 
 const SCAN_KEY = 'shelfwatch_scan_result';

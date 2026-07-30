@@ -1,0 +1,490 @@
+/* ============================================================
+   rewards.module.css — HORECA reward catalog (mobile)
+   ============================================================ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg-base);
+  font-family: var(--font-body);
+  padding-bottom: 110px;
+}
+
+/* ── Sticky balance header ───────────────────────────────── */
+.appBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 16px 20px 14px;
+  background: rgba(245, 247, 251, 0.9);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.appBarTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.appBarTitle {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.appBarTitleUr {
+  font-family: var(--font-urdu);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--text-secondary);
+}
+
+.walletLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--bg-glass-card);
+  border: 1px solid var(--border-interactive);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.walletLink:hover {
+  background: var(--bg-glass-hover);
+}
+
+.balanceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--glass-shadow);
+}
+
+.balanceValue {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.balanceLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.balanceLabelUr {
+  font-family: var(--font-urdu);
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text-muted);
+  margin-inline-start: auto;
+}
+
+/* ── List ────────────────────────────────────────────────── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px 0;
+}
+
+.card {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  box-shadow: var(--glass-shadow), var(--inset-glow);
+  padding: 16px;
+}
+
+/* Locked cards recede but must stay readable — the points gap is the whole
+   point of showing them, so text keeps full contrast and only the chrome
+   dims. */
+.cardLocked {
+  background: var(--color-surface-container-low);
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.logo {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.logoFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cyan-glow);
+}
+
+.partnerMeta {
+  min-width: 0;
+  flex: 1;
+}
+
+.partnerName {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.partnerSub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+}
+
+/* ── "Cooks with National Foods" trust badge ─────────────── */
+.nflBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--verdict-genuine-bg);
+  border: 1px solid var(--verdict-genuine-border);
+  color: var(--verdict-genuine);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.nflBadgeIcon {
+  font-size: 15px;
+}
+
+/* ── Offer body ──────────────────────────────────────────── */
+.offerTitle {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 12px;
+}
+
+.offerTitleUr {
+  font-family: var(--font-urdu);
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.offerDesc {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.offerDescUr {
+  font-family: var(--font-urdu);
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.offerFoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.costBlock {
+  flex: 1;
+  min-width: 0;
+}
+
+.cost {
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.costUnit {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-inline-start: 4px;
+}
+
+.worth {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--verdict-genuine);
+  margin-top: 3px;
+}
+
+.redeemBtn {
+  flex-shrink: 0;
+  padding: 12px 22px;
+  min-height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: var(--liquid-primary-grad-text);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.redeemBtn:hover {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+}
+
+.redeemBtn:active {
+  transform: scale(0.97);
+}
+
+/* Locked state: a bordered chip, not a disabled button — it is information
+   ("240 more points"), not a control the user should try to press. */
+.lockedChip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 16px;
+  min-height: 46px;
+  border-radius: 12px;
+  background: var(--verdict-suspicious-bg);
+  border: 1px solid var(--verdict-suspicious-border);
+  color: var(--verdict-suspicious);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.lockedIcon {
+  font-size: 17px;
+}
+
+/* ── Confirm sheet ───────────────────────────────────────── */
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  padding: 20px 20px 28px;
+}
+
+.sheetGrip {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  margin: 0 auto 16px;
+}
+
+.sheetTitle {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sheetTitleUr {
+  font-family: var(--font-urdu);
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.sheetSummary {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--border-subtle);
+}
+
+.sheetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  padding: 4px 0;
+}
+
+.sheetRowLabel {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.sheetRowValue {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.sheetRowDivider {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 8px;
+  padding-top: 10px;
+}
+
+.sheetError {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--verdict-counterfeit-bg);
+  border: 1px solid var(--verdict-counterfeit-border);
+  color: var(--verdict-counterfeit);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.sheetActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.sheetCancel,
+.sheetConfirm {
+  flex: 1;
+  min-height: 50px;
+  border-radius: 14px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sheetCancel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-interactive);
+  color: var(--text-primary);
+}
+
+.sheetCancel:hover {
+  background: var(--bg-glass-hover);
+}
+
+.sheetConfirm {
+  border: none;
+  background: var(--liquid-primary-grad-text);
+  color: #ffffff;
+}
+
+.sheetConfirm:hover {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+}
+
+.sheetConfirm:disabled,
+.sheetCancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── States ──────────────────────────────────────────────── */
+.state {
+  margin: 48px 20px;
+  padding: 32px 20px;
+  text-align: center;
+  border-radius: 18px;
+  background: var(--bg-glass-card);
+  border: 1px solid var(--border-subtle);
+}
+
+.stateIcon {
+  font-size: 40px;
+  color: var(--text-muted);
+}
+
+.stateTitle {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 10px;
+}
+
+.stateText {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.stateLink {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: var(--liquid-primary-grad-text);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
