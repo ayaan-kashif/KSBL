@@ -74,7 +74,11 @@ model Brand {
 }
 
 model Product {
-  id                      String        @id @default(cuid())
+  // dbgenerated (not cuid()): the scraper and scripts/import-reference-images.mjs
+  // both insert via the REST API, which never sees Prisma's client-side cuid()
+  // default — same reasoning as Scan.id. Declaring it here keeps `db push` from
+  // dropping the DB default as undeclared drift.
+  id                      String        @id @default(dbgenerated("gen_random_uuid()::text"))
   sku                     String        @unique
   brand_name              String
   product_name            String

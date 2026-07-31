@@ -95,3 +95,11 @@ ALTER TABLE "Scan" ALTER COLUMN "created_at" SET DEFAULT CURRENT_TIMESTAMP;
 -- select table_name, column_name, column_default
 -- from information_schema.columns
 -- where table_name in ('Product', 'Scan', 'Report') and column_name = 'id';
+
+-- ── Product.id default ──────────────────────────────────────────────────────
+-- Added after scripts/import-reference-images.mjs hit "null value in column
+-- id" (23502). Product was the one table still relying solely on Prisma's
+-- client-side @default(cuid()), which never fires for the REST inserts used by
+-- the scraper and the reference-image importer. Declared in schema.prisma too,
+-- so `prisma db push` doesn't drop it as drift.
+ALTER TABLE "Product" ALTER COLUMN id SET DEFAULT gen_random_uuid()::text;

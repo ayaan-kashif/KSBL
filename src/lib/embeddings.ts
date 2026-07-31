@@ -50,14 +50,83 @@ function normalizeEmbedding(raw: unknown): number[] | null {
   return null;
 }
 
+// ─── Local CLIP ───────────────────────────────────────────────────────────────
+// HuggingFace's free serverless inference no longer serves ANY image
+// feature-extraction model — CLIP, ViT and DINOv2 all return
+// "Model not supported by provider hf-inference", and the old
+// api-inference.huggingface.co host no longer resolves. Since the catalogue is
+// useless without embeddings, the model runs locally instead: same
+// architecture, same 512 dimensions, no API key, no rate limit.
+//
+// Weights (~90MB) download once into the transformers cache, then load in ~2s.
+// getLocalEmbedder() memoises so that cost is paid once per process.
+
+const LOCAL_MODEL_ID = process.env.LOCAL_EMBED_MODEL_ID ?? "Xenova/clip-vit-base-patch32";
+
+type LocalEmbedder = (bytes: ArrayBuffer) => Promise<number[]>;
+let embedderPromise: Promise<LocalEmbedder | null> | null = null;
+
+function loadLocalEmbedder(): Promise<LocalEmbedder | null> {
+  if (embedderPromise) return embedderPromise;
+
+  embedderPromise = (async () => {
+    try {
+      const { AutoProcessor, CLIPVisionModelWithProjection, RawImage } = await import(
+        "@huggingface/transformers"
+      );
+      const processor = await AutoProcessor.from_pretrained(LOCAL_MODEL_ID);
+      const model = await CLIPVisionModelWithProjection.from_pretrained(LOCAL_MODEL_ID);
+
+      return async (bytes: ArrayBuffer) => {
+        const image = await RawImage.fromBlob(new Blob([bytes]));
+        const { image_embeds } = await model(await processor(image));
+        const vec = (image_embeds.tolist() as number[][])[0];
+        // L2-normalise. pgvector's `<=>` is cosine distance and handles
+        // magnitude itself, but unit vectors keep the stored values
+        // comparable and the arithmetic well-conditioned.
+        const norm = Math.hypot(...vec) || 1;
+        return vec.map((v) => v / norm);
+      };
+    } catch (err) {
+      console.error("[Embeddings] Local CLIP model failed to load:", err);
+      return null;
+    }
+  })();
+
+  return embedderPromise;
+}
+
 /**
  * Generate a CLIP image embedding for a (publicly reachable) image URL.
  * Returns null on any failure — never throws.
+ *
+ * Runs the model locally. Note what CLIP does and does not capture: it encodes
+ * layout, colour and shape, NOT text. A pack misspelling the brand ("Nationel"
+ * for "National") embeds essentially identically to the genuine article —
+ * measured at cosine 1.0000 — so vector similarity alone will call that
+ * counterfeit a match. The wordmark check in services/brandRouter.ts is what
+ * catches it; the two signals are complementary, not redundant.
  */
 export async function getImageEmbedding(imageUrl: string): Promise<number[] | null> {
+  const embedder = await loadLocalEmbedder();
+  if (embedder) {
+    try {
+      const res = await fetch(imageUrl);
+      if (!res.ok) {
+        console.warn(`[Embeddings] Could not fetch image (${res.status}): ${imageUrl}`);
+        return null;
+      }
+      return await embedder(await res.arrayBuffer());
+    } catch (err) {
+      console.error("[Embeddings] Local embedding failed:", err);
+      return null;
+    }
+  }
+
+  // Remote fallback, kept for environments where the local model can't run.
   const apiKey = process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) {
-    console.warn("[Embeddings] HUGGINGFACE_API_KEY not set — skipping embedding generation");
+    console.warn("[Embeddings] No local model and HUGGINGFACE_API_KEY not set — skipping");
     return null;
   }
 
