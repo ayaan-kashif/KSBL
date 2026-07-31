@@ -95,6 +95,14 @@ const SUSPICIOUS_SCORE_THRESHOLD = 50;
 const UNVERIFIED_MAX_SCORE = 39;
 
 /**
+ * Ceiling on "logo accuracy" once the wordmark is known to be misspelled. Not
+ * zero: the logo's shape, colours and lockup genuinely are reproduced, and
+ * that's the point — the mark is a close copy carrying the wrong name. It just
+ * cannot read as a pass.
+ */
+const WORDMARK_FAIL_LOGO_CAP = 15;
+
+/**
  * Rescale a visual score into the unverified band, preserving order so a
  * cleaner photo still ranks above a poor one, without ever implying we
  * verified anything.
@@ -140,10 +148,28 @@ export async function runNationalRagPath(input: PathInput): Promise<PathOutcome>
     const genuine = input.imitatedBrand
       ? input.imitatedBrand.replace(/\b\w/g, (c) => c.toUpperCase())
       : "National";
-    const gemini = await compareImagesWithGemini(input.imageBase64, null, input.mimeType, {
+    const rawGemini = await compareImagesWithGemini(input.imageBase64, null, input.mimeType, {
       data: input.backImageBase64,
       mimeType: input.backMimeType,
     });
+
+    // The result screen renders these as "BRAND FONTS", "LOGO ACCURACY" etc —
+    // percentages that answer "does this match the genuine article". A
+    // misspelled wordmark answers that definitively for the two of them that
+    // depend on the brand name, and the model's own impression does not get to
+    // overrule hard evidence: left alone it reported BRAND FONTS 100% on a pack
+    // printed "Nationel", directly contradicting the COUNTERFEIT headline above
+    // it. Layout and packaging scores are deliberately NOT touched — a good
+    // copy really does reproduce those, and "the design is a near-perfect match
+    // but the brand name is misspelled" is both true and the clearest way to
+    // show how the fake was caught.
+    const gemini = {
+      ...rawGemini,
+      brandMatch: 0,
+      logoMatch: Math.min(rawGemini.logoMatch, WORDMARK_FAIL_LOGO_CAP),
+      confidence: 0,
+    };
+
     return {
       product: null,
       apiSource: "none",
@@ -216,6 +242,32 @@ export async function runNationalRagPath(input: PathInput): Promise<PathOutcome>
     // product it is imitating — far more useful than a bare "not found".
     if (matchedProduct && similarity !== null && similarity >= nearMiss) {
       const pct = Math.round(similarity * 100);
+
+      // Corroborate before accusing. Cosine similarity between two REAL
+      // photographs of the SAME pack swings hard on framing, background,
+      // distance and lighting — a genuine product shot against a cluttered
+      // background lands far below `low` on its own reference image. Calling
+      // that counterfeit on the number alone is the most damaging mistake this
+      // app can make, so a low score is only escalated when something visible
+      // is actually wrong with the packaging.
+      const visiblyWrong =
+        gemini.tampering || gemini.logoMatch < 50 || gemini.packagingMatch < 50;
+
+      if (!visiblyWrong) {
+        return {
+          product: null,
+          apiSource: "none",
+          dbProductId: null,
+          vectorSimilarity: similarity,
+          dbVerdict: "suspicious",
+          displayVerdict: "suspicious",
+          score: unverifiedScore(pct),
+          gemini,
+          reasonEn: `This packaging is only a ${pct}% visual match to the closest National Foods catalogue entry ("${matchedProduct.name}"), below the ${Math.round(low * 100)}% needed to confirm it, but no specific packaging defect was found. That combination is common when a genuine product is photographed at an unusual angle, distance or lighting. Rescan the front of the pack, filling the frame against a plain background.`,
+          reasonUr: `یہ پیکنگ نیشنل فوڈز کے قریب ترین کیٹلاگ اندراج ("${matchedProduct.name}") سے صرف ${pct}% مماثل ہے، جو تصدیق کے لیے درکار ${Math.round(low * 100)}% سے کم ہے، مگر پیکنگ میں کوئی مخصوص خرابی نہیں ملی۔ ایسا اکثر اُس وقت ہوتا ہے جب اصل مصنوع کو غیر معمولی زاویے، فاصلے یا روشنی میں تصویر کیا جائے۔ سادہ پس منظر کے سامنے پیک کا اگلا حصہ پورے فریم میں لے کر دوبارہ اسکین کریں۔`,
+        };
+      }
+
       return {
         // Deliberately null: this scan is NOT that catalogue product, and
         // returning it here would make the UI label the fake with the genuine
@@ -228,8 +280,8 @@ export async function runNationalRagPath(input: PathInput): Promise<PathOutcome>
         displayVerdict: "counterfeit",
         score: 0,
         gemini,
-        reasonEn: `This packaging resembles the National Foods product "${matchedProduct.name}" (${pct}% visual similarity) but does not match the manufacturer's catalogued packaging closely enough to be that product. A genuine pack scores at least ${Math.round(low * 100)}%. This is most likely a counterfeit imitating ${matchedProduct.name}.`,
-        reasonUr: `یہ پیکنگ نیشنل فوڈز کی مصنوع "${matchedProduct.name}" سے مشابہت رکھتی ہے (${pct}% بصری مماثلت) مگر کارخانہ دار کی درج شدہ پیکنگ سے اتنی مطابقت نہیں رکھتی کہ یہ وہی مصنوع ہو۔ اصل پیک کم از کم ${Math.round(low * 100)}% حاصل کرتا ہے۔ یہ غالباً ${matchedProduct.name} کی نقل ہے۔`,
+        reasonEn: `This packaging resembles the National Foods product "${matchedProduct.name}" (${pct}% visual similarity) but does not match the manufacturer's catalogued packaging closely enough to be that product, and the packaging itself shows defects. A genuine pack scores at least ${Math.round(low * 100)}%. This is most likely a counterfeit imitating ${matchedProduct.name}.`,
+        reasonUr: `یہ پیکنگ نیشنل فوڈز کی مصنوع "${matchedProduct.name}" سے مشابہت رکھتی ہے (${pct}% بصری مماثلت) مگر کارخانہ دار کی درج شدہ پیکنگ سے اتنی مطابقت نہیں رکھتی کہ یہ وہی مصنوع ہو، اور پیکنگ میں خرابیاں بھی موجود ہیں۔ اصل پیک کم از کم ${Math.round(low * 100)}% حاصل کرتا ہے۔ یہ غالباً ${matchedProduct.name} کی نقل ہے۔`,
       };
     }
 
