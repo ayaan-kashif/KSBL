@@ -30,11 +30,27 @@ import { detectBrandFromImage } from "./geminiVision";
 
 export type BrandSource = "local_catalog" | "sku_prefix" | "vision" | "unknown";
 
+/**
+ * How the wordmark printed on the pack relates to the real brand name.
+ *
+ *  exact     — spelled correctly.
+ *  near_miss — one or two characters off ("Nationel", "Natlonal"). This is the
+ *              single strongest counterfeit signal the app can observe: a
+ *              legitimate manufacturer does not misspell its own trademark,
+ *              and deliberate near-misses are the standard way copies dodge
+ *              both trademark enforcement and exact-match brand checks.
+ *  unrelated — a different brand entirely.
+ */
+export type WordmarkStatus = "exact" | "near_miss" | "unrelated";
+
 export interface BrandContext {
   isNationalFoods: boolean;
   detectedBrand: string | null;
   source: BrandSource;
   confidence: number; // 0–1
+  wordmarkStatus: WordmarkStatus;
+  /** The canonical brand a near-miss wordmark is imitating. */
+  imitatedBrand: string | null;
 }
 
 const DEFAULT_ALIASES = "national,national foods,nfl,نیشنل";
@@ -58,6 +74,87 @@ export function isNationalBrand(brand: string | null | undefined): boolean {
   const needle = brand.trim().toLowerCase();
   if (!needle) return false;
   return nationalAliases().some((alias) => needle.includes(alias));
+}
+
+/** Levenshtein edit distance, iterative single-row. */
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const curr = [i];
+    for (let j = 1; j <= b.length; j++) {
+      curr[j] = Math.min(
+        prev[j] + 1,
+        curr[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+    }
+    prev = curr;
+  }
+  return prev[b.length];
+}
+
+/**
+ * Aliases shorter than this are matched exactly and never fuzzily. One edit on
+ * a three-letter alias is meaningless — it makes "NFC" an imitation of "NFL".
+ */
+const MIN_FUZZY_ALIAS_LENGTH = 5;
+
+/**
+ * Edit distance at which a wordmark counts as imitating rather than merely
+ * resembling: 1 edit up to 7 characters, 2 beyond that.
+ */
+function nearMissTolerance(alias: string): number {
+  return alias.length >= 8 ? 2 : 1;
+}
+
+/**
+ * Classify the wordmark printed on the pack against the canonical brand names.
+ *
+ * Substring matching alone cannot do this: "Nationel" does not contain
+ * "national", so an exact-match check returns false and the scan is routed
+ * away as an unrelated brand — the misspelling that proves it is a copy is the
+ * very thing that lets it evade the brand's own verification path.
+ */
+export function classifyWordmark(brand: string | null | undefined): {
+  status: WordmarkStatus;
+  imitated: string | null;
+} {
+  if (!brand) return { status: "unrelated", imitated: null };
+  const needle = brand.trim().toLowerCase();
+  if (!needle) return { status: "unrelated", imitated: null };
+
+  const aliases = nationalAliases();
+  if (aliases.some((alias) => needle.includes(alias))) {
+    return { status: "exact", imitated: null };
+  }
+
+  // Compare each whitespace-separated token, so "Nationel Foods Ltd" is caught
+  // on its first token rather than diluted by the words around it.
+  const tokens = needle.split(/\s+/).filter(Boolean);
+  for (const alias of aliases) {
+    if (alias.length < MIN_FUZZY_ALIAS_LENGTH) continue;
+    for (const token of tokens) {
+      if (token === alias) continue;
+      // The opening character must agree. Imitations preserve the start of the
+      // wordmark — that's what carries the recognition — and vary the middle
+      // or end ("Nationel", "Natlonal"). Without this guard, ordinary words one
+      // edit away get accused: "Rational" is distance 1 from "national", and
+      // Rational AG is a real manufacturer that could plausibly be scanned.
+      // The cost is missing a first-letter substitution such as "Mational";
+      // that trade is deliberate, because a false counterfeit call on a
+      // legitimate product is the most damaging output this app can produce.
+      if (token[0] !== alias[0]) continue;
+      if (editDistance(token, alias) <= nearMissTolerance(alias)) {
+        return { status: "near_miss", imitated: alias };
+      }
+    }
+  }
+
+  return { status: "unrelated", imitated: null };
 }
 
 // ─── SKU prefix set, derived at runtime from our own catalog ────────────────
@@ -164,6 +261,9 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
       detectedBrand: input.localCatalogBrand,
       source: "local_catalog",
       confidence: 1,
+      // Our own catalog row — the spelling is authoritative by definition.
+      wordmarkStatus: "exact",
+      imitatedBrand: null,
     };
   }
 
@@ -179,6 +279,8 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
         // Not 1.0: a GS1 company prefix identifies the barcode's registrant,
         // which is strong evidence but still an inference about this packet.
         confidence: 0.9,
+        wordmarkStatus: "exact",
+        imitatedBrand: null,
       };
     }
   }
@@ -187,11 +289,18 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
   if (input.imageBase64) {
     const detected = await detectBrandFromImage(input.imageBase64, input.mimeType ?? "image/jpeg");
     if (detected) {
+      const { status, imitated } = classifyWordmark(detected.brand);
       return {
-        isNationalFoods: isNationalBrand(detected.brand),
+        // A near-miss wordmark routes ONTO the National Foods path, not away
+        // from it. Treating "Nationel" as an unrelated brand sends the clearest
+        // counterfeit in the dataset down the lenient external-database path,
+        // where the worst it can be called is "unverified".
+        isNationalFoods: status === "exact" || status === "near_miss",
         detectedBrand: detected.brand,
         source: "vision",
         confidence: detected.confidence,
+        wordmarkStatus: status,
+        imitatedBrand: imitated,
       };
     }
   }
@@ -205,6 +314,8 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
     detectedBrand: null,
     source: "unknown",
     confidence: 0,
+    wordmarkStatus: "unrelated",
+    imitatedBrand: null,
   };
 }
 

@@ -229,6 +229,9 @@ export async function POST(req: NextRequest) {
       barcode,
       localProduct: localProductRow ? mapLocalProductToUnified(localProductRow) : null,
       localProductId: dbProductId,
+      wordmarkStatus: brandContext.wordmarkStatus,
+      detectedBrand: brandContext.detectedBrand,
+      imitatedBrand: brandContext.imitatedBrand,
     };
 
     const outcome =
