@@ -57,3 +57,11 @@ supabase.txt
 # Local reference photography for the National Foods catalogue — supplied by
 # the brand, uploaded via scripts/import-reference-images.mjs. Not source.
 /reference-images/
+
+# Demo reference photography, taken manually for the live demo. The README in
+# that folder is tracked; the images are local assets.
+/scripts/demo-photos/*
+!/scripts/demo-photos/README.md
+
+# Stray screenshots dropped in the repo root
+/Screenshot*.png

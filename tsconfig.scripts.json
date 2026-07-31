@@ -1,0 +1,21 @@
+{
+  // ts-node config for the one-off scripts in scripts/.
+  //
+  // The root tsconfig targets the Next bundler ("module": "esnext",
+  // "moduleResolution": "bundler"), which ts-node cannot execute directly.
+  // Passing the overrides via `--compiler-options '{...}'` on the command line
+  // — the style used by the prisma.seed script — breaks on Windows, where npm
+  // runs scripts through cmd.exe and the single quotes are passed through
+  // literally, so ts-node receives invalid JSON. A config file sidesteps
+  // shell quoting entirely and works the same on every platform.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "isolatedModules": false
+  },
+  "ts-node": {
+    "transpileOnly": true
+  }
+}
