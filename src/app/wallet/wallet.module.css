@@ -11,6 +11,16 @@
   padding-bottom: 110px;
 }
 
+/* Mobile-only by origin; give it a measure on desktop rather than letting
+   content run the full width of the window. See rewards.module.css. */
+@media (min-width: 768px) {
+  .page {
+    max-width: 720px;
+    margin-inline: auto;
+    width: 100%;
+  }
+}
+
 .appBar {
   position: sticky;
   top: 0;

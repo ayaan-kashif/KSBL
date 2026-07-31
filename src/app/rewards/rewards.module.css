@@ -11,6 +11,18 @@
   padding-bottom: 110px;
 }
 
+/* These consumer routes were built mobile-only and had no measure at all on a
+   desktop browser: cards ran the full 1440px, which threw the Urdu column to
+   the far right of the English it translates. Capping the measure keeps the
+   bilingual pairs readable side by side. */
+@media (min-width: 768px) {
+  .page {
+    max-width: 720px;
+    margin-inline: auto;
+    width: 100%;
+  }
+}
+
 /* ── Sticky balance header ───────────────────────────────── */
 .appBar {
   position: sticky;
