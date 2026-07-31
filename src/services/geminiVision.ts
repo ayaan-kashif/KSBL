@@ -55,13 +55,30 @@ export async function detectBrandFromImage(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const prompt = `Look at this product packaging photo and identify ONLY the manufacturer/brand wordmark printed on it.
+  // TRANSCRIBE, do not identify. Asked to "identify the brand", the model
+  // silently normalises a misspelled wordmark to the famous brand it resembles
+  // — a pack printed "Nationel" came back as "National" — which destroys the
+  // single strongest counterfeit signal we have before it reaches
+  // classifyWordmark(). Naming correctly-spelled brands as examples made it
+  // worse by priming the canonical spellings.
+  const prompt = `Transcribe the manufacturer/brand wordmark printed on this product packaging, letter by letter, exactly as it appears.
+
+This is an OCR task, NOT a recognition task.
 
 Rules:
-- Report the brand exactly as printed (e.g. "National Foods", "Unilever", "Nestle").
-- Do NOT judge authenticity, quality, or anything else. Brand name only.
-- If no brand wordmark is legible, return {"brand": "", "confidence": 0}.
-- confidence is your certainty the wordmark reads as that brand, 0.0 to 1.0.
+- Copy the characters you actually see. Do NOT correct spelling, do NOT
+  normalise to a brand you recognise, do NOT expand abbreviations.
+- Counterfeit packaging often misspells the brand by one or two letters. If the
+  pack reads "Nationel", "Natlonal" or "Adibas", you must report exactly that —
+  reporting the correctly-spelled brand instead would be an error.
+- Read only the largest brand wordmark, usually in the logo. Ignore product
+  names, flavours, taglines and legal text.
+- Preserve the spelling but not the styling: report "National Foods", not
+  "NATIONAL FOODS", unless the letters themselves differ.
+- Do NOT judge authenticity or quality. Wordmark only.
+- If no wordmark is legible, return {"brand": "", "confidence": 0}.
+- confidence is how clearly you could READ the characters, 0.0 to 1.0 — not how
+  confident you are about which company it is.
 
 Return ONE raw JSON object and nothing else — no markdown code fences, no commentary:
 {"brand": "...", "confidence": 0.0}`;
@@ -80,7 +97,9 @@ Return ONE raw JSON object and nothing else — no markdown code fences, no comm
           contents: [
             { parts: [{ inlineData: { mimeType, data: imageBase64 } }, { text: prompt }] },
           ],
-          generationConfig: { responseMimeType: "application/json" },
+          // temperature 0: transcription has one right answer, and a verdict
+          // that flips between runs on the same photo is not demonstrable.
+          generationConfig: { responseMimeType: "application/json", temperature: 0 },
         }),
         signal: controller.signal,
       }
@@ -216,7 +235,23 @@ Required JSON Structure:
 convey the same meaning as "reason". Keep batch codes, barcodes, dates and
 numbers in Latin digits inside the Urdu sentence.
 
-Note: If no official reference data/image is available (unregistered product), compare the captured product photo against generic industry standards for authentic packaging for that brand and calculate matches accordingly based purely on what you observe. Do not artificially lower your confidence score just because reference data is unavailable — base confidence solely on the visual evidence itself (print sharpness, logo accuracy, packaging consistency, absence of tampering). A clean, well-printed, tamper-free product should still score highly even with no reference data to compare against.
+Check the brand wordmark character by character before scoring "brandMatch".
+Counterfeits routinely misspell the brand by one or two letters ("Nationel" for
+"National", "Adibas" for "Adidas") while reproducing the logo shape, colours and
+typeface faithfully. A misspelled wordmark is conclusive evidence of a
+counterfeit: score "brandMatch" at or near 0 whenever the printed spelling
+differs from the real brand, no matter how clean the printing is, and say so in
+"reason".
+
+Note: If no official reference data/image is available (unregistered product),
+score against generic industry standards for authentic packaging based purely on
+what you observe. Print quality is evidence, but do not treat it as proof: a
+counterfeit produced on good equipment is sharp, clean and untampered, so
+"sharp printing" alone must not produce high match scores. Every *Match score
+answers "does this match the genuine article", not "is this well printed" — if
+you have nothing to compare against, you cannot score a match highly, and
+"confidence" should reflect that uncertainty rather than your impression of the
+print.
 
 Normalise all numeric scores to a scale of 0 to 100.`;
 
