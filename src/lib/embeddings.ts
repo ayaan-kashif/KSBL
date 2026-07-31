@@ -97,8 +97,48 @@ function loadLocalEmbedder(): Promise<LocalEmbedder | null> {
 }
 
 /**
+ * Embed image bytes directly.
+ *
+ * Prefer this over getImageEmbedding() whenever the bytes are already in hand.
+ * Uploading a file and then embedding its public URL looks equivalent but is
+ * not: Supabase Storage serves public objects through a CDN, so an overwritten
+ * object can still return the PREVIOUS image for some time. That silently
+ * stores an embedding of the old picture while every log line reports success —
+ * it produced a catalogue entry whose own reference photo matched it at 0.63
+ * instead of 1.0, which reads exactly like a miscalibrated threshold rather
+ * than stale data.
+ *
+ * Returns null on any failure — never throws.
+ */
+export async function getImageEmbeddingFromBytes(
+  bytes: ArrayBuffer | Uint8Array
+): Promise<number[] | null> {
+  const embedder = await loadLocalEmbedder();
+  if (!embedder) {
+    console.warn("[Embeddings] Local model unavailable — cannot embed raw bytes");
+    return null;
+  }
+  try {
+    const buf =
+      bytes instanceof Uint8Array
+        ? (bytes.buffer.slice(
+            bytes.byteOffset,
+            bytes.byteOffset + bytes.byteLength
+          ) as ArrayBuffer)
+        : bytes;
+    return await embedder(buf);
+  } catch (err) {
+    console.error("[Embeddings] getImageEmbeddingFromBytes failed:", err);
+    return null;
+  }
+}
+
+/**
  * Generate a CLIP image embedding for a (publicly reachable) image URL.
  * Returns null on any failure — never throws.
+ *
+ * If you have just written the object at that URL, use
+ * getImageEmbeddingFromBytes() instead — see the CDN caveat above.
  *
  * Runs the model locally. Note what CLIP does and does not capture: it encodes
  * layout, colour and shape, NOT text. A pack misspelling the brand ("Nationel"
