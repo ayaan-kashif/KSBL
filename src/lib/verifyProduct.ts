@@ -21,10 +21,19 @@ import { runOcr } from "./ocr";
 import { scorePackaging } from "./cv";
 import { getVerdictText, getVerdictTextSync, compareProductImages } from "./translate";
 import { findProductByImage, type VectorMatch } from "./vectorSearch";
+import { comparePixelWise, GENUINE_THRESHOLD, type PixelCompareResult } from "./pixelCompare";
 import { incrementCustomerScore } from "./customer";
 import type { Verdict, ScannedByRole } from "@prisma/client";
 
 // ─── Thresholds ───────────────────────────────────────────────────────────────
+
+/**
+ * Brands verified by strict structural comparison against our own catalogue
+ * photography (lib/pixelCompare.ts) instead of the generic CV anomaly score.
+ * Only add a brand here once we actually hold clean reference images for it —
+ * without one, every scan falls back to the standard path anyway.
+ */
+const PIXEL_COMPARE_BRANDS = new Set(["National Foods"]);
 
 /**
  * If cv_anomaly_score >= SUSPICIOUS_THRESHOLD → suspicious verdict
@@ -300,6 +309,45 @@ function computeVerdict(
   return { verdict: "suspicious", confidence: Math.min(confidence, 0.99) };
 }
 
+/**
+ * Reason text for a strict-comparison verdict, written directly in both
+ * languages rather than round-tripped through Gemini: the numbers are the
+ * whole point of the message, and a free translation is free to lose them.
+ */
+function pixelCompareReason(
+  result: PixelCompareResult,
+  productName: string | null,
+  brandName: string | null
+): { en: string; ur: string } {
+  const pct = Math.round(result.score * 100);
+  const thresholdPct = Math.round(GENUINE_THRESHOLD * 100);
+  const label = [brandName, productName].filter(Boolean).join(" ") || "this product";
+  const labelUr = [brandName, productName].filter(Boolean).join(" ") || "اس مصنوع";
+
+  if (result.suspicious) {
+    return {
+      en:
+        `Structural comparison against the genuine ${label} reference photo scored ` +
+        `${pct}% similarity, below the ${thresholdPct}% authenticity threshold. ` +
+        `Logo placement, typography or colour differ from the manufacturer's ` +
+        `catalogue image — this appears to be a counterfeit or unauthorised copy.`,
+      ur:
+        `اصل ${labelUr} کی حوالہ جاتی تصویر سے ساختی موازنہ ${pct}% مشابہت پر رہا، ` +
+        `جو ${thresholdPct}% کی تصدیقی حد سے کم ہے۔ لوگو کی جگہ، تحریر یا رنگ ` +
+        `کارخانہ دار کی تصویر سے مختلف ہیں — یہ نقلی یا غیر مجاز نقل معلوم ہوتی ہے۔`,
+    };
+  }
+
+  return {
+    en:
+      `Matches the genuine ${label} reference photo at ${pct}% structural and ` +
+      `colour similarity, above the ${thresholdPct}% authenticity threshold.`,
+    ur:
+      `اصل ${labelUr} کی حوالہ جاتی تصویر سے ${pct}% ساختی اور رنگی مشابہت پر ` +
+      `مطابقت رکھتا ہے، جو ${thresholdPct}% کی تصدیقی حد سے زیادہ ہے۔`,
+  };
+}
+
 // ─── Public pipeline function ────────────────────────────────────────────────
 
 /**
@@ -393,12 +441,42 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   };
 
   // ── Step 4: Verdict ───────────────────────────────────────────────────────
-  const { verdict, confidence } = computeVerdict(
-    product,
-    ocrBatch,
-    cvScore ?? 0.5,
-    identifiedViaImage && vectorMatch ? { similarity: vectorMatch.similarity } : undefined
-  );
+  // Brands in PIXEL_COMPARE_BRANDS are judged against their own catalogue
+  // photo. Every other brand — including anything identified only via Open
+  // Food Facts / UPCitemdb — keeps the original computeVerdict path untouched.
+  const brandForPixelCheck = product?.brand_name ?? offProduct?.brand_name ?? null;
+
+  let verdict: Verdict;
+  let confidence: number;
+  /** Non-null only when a strict comparison actually produced a usable score. */
+  let pixelResult: PixelCompareResult | null = null;
+
+  if (product && brandForPixelCheck && PIXEL_COMPARE_BRANDS.has(brandForPixelCheck)) {
+    const result = await comparePixelWise(imageUrl, product.reference_image_url);
+
+    if (result.error) {
+      // No reference photo, or the comparison failed. Fall back rather than
+      // defaulting to "genuine" — an unavailable check is not a passed check.
+      console.warn(`[verifyProduct] Pixel compare unavailable (${result.error}) — falling back`);
+      ({ verdict, confidence } = computeVerdict(
+        product,
+        ocrBatch,
+        cvScore ?? 0.5,
+        identifiedViaImage && vectorMatch ? { similarity: vectorMatch.similarity } : undefined
+      ));
+    } else {
+      pixelResult = result;
+      verdict = result.suspicious ? "suspicious" : "genuine";
+      confidence = Math.min(result.score, 0.99);
+    }
+  } else {
+    ({ verdict, confidence } = computeVerdict(
+      product,
+      ocrBatch,
+      cvScore ?? 0.5,
+      identifiedViaImage && vectorMatch ? { similarity: vectorMatch.similarity } : undefined
+    ));
+  }
 
   // ── Step 5: Translate verdict ─────────────────────────────────────────────
   // When the product was identified via image match and has a reference
@@ -411,7 +489,20 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
     reason: string;
     reason_ur: string;
   };
-  if (identifiedViaImage && product?.reference_image_url) {
+  if (pixelResult) {
+    // Strict comparison already produced the numbers this verdict rests on —
+    // report them rather than paying for a second, vaguer Gemini opinion.
+    const pixelReason = pixelCompareReason(
+      pixelResult,
+      product?.product_name ?? null,
+      product?.brand_name ?? null
+    );
+    verdictText = {
+      ...getVerdictTextSync(verdict),
+      reason: pixelReason.en,
+      reason_ur: pixelReason.ur,
+    };
+  } else if (identifiedViaImage && product?.reference_image_url) {
     // compareProductImages now returns {en, ur} rather than a bare string.
     const comparisonReason = await compareProductImages(imageUrl, product.reference_image_url, {
       product_name: product.product_name,
