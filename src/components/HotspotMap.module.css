@@ -1,0 +1,212 @@
+/* Leaflet collapses to 0px without an explicit height on its container, so the
+   height here is load-bearing, not cosmetic. */
+
+.wrap {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  /* Recessed: the map is data being read, not a control. Matches the treatment
+     the rest of the dashboard gives read-only surfaces. */
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
+}
+
+@media (max-width: 900px) {
+  .wrap { height: 260px; }
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  /* Below the overlay/empty state, above the container's own background. */
+  z-index: 0;
+}
+
+/* ── Leaflet chrome ──────────────────────────────────────────────────────────
+   Leaflet ships its own light-mode styling for controls, the attribution strip
+   and popups. Left alone those render as white boxes that ignore the theme
+   entirely — and become unreadable once the dark theme is active. These rules
+   re-point Leaflet's own classes at the app's tokens.
+   :global is required because the classes come from leaflet.css, not this
+   module, so CSS Modules must not hash them. */
+
+.wrap :global(.leaflet-container) {
+  background: var(--bg-sunken);
+  font-family: var(--font-body);
+}
+
+/* Raster OSM tiles are drawn for a light background. On the dark theme they
+   glare, so they are dimmed and slightly desaturated to sit under the heat
+   layer rather than compete with it. */
+:global([data-theme='dark']) .wrap :global(.leaflet-tile-pane) {
+  filter: brightness(0.72) saturate(0.75) contrast(1.05);
+}
+
+.wrap :global(.leaflet-control-zoom a) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+  transition: background-color var(--t-fast) var(--ease-out);
+}
+
+.wrap :global(.leaflet-control-zoom a:hover) {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.wrap :global(.leaflet-control-zoom) {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-xs);
+  overflow: hidden;
+  box-shadow: var(--e2);
+}
+
+/* Attribution must stay legible — it is a licence requirement, not decoration. */
+.wrap :global(.leaflet-control-attribution) {
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  padding: 2px 6px;
+}
+
+.wrap :global(.leaflet-control-attribution a) {
+  color: var(--cyan-glow);
+}
+
+.wrap :global(.leaflet-popup-content-wrapper),
+.wrap :global(.leaflet-popup-tip) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--e4);
+}
+
+.wrap :global(.leaflet-popup-content-wrapper) {
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.wrap :global(.leaflet-popup-content) {
+  margin: 10px 12px;
+}
+
+.wrap :global(.leaflet-popup-close-button) {
+  color: var(--text-muted);
+}
+
+/* ── Popup body (built in HotspotMap.tsx) ────────────────────────────────── */
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 168px;
+}
+
+.popupTitle {
+  margin: 0 0 4px;
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.popupRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.popupKey {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.popupValue {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ── Overlays ────────────────────────────────────────────────────────────── */
+
+/* Matches the analytics page's own loading treatment so the two read as one
+   system. Sits over the map rather than replacing it, so Leaflet is not torn
+   down and re-initialised on every poll. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 500; /* above Leaflet panes (400) and controls, below its popups */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--bg-base) 62%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+.overlay .material-symbols-outlined {
+  font-size: 30px;
+  color: var(--cyan-glow);
+  animation: mapSpin 1s linear infinite;
+}
+
+.overlayLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+}
+
+@keyframes mapSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--s-6);
+  text-align: center;
+  background: color-mix(in srgb, var(--bg-base) 82%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.empty .material-symbols-outlined {
+  font-size: 34px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.emptyTitle {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.emptyBody {
+  max-width: 34ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay .material-symbols-outlined { animation: none; }
+}

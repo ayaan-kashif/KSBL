@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import styles from './analytics.module.css';
+import type { MapFocus } from '@/components/HotspotMap';
 import { getDashboardStats, getDashboardHeatmap, getScanHistory, getBrands, DashboardStats, HeatmapCluster, ScanHistoryItem, BrandOption, formatPKR } from '@/lib/api';
 import MetricCard from '@/components/MetricCard';
 import Button from '@/components/Button';
@@ -27,6 +29,17 @@ const statusIcons: Record<string, string> = {
   unverified: 'help_outline',
 };
 
+/**
+ * Leaflet reads `window` at module scope, so this must never be evaluated during
+ * the server render — ssr:false keeps it out of the server bundle entirely. The
+ * placeholder matches the map's own height so the card does not jump when the
+ * chunk arrives.
+ */
+const HotspotMap = dynamic(() => import('@/components/HotspotMap'), {
+  ssr: false,
+  loading: () => <div className={styles.mapSkeleton} aria-hidden="true" />,
+});
+
 export default function AnalyticsPage() {
   // Brands come from the Brand table via /api/brands. This was previously a
   // hardcoded two-entry demo list, so any brand actually onboarded into the
@@ -46,6 +59,15 @@ export default function AnalyticsPage() {
   // the server/browser's default locale, two different formatted strings),
   // causing a hydration mismatch. The real value is set post-mount below.
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  // Which cluster the map should pan to. The nonce lets the same row be clicked
+  // repeatedly — without it, re-selecting an area would not re-trigger the
+  // fly-to because the lat/lng props would be identical.
+  const [mapFocus, setMapFocus] = useState<MapFocus | null>(null);
+
+  const focusArea = useCallback((lat: number | null, lng: number | null) => {
+    if (lat === null || lng === null) return;
+    setMapFocus((prev) => ({ lat, lng, nonce: (prev?.nonce ?? 0) + 1 }));
+  }, []);
 
   /* Both wrapped in useCallback so they are referentially stable. That lets the
      polling effect below list them as real dependencies instead of suppressing
@@ -210,26 +232,42 @@ export default function AnalyticsPage() {
           {/* Chart + Map/Hotspot Areas row */}
           <div className={styles.chartRow}>
             <div className={`liquid-glass-gradient-border ${styles.chartCard}`}>
-              <h3 className={styles.cardTitle}>Hotspot Areas (Karachi)</h3>
+              <h3 className={styles.cardTitle}>Counterfeit Hotspots</h3>
+
+              {/* Every point comes from the same `heatmap` state the rest of the
+                  page already uses — no second fetch, no seeded points. */}
+              <HotspotMap clusters={heatmap} loading={loading} focus={mapFocus} />
+
+              {/* The ranked list stays: it is the accessible, screen-reader
+                  friendly view of the same data, and the only way to reach
+                  clusters the API could not geocode. */}
               <div className={styles.hotspotList}>
-                {heatmap.map((area, i) => (
-                  <div key={i} className={styles.hotspotRow}>
-                    <div>
-                      <p className={styles.hotspotName}>{area.area_name}</p>
-                      <p className={styles.hotspotCoords}>
-                        Lat: {area.latitude?.toFixed(4) || 'N/A'}, Lng: {area.longitude?.toFixed(4) || 'N/A'}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p className={styles.hotspotScans}>
-                        {area.report_count} Scans
-                      </p>
-                      <p className={styles.hotspotRate}>
-                        {area.suspicious_rate}% Suspicious
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                {heatmap.map((area, i) => {
+                  const locatable = area.latitude !== null && area.longitude !== null;
+                  return (
+                    <button
+                      key={`${area.area_name}-${i}`}
+                      type="button"
+                      className={styles.hotspotRow}
+                      onClick={() => focusArea(area.latitude, area.longitude)}
+                      disabled={!locatable}
+                      title={locatable ? `Show ${area.area_name} on the map` : 'No coordinates for this area'}
+                    >
+                      <div className={styles.hotspotMeta}>
+                        <p className={styles.hotspotName}>{area.area_name}</p>
+                        <p className={styles.hotspotCoords}>
+                          {locatable
+                            ? `Lat: ${area.latitude!.toFixed(4)}, Lng: ${area.longitude!.toFixed(4)}`
+                            : 'Not mapped — no location captured'}
+                        </p>
+                      </div>
+                      <div className={styles.hotspotStats}>
+                        <p className={styles.hotspotScans}>{area.report_count} Scans</p>
+                        <p className={styles.hotspotRate}>{area.suspicious_rate}% Suspicious</p>
+                      </div>
+                    </button>
+                  );
+                })}
                 {heatmap.length === 0 && (
                   <div className={styles.emptyHotspot}>
                     No regional hotspots detected yet.
