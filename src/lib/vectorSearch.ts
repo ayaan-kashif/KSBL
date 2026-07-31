@@ -48,7 +48,14 @@ export interface VectorMatch {
  */
 export async function findProductByImage(
   imageUrl: string,
-  brandFilter?: string | null
+  brandFilter?: string | null,
+  /**
+   * Overrides the env-configured floor. Path A passes a floor well below
+   * VECTOR_MATCH_LOW so it can see near misses — a scan that resembles a
+   * catalogued product without matching it is the signature of a copy, and
+   * discarding it at the RPC would throw that evidence away.
+   */
+  matchThreshold?: number
 ): Promise<VectorMatch | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -60,10 +67,14 @@ export async function findProductByImage(
   // VECTOR_MATCH_LOW is the band boundary Path A adjudicates from; honour it
   // as the RPC floor so the two can't drift apart and silently drop the
   // bottom of the middle band.
-  const threshold =
+  const envThreshold =
     Number(process.env.VECTOR_MATCH_THRESHOLD) ||
     Number(process.env.VECTOR_MATCH_LOW) ||
     DEFAULT_MATCH_THRESHOLD;
+  const threshold =
+    typeof matchThreshold === "number" && Number.isFinite(matchThreshold)
+      ? matchThreshold
+      : envThreshold;
 
   try {
     const controller = new AbortController();

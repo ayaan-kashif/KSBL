@@ -27,7 +27,7 @@ import { calculateAuthenticityScore } from "./scoreEngine";
 import { getCachedProduct, setCachedProduct, type UnifiedProduct } from "./cacheService";
 import { findProductByImage } from "@/lib/vectorSearch";
 import { compareProductImages } from "@/lib/translate";
-import { nationalCatalogEmbeddingCount } from "./brandRouter";
+import { nationalCatalogEmbeddingCount, type WordmarkStatus } from "./brandRouter";
 
 export type ApiSource =
   | "LocalCatalog"
@@ -68,27 +68,107 @@ export interface PathInput {
   /** Product row already matched by barcode against our own catalog, if any. */
   localProduct: UnifiedProduct | null;
   localProductId: string | null;
+  /** Wordmark classification from brandRouter — see WordmarkStatus. */
+  wordmarkStatus?: WordmarkStatus;
+  detectedBrand?: string | null;
+  imitatedBrand?: string | null;
+}
+
+/**
+ * Authenticity score below which a scan is reported as suspicious on the
+ * external-DB path, even when no reference record was found. Above it, a
+ * missing record stays `unverified`.
+ */
+const SUSPICIOUS_SCORE_THRESHOLD = 50;
+
+/**
+ * Ceiling on the score reported alongside an `unverified` verdict.
+ *
+ * The number the result screen labels CONFIDENCE is confidence in the
+ * *authenticity verdict*. When no reference record exists there is no evidence
+ * either way, so that confidence is low by definition — regardless of how
+ * clean the photograph looks. Passing Gemini's raw visual score straight
+ * through produced screens reading "UNVERIFIED — authenticity could not be
+ * confirmed either way" beside "78%", which invites exactly the reading the
+ * verdict is trying to deny.
+ */
+const UNVERIFIED_MAX_SCORE = 39;
+
+/**
+ * Rescale a visual score into the unverified band, preserving order so a
+ * cleaner photo still ranks above a poor one, without ever implying we
+ * verified anything.
+ */
+function unverifiedScore(visualScore: number): number {
+  return Math.min(
+    UNVERIFIED_MAX_SCORE,
+    Math.max(0, Math.round(visualScore * (UNVERIFIED_MAX_SCORE / 100)))
+  );
 }
 
 function bandThresholds() {
   const high = Number(process.env.VECTOR_MATCH_HIGH);
   const low = Number(process.env.VECTOR_MATCH_LOW);
+  const nearMiss = Number(process.env.VECTOR_MATCH_NEAR_MISS);
   return {
     high: Number.isFinite(high) ? high : 0.92,
     low: Number.isFinite(low) ? low : 0.82,
+    /**
+     * Floor for "resembles a catalogued product without being it". CLIP cosine
+     * between two photos of the SAME product lands ~0.80–0.95; a different
+     * product from the same brand family sits lower but still well clear of an
+     * unrelated object. Between this and `low` is where copies live: close
+     * enough to be imitating the pack, too far to be it.
+     */
+    nearMiss: Number.isFinite(nearMiss) ? nearMiss : 0.55,
   };
 }
 
 // ─── Path A: National Foods ─────────────────────────────────────────────────
 
 export async function runNationalRagPath(input: PathInput): Promise<PathOutcome> {
-  const { high, low } = bandThresholds();
+  const { high, low, nearMiss } = bandThresholds();
+
+  // ── Misspelled wordmark ────────────────────────────────────────────────────
+  // Decided before any catalogue work, and deliberately independent of it. A
+  // pack printed "Nationel" is not National Foods' product no matter what the
+  // vector search says, and unlike every other signal here this one needs no
+  // embeddings — it is the only conclusive check that works while the
+  // catalogue is still unindexed.
+  if (input.wordmarkStatus === "near_miss") {
+    const printed = input.detectedBrand ?? "the printed brand name";
+    const genuine = input.imitatedBrand
+      ? input.imitatedBrand.replace(/\b\w/g, (c) => c.toUpperCase())
+      : "National";
+    const gemini = await compareImagesWithGemini(input.imageBase64, null, input.mimeType, {
+      data: input.backImageBase64,
+      mimeType: input.backMimeType,
+    });
+    return {
+      product: null,
+      apiSource: "none",
+      dbProductId: null,
+      vectorSimilarity: null,
+      dbVerdict: "suspicious",
+      displayVerdict: "counterfeit",
+      score: 0,
+      gemini,
+      reasonEn: `The brand name printed on this packaging reads "${printed}", which is a misspelling of "${genuine}". A genuine manufacturer does not misspell its own trademark; near-identical misspellings are a standard counterfeit tactic to imitate a trusted brand while evading trademark checks. This is a counterfeit product.`,
+      reasonUr: `اس پیکنگ پر چھپا ہوا برانڈ کا نام "${printed}" ہے، جو "${genuine}" کا غلط ہجہ ہے۔ اصل کارخانہ دار اپنے ہی ٹریڈ مارک کا ہجہ غلط نہیں لکھتا؛ ملتے جلتے غلط ہجے نقلی مصنوعات کا معروف طریقہ ہیں تاکہ معتبر برانڈ کی نقل کی جا سکے۔ یہ ایک نقلی مصنوع ہے۔`,
+    };
+  }
 
   // A barcode hit against our own catalog is already a confirmed identification
   // — no need to re-derive it from pixels.
+  //
+  // The RPC floor is deliberately `nearMiss`, not `low`: querying at `low`
+  // would return nothing for a copy that imitates the pack without matching
+  // it, and that scan would then be indistinguishable from an unrelated
+  // product. Fetching the nearest neighbour and banding it here keeps the
+  // near-miss evidence instead of discarding it in the database.
   const vectorMatch = input.localProduct
     ? null
-    : await findProductByImage(input.imageUrl, "National Foods");
+    : await findProductByImage(input.imageUrl, "National Foods", nearMiss);
 
   const matchedProduct =
     input.localProduct ??
@@ -128,6 +208,31 @@ export async function runNationalRagPath(input: PathInput): Promise<PathOutcome>
   const belowLowBand = similarity !== null && similarity < low;
 
   if (!matchedProduct || belowLowBand) {
+    // ── Near miss ──────────────────────────────────────────────────────────
+    // A catalogued product IS the closest thing to this scan, but the packaging
+    // doesn't actually match it. That combination is the signature of a copy:
+    // an unrelated product wouldn't resemble the catalogue at all, and a
+    // genuine one would clear `low`. Report it as counterfeit and say which
+    // product it is imitating — far more useful than a bare "not found".
+    if (matchedProduct && similarity !== null && similarity >= nearMiss) {
+      const pct = Math.round(similarity * 100);
+      return {
+        // Deliberately null: this scan is NOT that catalogue product, and
+        // returning it here would make the UI label the fake with the genuine
+        // product's name. The resemblance is reported in the reason instead.
+        product: null,
+        apiSource: "none",
+        dbProductId: null,
+        vectorSimilarity: similarity,
+        dbVerdict: "suspicious",
+        displayVerdict: "counterfeit",
+        score: 0,
+        gemini,
+        reasonEn: `This packaging resembles the National Foods product "${matchedProduct.name}" (${pct}% visual similarity) but does not match the manufacturer's catalogued packaging closely enough to be that product. A genuine pack scores at least ${Math.round(low * 100)}%. This is most likely a counterfeit imitating ${matchedProduct.name}.`,
+        reasonUr: `یہ پیکنگ نیشنل فوڈز کی مصنوع "${matchedProduct.name}" سے مشابہت رکھتی ہے (${pct}% بصری مماثلت) مگر کارخانہ دار کی درج شدہ پیکنگ سے اتنی مطابقت نہیں رکھتی کہ یہ وہی مصنوع ہو۔ اصل پیک کم از کم ${Math.round(low * 100)}% حاصل کرتا ہے۔ یہ غالباً ${matchedProduct.name} کی نقل ہے۔`,
+      };
+    }
+
     // "Not in the catalog" is only counterfeit evidence if the catalog is
     // actually populated. With zero embedded rows every scan would land here
     // and the failure would be indistinguishable from "everything is fake".
@@ -289,14 +394,29 @@ export async function runExternalDbPath(input: PathInput): Promise<PathOutcome> 
     score,
   };
 
-  // Every lookup missed. We have no reference image and no catalogue entry, so
-  // we have no evidence either way — that is `unverified`, NOT counterfeit.
-  // These databases have large coverage gaps; absence is not evidence.
+  // Every lookup missed, so there's no reference record to compare against.
+  // Database absence on its own is not evidence — coverage gaps are large for
+  // local FMCG — but the score here is Gemini's read of the packaging itself,
+  // which is evidence about the product. A visibly poor result stays flagged
+  // rather than being softened into "we couldn't check".
   if (!product) {
+    if (score < SUSPICIOUS_SCORE_THRESHOLD) {
+      return {
+        ...base,
+        dbVerdict: "suspicious",
+        // Deliberately NOT "counterfeit": with no reference record we can't
+        // substantiate that call, only report that the packaging scores badly.
+        displayVerdict: "suspicious",
+        reasonEn: `No reference record for this product was found in the global barcode databases, and its packaging scored ${score}% on visual authenticity checks — below the ${SUSPICIOUS_SCORE_THRESHOLD}% threshold. Treat this product as suspicious.`,
+        reasonUr: `عالمی بارکوڈ ڈیٹا بیس میں اس مصنوع کا کوئی حوالہ جاتی ریکارڈ نہیں ملا، اور اس کی پیکنگ نے بصری جانچ میں ${score}% حاصل کیے — جو ${SUSPICIOUS_SCORE_THRESHOLD}% کی حد سے کم ہے۔ اس مصنوع کو مشکوک سمجھیں۔`,
+      };
+    }
     return {
       ...base,
       dbVerdict: "unverified",
       displayVerdict: "unverified",
+      // Not `score`: see UNVERIFIED_MAX_SCORE.
+      score: unverifiedScore(score),
       reasonEn:
         "No reference record for this product was found in the global barcode databases, so its authenticity could not be checked against a known original.",
       reasonUr:
@@ -304,7 +424,7 @@ export async function runExternalDbPath(input: PathInput): Promise<PathOutcome> 
     };
   }
 
-  if (score > 50) {
+  if (score > SUSPICIOUS_SCORE_THRESHOLD) {
     return {
       ...base,
       dbVerdict: "genuine",
