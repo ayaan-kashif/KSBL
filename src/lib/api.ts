@@ -223,6 +223,44 @@ export async function getLeaderboard(): Promise<ApiResult<LeaderboardEntry[]>> {
   }
 }
 
+// ─── GET /api/brands ──────────────────────────────────────────────────────────
+
+export interface BrandOption {
+  id: string;
+  name: string;
+}
+
+export async function getBrands(): Promise<ApiResult<BrandOption[]>> {
+  try {
+    const res = await fetch('/api/brands');
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Failed to load brands (${res.status})`);
+    return ok(json as BrandOption[]);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
+// ─── GET /api/stats/public ────────────────────────────────────────────────────
+
+export interface PublicStats {
+  total_scans: number;
+  suspicious_count: number;
+  /** Share of scans that reached a confident verdict — NOT model accuracy. */
+  resolved_rate: number;
+}
+
+export async function getPublicStats(): Promise<ApiResult<PublicStats>> {
+  try {
+    const res = await fetch('/api/stats/public');
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Failed to load stats (${res.status})`);
+    return ok(json as PublicStats);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
 // ─── POST /api/report ─────────────────────────────────────────────────────────
 
 export async function postReport(

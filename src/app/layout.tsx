@@ -65,6 +65,13 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* The four text faces above load through next/font, which self-hosts
+            them. Material Symbols cannot: next/font's Google catalogue excludes
+            icon fonts, so there is no module to import and the stylesheet has to
+            be linked. In the App Router this root layout IS the document head,
+            so the link applies to every route — the rule below is a Pages Router
+            check for fonts added outside pages/_document, which does not apply. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"

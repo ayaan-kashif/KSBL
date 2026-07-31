@@ -1,27 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import styles from './unverified.module.css';
-import { readScanResult, postReport, ScanResult, formatConfidence, verdictColor } from '@/lib/api';
+import { postReport } from '@/lib/api';
 import VerdictBadge from '@/components/VerdictBadge';
 import BilingualText from '@/components/BilingualText';
+import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
+import { useScanResult } from '@/lib/useScanResult';
 import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
 
 export default function UnverifiedResultPage() {
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const result = useScanResult();
   const { lang } = useLanguage();
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const data = readScanResult();
-    if (data) {
-      setResult(data);
-    }
-  }, []);
 
   const handleReport = async () => {
     if (!result?.scan_id) return;
@@ -36,10 +31,17 @@ export default function UnverifiedResultPage() {
     }
   };
 
-  const confidence = result ? Math.round(result.confidence * 100) : 45;
-  const barcode = result?.extracted_batch || 'Unknown Batch';
-  const productName = result?.product_name || 'Unregistered Product';
-  const brandName = result?.brand_name || 'Unknown Brand';
+  // Hooks must run before this branch, so the guard sits below them. The
+  // fallback confidence was 45% — a fabricated score for a scan that never
+  // happened; this page now refuses to render without a real result.
+  if (!result) return <NoScanResult title="No verification to show" />;
+
+  const confidence = Math.round(result.confidence * 100);
+  // These fallbacks stay: "unknown" IS the honest answer on this screen, which
+  // exists precisely because the product could not be matched.
+  const barcode = result.extracted_batch || 'Unknown Batch';
+  const productName = result.product_name || 'Unregistered Product';
+  const brandName = result.brand_name || 'Unknown Brand';
 
   return (
     <div className={styles.page}>

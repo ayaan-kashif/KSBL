@@ -1,43 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './genuine.module.css';
 import VerdictBadge from '@/components/VerdictBadge';
 import BilingualText from '@/components/BilingualText';
+import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
+import { useScanResult } from '@/lib/useScanResult';
 import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
 
-interface ScanResult {
-  scan_id: string;
-  verdict: string;
-  confidence: number;
-  reason: string;
-  reason_ur?: string;
-  urdu_text: string;
-  english_text: string;
-  extracted_batch: string | null;
-  extracted_mfg_date: string | null;
-  extracted_mrp: string | null;
-  brand_name: string | null;
-  product_name: string | null;
-}
-
 export default function GenuineResultPage() {
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const result = useScanResult();
   const { lang } = useLanguage();
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem('shelfwatch_scan_result');
-    if (stored) {
-      try { setResult(JSON.parse(stored)); } catch { /* ignore */ }
-    }
-  }, []);
+  // Without a stored result this page previously invented one — a hardcoded
+  // "99% · HP-221-KHI · HealthCare Pro 500mg" genuine verdict for a product
+  // nobody scanned. Refusing to render is the only safe behaviour here.
+  if (!result) return <NoScanResult title="No verification to show" />;
 
-  const confidence = result ? Math.round(result.confidence * 100) : 99;
-  const batch = result?.extracted_batch ?? 'HP-221-KHI';
-  const product = result?.product_name ?? 'HealthCare Pro 500mg';
-  const brand = result?.brand_name ?? 'Unknown Brand';
+  const confidence = Math.round(result.confidence * 100);
+  // The badge used to be pinned to "genuine" regardless of what was scanned.
+  // These pages are reachable by direct URL, so that would have shown a
+  // suspicious product as authentic. Everything below follows the real verdict.
+  const verdict = result.verdict;
+  const isGenuine = verdict === 'genuine';
+  const verdictIcon = isGenuine ? 'verified' : verdict === 'suspicious' ? 'gpp_maybe' : 'help_outline';
+  const batch = result.extracted_batch ?? 'Not detected';
+  const product = result.product_name ?? 'Unidentified product';
+  const brand = result.brand_name ?? 'Unknown brand';
 
   return (
     <div className={styles.page}>
@@ -59,15 +49,15 @@ export default function GenuineResultPage() {
           <div className={styles.iconRingOuter}></div>
           <div className={styles.iconRingInner}></div>
           <div className={styles.iconCenter}>
-            <span className="material-symbols-outlined">verified</span>
+            <span className="material-symbols-outlined">{verdictIcon}</span>
           </div>
         </div>
 
-        <VerdictBadge verdict="genuine" size="lg" />
+        <VerdictBadge verdict={verdict} size="lg" />
         <div className={styles.verdictSub}>
           <BilingualText
-            en={VERDICT_PHRASE.genuine.en}
-            ur={VERDICT_PHRASE.genuine.ur}
+            en={VERDICT_PHRASE[verdict].en}
+            ur={VERDICT_PHRASE[verdict].ur}
             size="sm"
           />
         </div>
@@ -75,8 +65,8 @@ export default function GenuineResultPage() {
         {/* Reason — bilingual, from the scan payload when present. */}
         <div className={styles.verdictSub}>
           <BilingualText
-            en={result?.reason ?? 'This product is authentic and safe.'}
-            ur={result?.reason_ur ?? 'یہ مصنوع اصل اور محفوظ ہے۔'}
+            en={result.reason}
+            ur={result.reason_ur ?? result.reason}
             size="sm"
           />
         </div>
@@ -101,8 +91,8 @@ export default function GenuineResultPage() {
               { label: 'Product', value: product },
               { label: 'Brand', value: brand },
               { label: 'Batch No.', value: batch },
-              ...(result?.extracted_mfg_date ? [{ label: 'Mfg Date', value: result.extracted_mfg_date }] : []),
-              ...(result?.extracted_mrp ? [{ label: 'MRP', value: `Rs. ${result.extracted_mrp}` }] : []),
+              ...(result.extracted_mfg_date ? [{ label: 'Mfg Date', value: result.extracted_mfg_date }] : []),
+              ...(result.extracted_mrp ? [{ label: 'MRP', value: `Rs. ${result.extracted_mrp}` }] : []),
             ].map((d, i) => (
               <div key={i} className={styles.detailItem}>
                 <p className={styles.detailLabel}>{d.label}</p>
@@ -112,11 +102,16 @@ export default function GenuineResultPage() {
           </div>
         </div>
 
-        {/* Success note */}
-        <div className={styles.successNote}>
-          <span className="material-symbols-outlined" style={{ fontSize: '20px', flexShrink: 0 }}>check_circle</span>
-          <p>Verified against 24M+ authentic products in the ShelfWatch database. Safe to purchase.</p>
-        </div>
+        {/* Reassurance note — genuine verdicts only. Shown unconditionally it
+            would tell someone holding a suspicious product that it is safe.
+            The copy also used to claim "24M+ authentic products", an invented
+            catalogue size; it now states what the pipeline actually did. */}
+        {isGenuine && (
+          <div className={styles.successNote}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', flexShrink: 0 }}>check_circle</span>
+            <p>Checked against ShelfWatch&apos;s reference catalogue and packaging analysis.</p>
+          </div>
+        )}
 
         {/* Actions */}
         <div className={styles.actions}>

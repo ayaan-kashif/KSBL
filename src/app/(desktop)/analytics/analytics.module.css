@@ -371,3 +371,22 @@
 @media (prefers-reduced-motion: reduce) {
   .hotspotRow:hover { transform: none; }
 }
+
+/* Error banner — raised and tinted, so a failed refresh is visibly a state
+   change rather than another row of page copy. */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-5);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--verdict-counterfeit-bg);
+  border: 1px solid var(--verdict-counterfeit-border);
+  box-shadow: var(--e2);
+  color: var(--verdict-counterfeit);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.errorBanner > span:nth-child(2) { flex: 1; }

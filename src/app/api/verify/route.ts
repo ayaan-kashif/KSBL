@@ -7,9 +7,26 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { ScannedByRole } from "@/lib/supabaseTypes";
 
-// Bypass self-signed SSL/TLS certificate chain checks for Postgres database globally in this context
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+/* REMOVED: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0".
+ *
+ * That line disabled TLS certificate verification for the entire Node process,
+ * not just this route — every outbound HTTPS call (Supabase, Gemini, the
+ * external barcode APIs) silently accepted any certificate, which is a
+ * man-in-the-middle risk in production.
+ *
+ * Its stated purpose was self-signed certs on a direct Postgres connection,
+ * but this route reaches the database over Supabase's REST API on a publicly
+ * trusted certificate, so nothing here needed it. If a local self-signed cert
+ * ever does need trusting, scope it to that one connection (or set
+ * NODE_EXTRA_CA_CERTS locally) rather than disabling verification globally.
+ */
+
+/** Narrow untrusted form input to the enum the column accepts. */
+function parseScannedByRole(value: FormDataEntryValue | null): ScannedByRole {
+  return value === "shopkeeper" ? "shopkeeper" : "consumer";
+}
 
 import { scanBarcodeFromImage } from "@/services/barcodeScanner";
 import { UnifiedProduct } from "@/services/cacheService";
@@ -271,7 +288,10 @@ export async function POST(req: NextRequest) {
             brand_name: product?.brand || null,
             category: product?.category || null,
             barcode: barcode?.trim() || product?.barcode || null,
-            scanned_by_role: (formData.get("role") as any) || "consumer",
+            // Validated against the enum rather than blind-cast: a client
+            // sending role=admin would otherwise be written straight into the
+            // column and rejected by Postgres (or worse, accepted).
+            scanned_by_role: parseScannedByRole(formData.get("role")),
             image_url: imageUrl,
             extracted_batch: gemini.tampering ? "Tampered" : "Standard Batch",
             extracted_mfg_date: new Date().toLocaleDateString(),
@@ -385,16 +405,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(responsePayload, { status: 200 });
   } catch (err) {
-    console.error("[VerifyAPI] Unhandled error:", err);
-    try {
-      const fs = require('fs');
-      const path = require('path');
-      const logPath = 'c:/Users/Sonu computers/Desktop/kxbl/verify_debug.log';
-      const logMsg = `[${new Date().toISOString()}] Error: ${err instanceof Error ? err.stack : String(err)}\n\n`;
-      fs.appendFileSync(logPath, logMsg);
-    } catch (logErr) {
-      console.error("Failed to write to verify_debug.log:", logErr);
-    }
+    // The file-logging block that used to sit here appended to
+    // 'c:/Users/Sonu computers/Desktop/kxbl/verify_debug.log' — an absolute path
+    // on one developer's machine. It could never resolve anywhere else, and on
+    // Vercel the filesystem is read-only, so it only ever threw into its own
+    // catch. console.error is already captured by the platform's log drain.
+    console.error("[VerifyAPI] Unhandled error:", err instanceof Error ? err.stack : err);
     return NextResponse.json(
       { error: `Internal server error during verification processing: ${err instanceof Error ? err.message : String(err)}` },
       { status: 500 }

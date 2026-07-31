@@ -4,13 +4,50 @@ import { useEffect, useState } from 'react';
 import VerdictBadge from '@/components/VerdictBadge';
 import styles from './inventory.module.css';
 import { useToast } from '@/components/ToastContext';
+import type { BadgeVerdict } from '@/lib/verdictCopy';
 
 type FilterType = 'All' | 'Active' | 'Flagged' | 'Recalled';
+
+type ProductStatus = 'active' | 'flagged' | 'recalled';
+
+/** The shape /api/products returns — a view model, not the raw Product row. */
+interface InventoryProduct {
+  id: string;
+  name: string | null;
+  brand: string | null;
+  barcode: string | null;
+  /** Scan count, used as a proxy for market presence. */
+  stock: number;
+  verdict: BadgeVerdict;
+  status: ProductStatus;
+  reference_batch_pattern: string | null;
+  reference_image_url: string | null;
+}
 
 const FILTERS: FilterType[] = ['All', 'Active', 'Flagged', 'Recalled'];
 const PAGE_SIZE = 6;
 
-function filterProducts(products: any[], filter: FilterType, search: string) {
+/**
+ * Verdict → theme token. Colour used to arrive from /api/products as literal
+ * light-theme hex, which meant the cards stayed light on the dark canvas and
+ * the palette could only be changed by editing an API route. The endpoint now
+ * sends just the verdict and the mapping lives here, in the presentation layer.
+ */
+const VERDICT_ACCENT: Partial<Record<BadgeVerdict, string>> = {
+  genuine: 'var(--verdict-genuine)',
+  suspicious: 'var(--verdict-suspicious)',
+  counterfeit: 'var(--verdict-counterfeit)',
+  unverified: 'var(--text-muted)',
+};
+
+const accentFor = (verdict: BadgeVerdict) =>
+  VERDICT_ACCENT[verdict] ?? VERDICT_ACCENT.unverified!;
+
+/** Translucent variant of an accent, theme-aware (replaces hex alpha suffixes). */
+const tint = (color: string, pct: number) =>
+  `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+
+function filterProducts(products: InventoryProduct[], filter: FilterType, search: string) {
   let result = products;
   if (filter === 'Active') result = result.filter(p => p.status === 'active');
   if (filter === 'Flagged') result = result.filter(p => p.status === 'flagged');
@@ -18,17 +55,19 @@ function filterProducts(products: any[], filter: FilterType, search: string) {
   
   if (search) {
     const q = search.toLowerCase();
+    // Null-safe: a product row with no name or brand used to throw here the
+    // moment anyone typed in the search box.
     result = result.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.brand.toLowerCase().includes(q) ||
-      (p.barcode && p.barcode.toLowerCase().includes(q))
+      (p.name ?? '').toLowerCase().includes(q) ||
+      (p.brand ?? '').toLowerCase().includes(q) ||
+      (p.barcode ?? '').toLowerCase().includes(q)
     );
   }
   return result;
 }
 
 export default function InventoryPage() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<InventoryProduct[]>([]);
   const [filter, setFilter] = useState<FilterType>('All');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -45,24 +84,39 @@ export default function InventoryPage() {
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
 
-  async function loadProducts() {
-    setLoading(true);
-    setError(null);
+  /** Fetch without touching state, so callers decide when to commit. */
+  async function fetchProducts(): Promise<{ data?: InventoryProduct[]; error?: string }> {
     try {
       const res = await fetch("/api/products");
       if (!res.ok) throw new Error("Failed to load inventory from server");
-      const data = await res.json();
-      setProducts(data);
+      return { data: (await res.json()) as InventoryProduct[] };
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Failed to load products");
-    } finally {
-      setLoading(false);
+      return { error: err instanceof Error ? err.message : "Failed to load products" };
     }
   }
 
+  function apply(res: { data?: InventoryProduct[]; error?: string }) {
+    setLoading(false);
+    if (res.error) setError(res.error);
+    else if (res.data) { setError(null); setProducts(res.data); }
+  }
+
+  /** Called from event handlers (add / status change), where sync state is fine. */
+  async function loadProducts() {
+    setLoading(true);
+    setError(null);
+    apply(await fetchProducts());
+  }
+
+  // `loading` starts true, so the first setState lands after the await rather
+  // than synchronously inside the effect body.
   useEffect(() => {
-    loadProducts();
+    let cancelled = false;
+    fetchProducts().then((res) => {
+      if (!cancelled) apply(res);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   async function handleStatusChange(productId: string, newStatus: 'active' | 'flagged' | 'recalled') {
@@ -77,25 +131,14 @@ export default function InventoryPage() {
       // Optimistic UI update
       setProducts(prev => prev.map(p => {
         if (p.id === productId) {
-          let displayVerdict = "genuine";
+          let displayVerdict: BadgeVerdict = "genuine";
           if (newStatus === "flagged") displayVerdict = "suspicious";
           else if (newStatus === "recalled") displayVerdict = "counterfeit";
           else if (p.stock === 0) displayVerdict = "unverified";
 
-          let color = "rgba(4,120,87,0.1)";
-          let accent = "#047857";
-          if (displayVerdict === "suspicious") {
-            color = "rgba(180,83,9,0.1)";
-            accent = "#b45309";
-          } else if (displayVerdict === "counterfeit") {
-            color = "rgba(190,18,60,0.1)";
-            accent = "#be123c";
-          } else if (displayVerdict === "unverified") {
-            color = "rgba(15,23,42,0.06)";
-            accent = "#5f6b7d";
-          }
-
-          return { ...p, status: newStatus, verdict: displayVerdict, color, accent };
+          // Only the verdict is stored; colour is derived at render time from
+          // the theme tokens, so it stays correct in both themes.
+          return { ...p, status: newStatus, verdict: displayVerdict };
         }
         return p;
       }));
@@ -214,10 +257,12 @@ export default function InventoryPage() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {paginated.map(p => (
+          {paginated.map(p => {
+            const accent = accentFor(p.verdict);
+            return (
             <div key={p.id} className={styles.card}>
-              <div className={styles.cardImage} style={{ background: p.color, borderColor: p.accent + '40' }}>
-                <span className="material-symbols-outlined" style={{ color: p.accent, fontSize: '36px' }}>
+              <div className={styles.cardImage} style={{ background: tint(accent, 10), borderColor: tint(accent, 25) }}>
+                <span className="material-symbols-outlined" style={{ color: accent, fontSize: '36px' }}>
                   {p.status === 'recalled' ? 'cancel' : 'medication'}
                 </span>
               </div>
@@ -240,7 +285,7 @@ export default function InventoryPage() {
                     <VerdictBadge verdict={p.verdict} size="sm" />
                     <select
                       value={p.status}
-                      onChange={(e) => handleStatusChange(p.id, e.target.value as any)}
+                      onChange={(e) => handleStatusChange(p.id, e.target.value as ProductStatus)}
                       style={{
                         background: 'var(--bg-surface)',
                         border: '1px solid var(--border-interactive)',
@@ -252,15 +297,20 @@ export default function InventoryPage() {
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="active" style={{ background: '#ffffff', color: '#0f172a' }}>Active</option>
-                      <option value="flagged" style={{ background: '#ffffff', color: '#0f172a' }}>Flagged</option>
-                      <option value="recalled" style={{ background: '#ffffff', color: '#0f172a' }}>Recalled</option>
+                      {/* No inline colours: these pinned a white dropdown with
+                          dark ink, a light-mode island inside the dark console.
+                          The native menu follows the `color-scheme` declared on
+                          :root, so leaving it alone is what makes it themed. */}
+                      <option value="active">Active</option>
+                      <option value="flagged">Flagged</option>
+                      <option value="recalled">Recalled</option>
                     </select>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

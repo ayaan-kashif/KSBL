@@ -1,77 +1,136 @@
 /* A physical rocker: the track is a well cut into the surface, the thumb is an
-   extruded cap riding in it. That inset/raised pairing is what reads as a real
-   switch rather than two rounded rectangles. */
+   extruded cap riding in it. That inset/raised pairing is the same opposition
+   the whole system uses, and it is what reads as a real switch rather than two
+   rounded rectangles.
+
+   Tuned down from the first pass, which sat in the header as a heavy filled
+   slab that out-weighed the buttons beside it. Three things fixed that without
+   giving up the slide: the track is narrower, it uses the recessed-well
+   treatment instead of a solid dark fill, and the coloured glyph moved into the
+   thumb so the colour rides a small cap rather than flooding the whole pill. */
 
 .toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* The visual track is 34px tall; the button pads out to the 44px touch
+  flex-shrink: 0;
+  /* The visual track is 30px tall; the button pads out to the 44px touch
      minimum without the control looking oversized. */
-  min-width: 44px;
   min-height: 44px;
   padding: 0;
   border: none;
   background: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .track {
   position: relative;
   display: block;
-  width: 60px;
-  height: 32px;
+  width: 56px;
+  height: 30px;
   border-radius: var(--r-pill);
   background: var(--bg-sunken);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--inset-well);
-  transition: background var(--t-base) var(--ease-out);
+  transition:
+    background-color var(--t-base) var(--ease-out),
+    border-color var(--t-base) var(--ease-out);
 }
+
+.toggle:hover .track { border-color: var(--border-strong); }
 
 .thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
+  top: 2px;
+  left: 2px;
   display: grid;
   place-items: center;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  color: var(--verdict-suspicious);
   background: var(--bg-surface);
-  box-shadow: var(--e2);
+  box-shadow:
+    var(--e2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
   /* Spring easing on the slide: the cap overshoots slightly and settles, the
      way a detented switch does. */
   transition:
     transform var(--t-base) var(--ease-spring),
-    color var(--t-base) var(--ease-out),
-    background var(--t-base) var(--ease-out);
+    background-color var(--t-base) var(--ease-out);
 }
 
-.thumb .material-symbols-outlined {
+.toggle:active .thumb { transform: scale(0.9); }
+.isDark .thumb { transform: translateX(26px); }
+.isDark.toggle:active .thumb { transform: translateX(26px) scale(0.9); }
+
+/* Both glyphs live in the thumb and crossfade through the centre, so the sun
+   sets as the moon rises instead of the icon popping. */
+.glyphs {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+}
+
+.glyph {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  transition:
+    opacity var(--t-base) var(--ease-out),
+    transform var(--t-base) var(--ease-spring);
+}
+
+.glyph .material-symbols-outlined {
   font-size: 15px;
   line-height: 1;
 }
 
-.thumbDark {
-  transform: translateX(28px);
-  color: var(--cyan-glow);
-  background: var(--color-surface-container-high);
+.sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+  color: var(--verdict-suspicious);
 }
 
-.compact .track {
-  width: 52px;
-  height: 28px;
+.moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+  color: var(--cyan-glow);
 }
+
+.isDark .sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+.isDark .moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+/* Compact trims the track for tight mobile rows; the button keeps its 44px
+   height, so the touch target never shrinks with it. */
+.compact .track {
+  width: 48px;
+  height: 26px;
+}
+
 .compact .thumb {
   width: 20px;
   height: 20px;
-  top: 3px;
-  left: 3px;
+  top: 2px;
+  left: 2px;
 }
-.compact .thumb .material-symbols-outlined { font-size: 13px; }
-.compact .thumbDark { transform: translateX(24px); }
+
+.compact .glyphs { width: 13px; height: 13px; }
+.compact .glyph .material-symbols-outlined { font-size: 13px; }
+
+.compact.isDark .thumb { transform: translateX(22px); }
+.compact.isDark.toggle:active .thumb { transform: translateX(22px) scale(0.9); }
 
 @media (prefers-reduced-motion: reduce) {
-  .thumb { transition-duration: 0.01ms; }
+  .thumb,
+  .glyph { transition-duration: 0.01ms; }
 }

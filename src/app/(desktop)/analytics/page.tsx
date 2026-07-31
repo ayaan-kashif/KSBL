@@ -1,21 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './analytics.module.css';
-import { getDashboardStats, getDashboardHeatmap, getScanHistory, DashboardStats, HeatmapCluster, ScanHistoryItem, formatPKR } from '@/lib/api';
+import { getDashboardStats, getDashboardHeatmap, getScanHistory, getBrands, DashboardStats, HeatmapCluster, ScanHistoryItem, BrandOption, formatPKR } from '@/lib/api';
 import MetricCard from '@/components/MetricCard';
 import Button from '@/components/Button';
 
-// Literal hex mirrors of the --verdict-* tokens in globals.css. Used here
-// (rather than var(--verdict-*)) because these values get alpha-suffixed
-// below (e.g. `${hex}1a`) for translucent fills/borders — a trick that only
-// works on literal hex colors, not on var() references.
+// var() references, not literal hex. These used to be hardcoded light-theme
+// hexes so that alpha could be appended as a suffix (`${hex}1a`); that pinned
+// the whole table to light-mode colours on the dark canvas. color-mix() gives
+// the same translucent fills while letting the tokens follow the theme.
 const STATUS_HEX: Record<string, string> = {
-  genuine: '#047857',
-  suspicious: '#b45309',
-  unverified: '#475069',
+  genuine: 'var(--verdict-genuine)',
+  suspicious: 'var(--verdict-suspicious)',
+  unverified: 'var(--text-secondary)',
 };
+
+/** Translucent variant of a verdict colour, theme-aware. */
+const tint = (color: string, pct: number) =>
+  `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 
 const statusIcons: Record<string, string> = {
   genuine: 'verified',
@@ -23,14 +27,14 @@ const statusIcons: Record<string, string> = {
   unverified: 'help_outline',
 };
 
-// Available demo brands
-const BRANDS = [
-  { id: 'brand_unilever_001', name: 'Unilever Pakistan' },
-  { id: 'brand_national_001', name: 'National Foods' },
-];
-
 export default function AnalyticsPage() {
-  const [selectedBrand, setSelectedBrand] = useState(BRANDS[0].id);
+  // Brands come from the Brand table via /api/brands. This was previously a
+  // hardcoded two-entry demo list, so any brand actually onboarded into the
+  // database was unreachable from the console. Empty until loaded — the
+  // stats calls below are gated on a selected brand, so there is nothing to
+  // fetch before the list arrives.
+  const [brands, setBrands] = useState<BrandOption[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [heatmap, setHeatmap] = useState<HeatmapCluster[]>([]);
   const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
@@ -43,46 +47,84 @@ export default function AnalyticsPage() {
   // causing a hydration mismatch. The real value is set post-mount below.
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
-  async function loadDashboardData() {
-    setLoading(true);
-    setError(null);
+  /* Both wrapped in useCallback so they are referentially stable. That lets the
+     polling effect below list them as real dependencies instead of suppressing
+     the exhaustive-deps rule — with unstable functions, every render would tear
+     down and restart the 45s interval. Only setState functions are captured,
+     and React guarantees those are stable, so [] is a complete dep list. */
 
+  /** Fetch without touching state, so callers decide when to commit. */
+  const fetchDashboardData = useCallback((brandId: string) => {
     // Call stats, heatmap, and recent scans in parallel
-    const [statsRes, heatmapRes, historyRes] = await Promise.all([
-      getDashboardStats(selectedBrand),
-      getDashboardHeatmap(selectedBrand),
-      getScanHistory(6), // get latest 6 scans for the table
+    return Promise.all([
+      getDashboardStats(brandId),
+      getDashboardHeatmap(brandId),
+      getScanHistory(6), // latest 6 scans for the table
     ]);
+  }, []);
 
+  const applyDashboardData = useCallback((
+    [statsRes, heatmapRes, historyRes]: Awaited<ReturnType<typeof fetchDashboardData>>
+  ) => {
     setLoading(false);
     setLastRefreshed(new Date());
 
-    if (statsRes.error) {
-      setError(statsRes.error);
-    } else {
-      setStats(statsRes.data);
-    }
+    if (statsRes.error) setError(statsRes.error);
+    else { setError(null); setStats(statsRes.data); }
 
-    if (heatmapRes.data) {
-      setHeatmap(heatmapRes.data);
-    }
+    if (heatmapRes.data) setHeatmap(heatmapRes.data);
+    if (historyRes.data) setRecentScans(historyRes.data);
+  }, []);
 
-    if (historyRes.data) {
-      setRecentScans(historyRes.data);
-    }
+  /** Refresh button handler — an event, so sync state updates are fine here. */
+  async function loadDashboardData() {
+    // Nothing to query until a brand exists — /api/dashboard/stats 422s on an
+    // empty brand_id, which would surface as a spurious error banner on load.
+    if (!selectedBrand) return;
+    setLoading(true);
+    setError(null);
+    applyDashboardData(await fetchDashboardData(selectedBrand));
   }
 
-  // Reload data on mount or brand change
+  // Load the brand list once, then select the first one, which cascades into
+  // the data effect below.
   useEffect(() => {
-    loadDashboardData();
+    let cancelled = false;
+    getBrands().then((res) => {
+      if (cancelled) return;
+      if (res.data) {
+        setBrands(res.data);
+        if (res.data.length > 0) setSelectedBrand(res.data[0].id);
+        else { setBrands([]); setLoading(false); }
+      } else {
+        setError(res.error ?? 'Failed to load brands');
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
-    // Auto-refresh every 45s for the demo
-    const timer = setInterval(() => {
-      loadDashboardData();
-    }, 45000);
+  // Reload on brand change, then poll. `loading` already starts true and the
+  // brand effect resets it, so the first setState here lands after the await
+  // rather than synchronously inside the effect body.
+  useEffect(() => {
+    if (!selectedBrand) return;
 
-    return () => clearInterval(timer);
-  }, [selectedBrand]);
+    let cancelled = false;
+    const run = () => {
+      fetchDashboardData(selectedBrand).then((res) => {
+        if (!cancelled) applyDashboardData(res);
+      });
+    };
+
+    run();
+    const timer = setInterval(run, 45_000); // auto-refresh
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [selectedBrand, fetchDashboardData, applyDashboardData]);
 
   const totalScans = stats?.total_scans ?? 0;
   const genuineCount = stats?.genuine_count ?? 0;
@@ -110,12 +152,18 @@ export default function AnalyticsPage() {
               className={styles.brandSelect}
               value={selectedBrand}
               onChange={(e) => setSelectedBrand(e.target.value)}
+              disabled={brands.length === 0}
+              aria-label="Brand"
             >
-              {BRANDS.map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
+              {brands.length === 0 ? (
+                <option value="">No brands available</option>
+              ) : (
+                brands.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
           <Button variant="ghost" size="sm" icon="refresh" onClick={loadDashboardData} loading={loading}>
@@ -127,6 +175,19 @@ export default function AnalyticsPage() {
       <p className={styles.lastRefreshed}>
         Last refreshed: {lastRefreshed ? lastRefreshed.toLocaleTimeString('en-US', { hour12: true }) : '—'}
       </p>
+
+      {/* `error` was being set on every failed load but never rendered, so a
+          failing brand query left the last good numbers on screen with nothing
+          to say they were stale. role="alert" announces it to screen readers. */}
+      {error && (
+        <div className={styles.errorBanner} role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>error</span>
+          <span>{error}</span>
+          <Button variant="ghost" size="sm" icon="refresh" onClick={loadDashboardData}>
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Metrics container with loading state overlay */}
       <div className={styles.metricsContainer}>
@@ -230,7 +291,7 @@ export default function AnalyticsPage() {
                 </thead>
                 <tbody>
                   {recentScans.map((row, i) => {
-                    const hex = STATUS_HEX[row.verdict];
+                    const hex = STATUS_HEX[row.verdict] ?? STATUS_HEX.unverified;
                     return (
                       <tr key={i} className={styles.tr}>
                         <td className={`${styles.td} ${styles.tdMono}`} style={{ color: 'var(--cyan-glow)', fontWeight: 600, fontSize: '12px' }}>
@@ -242,7 +303,7 @@ export default function AnalyticsPage() {
                         </td>
                         <td className={styles.td}>{row.area_name || 'Karachi'}</td>
                         <td className={styles.td}>
-                          <span className={styles.statusBadge} style={{ color: hex, background: `${hex}1a`, border: `1px solid ${hex}33` }}>
+                          <span className={styles.statusBadge} style={{ color: hex, background: tint(hex, 12), border: `1px solid ${tint(hex, 32)}` }}>
                             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{statusIcons[row.verdict]}</span>
                             {row.verdict.charAt(0).toUpperCase() + row.verdict.slice(1)}
                           </span>

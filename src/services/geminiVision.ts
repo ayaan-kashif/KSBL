@@ -222,8 +222,12 @@ Normalise all numeric scores to a scale of 0 to 100.`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
 
-    // Prepare content parts
-    const parts: any[] = [];
+    // Prepare content parts. Gemini accepts either an inline blob or a text
+    // block per part, so the union is the accurate type rather than `any`.
+    type GeminiPart =
+      | { inlineData: { mimeType: string; data: string } }
+      | { text: string };
+    const parts: GeminiPart[] = [];
 
     // Add captured front image
     parts.push({

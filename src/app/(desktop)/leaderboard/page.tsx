@@ -5,10 +5,13 @@ import styles from './leaderboard.module.css';
 import { getLeaderboard, LeaderboardEntry } from '@/lib/api';
 import Button from '@/components/Button';
 
+// Podium tints for the top three. Theme tokens rather than literal hex, which
+// previously kept these light-mode colours on the dark canvas. Rank is also
+// shown as a number, so the colour is reinforcement, never the only signal.
 const RANK_COLORS: Record<number, string> = {
-  1: '#b45309',
-  2: '#5f6b7d',
-  3: '#92400e',
+  1: 'var(--verdict-suspicious)',
+  2: 'var(--text-muted)',
+  3: 'var(--color-secondary)',
 };
 
 export default function LeaderboardPage() {
@@ -16,22 +19,33 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  /** Apply a settled response. Shared by the mount effect and the Refresh button. */
+  function apply(res: Awaited<ReturnType<typeof getLeaderboard>>) {
+    setLoading(false);
+    if (res.error) setError(res.error);
+    else if (res.data) setEntries(res.data);
+  }
+
+  /** Refresh button handler — an event, so setting state synchronously is fine. */
   async function load() {
     setLoading(true);
     setError(null);
-    const res = await getLeaderboard();
-    setLoading(false);
-    if (res.error) {
-      setError(res.error);
-    } else if (res.data) {
-      setEntries(res.data);
-    }
+    apply(await getLeaderboard());
   }
 
-  // Re-query on every mount — score_points is sorted DB-side (order=score_points.desc)
-  // so the ranking is always fresh, never a stale client-side sort.
+  // Re-query on every mount — score_points is sorted DB-side
+  // (order=score_points.desc) so the ranking is always fresh, never a stale
+  // client-side sort.
+  //
+  // `loading` already starts true, so nothing needs to be set before the
+  // request: the first setState happens after the await, which keeps this out
+  // of the cascading-render path that calling load() directly would create.
   useEffect(() => {
-    load();
+    let cancelled = false;
+    getLeaderboard().then((res) => {
+      if (!cancelled) apply(res);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -89,7 +103,11 @@ export default function LeaderboardPage() {
                       <td className={styles.td}>
                         <span
                           className={styles.rankBadge}
-                          style={medal ? { color: medal, borderColor: `${medal}60`, background: `${medal}15` } : undefined}
+                          style={medal ? {
+                            color: medal,
+                            borderColor: `color-mix(in srgb, ${medal} 38%, transparent)`,
+                            background: `color-mix(in srgb, ${medal} 12%, transparent)`,
+                          } : undefined}
                         >
                           {medal && <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>military_tech</span>}
                           #{rank}

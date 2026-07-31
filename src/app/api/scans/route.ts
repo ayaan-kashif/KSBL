@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { ScanRow } from "@/lib/supabaseTypes";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     const scans = await res.json();
 
-    const result = scans.map((s: any) => ({
+    const result = scans.map((s: ScanRow) => ({
       id: s.id,
       verdict: s.verdict,
       confidence: s.confidence,

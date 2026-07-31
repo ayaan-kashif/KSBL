@@ -1,95 +1,116 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './reports.module.css';
+import { getPublicStats } from '@/lib/api';
 
 type ReportFormat = 'PDF' | 'CSV' | 'XLSX';
 
+/**
+ * A report TYPE, not a stored file. Every entry here is compiled on demand by
+ * /api/reports/download from live Scan data, so the catalogue itself is
+ * legitimately static — but `date` and `size` are not, and used to be
+ * hardcoded ("Jul 1, 2026", "2.4 MB"). Both were fiction: nothing is generated
+ * until the user clicks, so there is no creation date and no file size to
+ * report beforehand. They have been removed rather than faked.
+ */
 interface Report {
   id: number;
   name: string;
   description: string;
-  date: string;
   format: ReportFormat;
-  size: string;
   icon: string;
   color: string;
+  /** What the report is compiled from — shown in place of the fake metadata. */
+  source: string;
 }
 
 const REPORTS: Report[] = [
   {
     id: 1,
-    name: 'Monthly Counterfeit Summary — June 2026',
-    description: 'Detailed breakdown of all counterfeit incidents detected in June 2026',
-    date: 'Jul 1, 2026',
+    name: 'Counterfeit Summary',
+    description: 'Every scan flagged suspicious, with product, brand, area and confidence',
     format: 'PDF',
-    size: '2.4 MB',
     icon: 'summarize',
     color: 'var(--color-error)',
+    source: 'Suspicious scans',
   },
   {
     id: 2,
     name: 'Field Agent Audit Trail',
-    description: 'Complete audit log of field agent scan activities and submissions',
-    date: 'Jun 28, 2026',
+    description: 'Complete audit log of scan activity and submissions by role',
     format: 'CSV',
-    size: '814 KB',
     icon: 'person_search',
     color: 'var(--color-secondary)',
+    source: 'All scans',
   },
   {
     id: 3,
-    name: 'Regional Hotspot Analysis — Q2 2026',
-    description: 'Geographic heat-map report of counterfeit activity by region',
-    date: 'Jun 30, 2026',
+    name: 'Regional Hotspot Analysis',
+    description: 'Suspicious-scan rate broken down by area, from geotagged scans',
     format: 'PDF',
-    size: '5.1 MB',
     icon: 'location_on',
     color: 'var(--color-primary)',
+    source: 'Geotagged scans',
   },
   {
     id: 4,
     name: 'Brand Integrity Score Report',
     description: 'Per-brand scoring for product authenticity and supply chain trust',
-    date: 'Jun 25, 2026',
-    format: 'XLSX',
-    size: '1.2 MB',
+    // CSV, not XLSX. The badge claimed XLSX while /api/reports/download?id=4
+    // serves text/csv with a .csv filename, so the download never matched what
+    // the UI promised. Corrected to what the endpoint actually returns.
+    format: 'CSV',
     icon: 'shield',
     color: 'var(--color-primary)',
+    source: 'Scans grouped by brand',
   },
   {
     id: 5,
-    name: 'AI Model Performance Metrics',
-    description: 'Accuracy, precision and recall statistics for the verification AI models',
-    date: 'Jun 20, 2026',
+    name: 'Verification Pipeline Metrics',
+    description: 'Verdict distribution and confidence spread across the scan pipeline',
     format: 'PDF',
-    size: '980 KB',
     icon: 'analytics',
     color: 'var(--color-secondary)',
+    source: 'All scans',
   },
   {
     id: 6,
     name: 'Recalled Products Master List',
     description: 'Full inventory export of products with active recall status',
-    date: 'Jun 15, 2026',
     format: 'CSV',
-    size: '430 KB',
     icon: 'inventory_2',
     color: 'var(--color-error)',
+    source: 'Product catalogue',
   },
 ];
 
+// var() references rather than literal hex: these were light-theme values that
+// stayed light on the dark canvas. Alpha now comes from color-mix.
 const formatColors: Record<ReportFormat, string> = {
-  PDF: '#be123c',
-  CSV: '#047857',
-  XLSX: '#0077a8',
+  PDF: 'var(--verdict-counterfeit)',
+  CSV: 'var(--verdict-genuine)',
+  XLSX: 'var(--cyan-glow)',
 };
+
+const tint = (color: string, pct: number) =>
+  `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 
 export default function ReportsPage() {
   const [downloading, setDownloading] = useState<number | null>(null);
   const [downloaded, setDownloaded] = useState<Set<number>>(new Set());
   const [generating, setGenerating] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  // null = not loaded yet, rendered as an em dash. 0 would be a claim.
+  const [scanCount, setScanCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPublicStats().then((res) => {
+      if (!cancelled && res.data) setScanCount(res.data.total_scans);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   async function handleDownload(id: number, format: string, name: string) {
     setDownloading(id);
@@ -175,13 +196,27 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {/* Stats Bar */}
+      {/* Stats bar. Previously four invented figures (24/6/14/10). The report
+          counts are now derived from the catalogue itself, and the scan counts
+          come from live data — an em dash until they arrive, never a zero. */}
       <div className={styles.statsBar}>
         {[
-          { label: 'Total Reports', value: '24', icon: 'description' },
-          { label: 'This Month', value: '6', icon: 'calendar_month' },
-          { label: 'PDF Reports', value: '14', icon: 'picture_as_pdf' },
-          { label: 'Data Exports', value: '10', icon: 'table_chart' },
+          { label: 'Report Types', value: String(REPORTS.length), icon: 'description' },
+          {
+            label: 'Document Reports',
+            value: String(REPORTS.filter(r => r.format === 'PDF').length),
+            icon: 'picture_as_pdf',
+          },
+          {
+            label: 'Data Exports',
+            value: String(REPORTS.filter(r => r.format !== 'PDF').length),
+            icon: 'table_chart',
+          },
+          {
+            label: 'Scans Covered',
+            value: scanCount === null ? '—' : scanCount.toLocaleString(),
+            icon: 'qr_code_scanner',
+          },
         ].map((s, i) => (
           <div key={i} className={styles.statCard}>
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '20px' }}>{s.icon}</span>
@@ -206,21 +241,28 @@ export default function ReportsPage() {
             <div className={styles.rowContent}>
               <h3 className={styles.rowName}>{report.name}</h3>
               <p className={styles.rowDesc}>{report.description}</p>
+              {/* Replaces the invented date + file size. These are the two
+                  facts that are actually true of an on-demand report: what it
+                  reads from, and that it is built at download time. */}
               <div className={styles.rowMeta}>
                 <span className={styles.metaItem}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
-                  {report.date}
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>database</span>
+                  {report.source}
                 </span>
                 <span className={styles.metaItem}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>folder_zip</span>
-                  {report.size}
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>bolt</span>
+                  Compiled on download
                 </span>
               </div>
             </div>
             <div className={styles.rowRight}>
               <span
                 className={styles.formatBadge}
-                style={{ color: formatColors[report.format], borderColor: formatColors[report.format] + '40', background: formatColors[report.format] + '12' }}
+                style={{
+                  color: formatColors[report.format],
+                  borderColor: tint(formatColors[report.format], 38),
+                  background: tint(formatColors[report.format], 12),
+                }}
               >
                 {report.format}
               </span>
@@ -249,12 +291,12 @@ export default function ReportsPage() {
           position: 'fixed',
           bottom: '24px',
           right: '24px',
-          background: toast.type === 'success' ? '#ecfdf5' : '#fff1f2',
+          background: toast.type === 'success' ? 'var(--verdict-genuine-bg)' : 'var(--verdict-counterfeit-bg)',
           color: toast.type === 'success' ? 'var(--verdict-genuine)' : 'var(--verdict-counterfeit)',
-          border: toast.type === 'success' ? '1px solid #047857' : '1px solid #be123c',
+          border: `1px solid ${toast.type === 'success' ? 'var(--verdict-genuine-border)' : 'var(--verdict-counterfeit-border)'}`,
           padding: '12px 20px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 16px rgba(15,23,42,0.14)',
+          borderRadius: 'var(--r-sm)',
+          boxShadow: 'var(--e4)',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
@@ -262,7 +304,7 @@ export default function ReportsPage() {
           fontSize: '14px',
           fontFamily: 'var(--font-inter), sans-serif'
         }}>
-          <span className="material-symbols-outlined" style={{ color: toast.type === 'success' ? '#047857' : '#be123c', fontSize: '18px' }}>
+          <span className="material-symbols-outlined" style={{ color: 'inherit', fontSize: '18px' }}>
             {toast.type === 'success' ? 'check_circle' : 'error'}
           </span>
           {toast.message}

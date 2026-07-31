@@ -94,6 +94,26 @@
 
 .adminNavLink .material-symbols-outlined { font-size: 18px; }
 
+/* The header carries four controls once Sign Up is added, which does not fit
+   beside the wordmark at 375px. Rather than dropping a control, the whole row
+   scales down — the logo gives up the most, since it is the one element that
+   is not interactive. */
+@media (max-width: 480px) {
+  .header {
+    padding-inline: var(--s-3);
+    gap: var(--s-2);
+  }
+
+  .logo {
+    font-size: 19px;
+    gap: 0.35rem;
+  }
+
+  .logo .material-symbols-outlined { font-size: 20px; }
+
+  .nav { gap: 0.35rem; }
+}
+
 /* ── Hero ───────────────────────────────────────────────────────────────── */
 .hero {
   display: grid;
@@ -199,6 +219,14 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--s-4);
+}
+
+/* Shown only when the live stats call fails, so the dashes above are explained
+   rather than reading as a broken layout. */
+.statsNote {
+  margin-top: var(--s-3);
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 /* ── Hero showcase ───────────────────────────────────────────────────────────

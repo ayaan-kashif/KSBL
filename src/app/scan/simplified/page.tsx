@@ -1,28 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './simplified.module.css';
-import { readScanResult, ScanResult, formatConfidence } from '@/lib/api';
 import VerdictBadge from '@/components/VerdictBadge';
 import BilingualText from '@/components/BilingualText';
+import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
+import { useScanResult } from '@/lib/useScanResult';
 import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
 
 export default function SimplifiedVerdictPage() {
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const result = useScanResult();
   const { lang } = useLanguage();
 
-  useEffect(() => {
-    const data = readScanResult();
-    if (data) {
-      setResult(data);
-    }
-  }, []);
+  // Without a stored result this page previously invented one — a hardcoded
+  // "99% · Surf Excel Matic Front Load 1kg · Unilever Pakistan" genuine
+  // verdict for a product nobody scanned.
+  if (!result) return <NoScanResult title="No verification to show" />;
 
-  const confidence = result ? Math.round(result.confidence * 100) : 99;
-  const product = result?.product_name || 'Surf Excel Matic Front Load 1kg';
-  const brand = result?.brand_name || 'Unilever Pakistan';
+  const confidence = Math.round(result.confidence * 100);
+  // The badge used to be pinned to "genuine" regardless of what was scanned.
+  // These pages are reachable by direct URL, so that would have shown a
+  // suspicious product as authentic. Everything below follows the real verdict.
+  const verdict = result.verdict;
+  const isGenuine = verdict === 'genuine';
+  const verdictIcon = isGenuine ? 'verified' : verdict === 'suspicious' ? 'gpp_maybe' : 'help_outline';
+  const product = result.product_name || 'Unidentified product';
+  const brand = result.brand_name || 'Unknown brand';
 
   return (
     <div className={styles.page}>
@@ -43,15 +47,15 @@ export default function SimplifiedVerdictPage() {
           <div className={styles.iconRing}></div>
           <div className={styles.iconRing2}></div>
           <div className={styles.iconCenter}>
-            <span className="material-symbols-outlined">verified</span>
+            <span className="material-symbols-outlined">{verdictIcon}</span>
           </div>
         </div>
 
-        <VerdictBadge verdict="genuine" size="lg" />
+        <VerdictBadge verdict={verdict} size="lg" />
         <div className={styles.verdictCopy}>
           <BilingualText
-            en={VERDICT_PHRASE.genuine.en}
-            ur={VERDICT_PHRASE.genuine.ur}
+            en={VERDICT_PHRASE[verdict].en}
+            ur={VERDICT_PHRASE[verdict].ur}
             size="sm"
           />
         </div>
@@ -76,15 +80,15 @@ export default function SimplifiedVerdictPage() {
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Expiry</span>
             <span className={styles.detailValue} style={{ color: 'var(--color-primary)' }}>
-              {result?.extracted_mfg_date ? `${result.extracted_mfg_date} ✓` : 'Valid Expiry ✓'}
+              {result.extracted_mfg_date ? `${result.extracted_mfg_date} ✓` : 'Not detected'}
             </span>
           </div>
         </div>
 
         <div className={styles.message}>
           <BilingualText
-            en={result?.reason ?? 'This product has been verified as authentic by ShelfWatch AI. Safe to purchase and consume.'}
-            ur={result?.reason_ur ?? 'شیلف واچ اے آئی نے اس مصنوع کی اصل ہونے کی تصدیق کی ہے۔ خریدنا اور استعمال کرنا محفوظ ہے۔'}
+            en={result.reason}
+            ur={result.reason_ur ?? result.reason}
             size="sm"
           />
         </div>

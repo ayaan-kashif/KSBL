@@ -60,15 +60,27 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
     <button
       type="button"
       onClick={toggle}
-      className={`${styles.toggle} ${compact ? styles.compact : ''}`}
+      className={[
+        styles.toggle,
+        compact ? styles.compact : '',
+        isDark ? styles.isDark : '',
+      ].filter(Boolean).join(' ')}
       aria-label={label}
       title={label}
       aria-pressed={isDark}
     >
+      {/* Both glyphs are always rendered so the swap can crossfade. The button
+          already carries the state in aria-label/aria-pressed, so the track,
+          thumb and icons are all decorative to assistive tech. */}
       <span className={styles.track} aria-hidden="true">
-        <span className={`${styles.thumb} ${isDark ? styles.thumbDark : ''}`}>
-          <span className="material-symbols-outlined">
-            {isDark ? 'dark_mode' : 'light_mode'}
+        <span className={styles.thumb}>
+          <span className={styles.glyphs}>
+            <span className={`${styles.glyph} ${styles.sun}`}>
+              <span className="material-symbols-outlined">light_mode</span>
+            </span>
+            <span className={`${styles.glyph} ${styles.moon}`}>
+              <span className="material-symbols-outlined">dark_mode</span>
+            </span>
           </span>
         </span>
       </span>

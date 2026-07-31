@@ -1,0 +1,97 @@
+/* Empty state for a verdict screen with nothing to report. Deliberately calm:
+   this is a missing hand-off, not an error the user caused. */
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  min-height: 100dvh;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--s-8) var(--s-6);
+  padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+/* Recessed, not raised — there is no result here to present. */
+.icon {
+  display: grid;
+  place-items: center;
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: var(--s-2);
+  border-radius: 50%;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well-deep);
+  color: var(--text-muted);
+}
+
+.icon .material-symbols-outlined { font-size: 40px; }
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.body {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.urdu {
+  font-family: var(--font-urdu);
+  font-size: 15px;
+  /* Naskh clips at Latin leading. */
+  line-height: 2;
+  color: var(--text-muted);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  margin-top: var(--s-4);
+  padding: 0 var(--s-6);
+  border-radius: var(--r-sm);
+  background: var(--liquid-primary-grad);
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow:
+    var(--e2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 8px 22px -8px rgba(124, 58, 237, 0.55);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out),
+    filter var(--t-base) var(--ease-out);
+}
+
+.cta:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--e3), 0 16px 34px -10px rgba(124, 58, 237, 0.6);
+  filter: saturate(1.1) brightness(1.04);
+}
+
+.cta:active {
+  transform: translateY(2px) scale(0.98, 0.94);
+  box-shadow: var(--e0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta:hover,
+  .cta:active { transform: none; }
+}

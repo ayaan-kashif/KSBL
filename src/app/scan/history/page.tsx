@@ -8,17 +8,23 @@ import { getMyScanHistory, getMe, postLogout, ScanHistoryItem, CustomerProfile, 
 import { useLanguage } from '@/components/LanguageContext';
 import { VERDICT_LABEL } from '@/lib/verdictCopy';
 import BottomNav from '@/components/BottomNav';
+import { useNow, formatRelativeTime } from '@/lib/useNow';
 
 type FilterType = 'all' | 'genuine' | 'suspicious' | 'unverified';
 
-// verdictColor() (from '@/lib/api') returns a var(--color-*) reference, which
-// can't be hex-alpha-suffixed for translucent fills/borders. This local map
-// mirrors the new --verdict-* token values as literal hex for that purpose.
+// Theme tokens, not literal hex. These were hardcoded light-theme values so
+// they could be alpha-suffixed (`${hex}1a`) for translucent fills — which also
+// pinned every verdict colour to light mode on the dark canvas. color-mix()
+// gives the same translucency over a var(), so the tokens follow the theme.
 const VERDICT_HEX: Record<'genuine' | 'suspicious' | 'unverified', string> = {
-  genuine: '#047857',
-  suspicious: '#b45309',
-  unverified: '#475069',
+  genuine: 'var(--verdict-genuine)',
+  suspicious: 'var(--verdict-suspicious)',
+  unverified: 'var(--text-secondary)',
 };
+
+/** Translucent variant of a verdict colour, theme-aware. */
+const tint = (color: string, pct: number) =>
+  `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 
 export default function ScanHistoryPage() {
   const router = useRouter();
@@ -30,6 +36,9 @@ export default function ScanHistoryPage() {
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Shared clock — see useNow. Reading Date.now() inside render made the output
+  // impure and produced a server/client hydration mismatch on every timestamp.
+  const now = useNow();
 
   useEffect(() => {
     async function loadScans() {
@@ -58,20 +67,6 @@ export default function ScanHistoryPage() {
     return matchesFilter && matchesSearch;
   });
 
-  function formatTime(dateStr: string) {
-    try {
-      const d = new Date(dateStr);
-      const diffMs = Date.now() - d.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return `${diffHours}h ago`;
-      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    } catch {
-      return 'Recent';
-    }
-  }
 
   return (
     <div className={styles.page}>
@@ -155,10 +150,10 @@ export default function ScanHistoryPage() {
         ) : (
           <div className={styles.scanList}>
             {filtered.map(scan => {
-              const hex = VERDICT_HEX[scan.verdict];
+              const hex = VERDICT_HEX[scan.verdict] ?? VERDICT_HEX.unverified;
               return (
                 <div key={scan.id} className={styles.scanCard} style={{ borderLeft: `3px solid ${hex}` }}>
-                  <div className={styles.statusDot} style={{ color: hex, background: `${hex}1a`, borderColor: `${hex}33` }}>
+                  <div className={styles.statusDot} style={{ color: hex, background: tint(hex, 10), borderColor: tint(hex, 20) }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
                       {verdictIcon(scan.verdict)}
                     </span>
@@ -168,12 +163,12 @@ export default function ScanHistoryPage() {
                     <p className={styles.batchInfo}>
                       {scan.extracted_batch || 'No Batch'} · {scan.brand_name || 'Unknown Brand'}
                     </p>
-                    <p className={styles.timeInfo}>{formatTime(scan.created_at)}</p>
+                    <p className={styles.timeInfo}>{formatRelativeTime(scan.created_at, now)}</p>
                   </div>
                   <div className={styles.scanRight}>
                     {/* Verdict label in the active language, with the other
                         beneath it — rows stay bilingual in both modes. */}
-                    <span className={styles.statusBadge} style={{ color: hex, background: `${hex}1a`, border: `1px solid ${hex}33` }}>
+                    <span className={styles.statusBadge} style={{ color: hex, background: tint(hex, 10), border: `1px solid ${tint(hex, 20)}` }}>
                       {urduLeads ? (
                         <>
                           <span lang="ur" dir="rtl" className={styles.badgeUrdu}>

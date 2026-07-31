@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { ProductRow, ScanRow } from "@/lib/supabaseTypes";
+import { formatConfidencePct, formatScanDate, shortId } from "@/lib/supabaseTypes";
 
 // Simple PDF generation helper that returns a valid, repairable basic PDF structure
 function generatePDF(title: string, dataLines: string[]): Buffer {
@@ -65,7 +67,7 @@ export async function GET(req: NextRequest) {
       const scans = await fetchScans("verdict=eq.suspicious&limit=20&select=*,product:Product(product_name,brand_name)");
       const lines = [
         "=================================================",
-        "MONTHLY COUNTERFEIT SUMMARY - JUNE 2026",
+        "COUNTERFEIT SUMMARY - ALL RECORDED SCANS",
         "=================================================",
         `Report Generated: ${new Date().toLocaleString()}`,
         `Total Counterfeit Scans Logged: ${scans.length}`,
@@ -74,13 +76,13 @@ export async function GET(req: NextRequest) {
         "-------------------------------------------------"
       ];
 
-      scans.forEach((s: any) => {
+      scans.forEach((s: ScanRow) => {
         const pName = s.product?.product_name ?? s.product_name ?? "Unknown";
         const bName = s.product?.brand_name ?? s.brand_name ?? "Unknown";
         const area = s.area_name ?? "Karachi";
-        const conf = `${Math.round(s.confidence * 100)}%`;
-        const date = new Date(s.created_at).toLocaleDateString();
-        lines.push(`${s.id.substring(0, 8)} | ${pName} | ${bName} | ${area} | ${conf} | ${date}`);
+        const conf = formatConfidencePct(s.confidence);
+        const date = formatScanDate(s.created_at);
+        lines.push(`${shortId(s.id)} | ${pName} | ${bName} | ${area} | ${conf} | ${date}`);
       });
 
       const pdfBuffer = generatePDF("Monthly Counterfeit Summary", lines);
@@ -94,12 +96,12 @@ export async function GET(req: NextRequest) {
       // Field Agent Audit Trail (CSV)
       const scans = await fetchScans("limit=50&select=*,product:Product(product_name,brand_name)");
       let csv = "Scan ID,Scanned By,Product Name,Brand Name,Verdict,Confidence,Area,Date\n";
-      scans.forEach((s: any) => {
+      scans.forEach((s: ScanRow) => {
         const pName = (s.product?.product_name ?? s.product_name ?? "Unknown").replace(/,/g, " ");
         const bName = (s.product?.brand_name ?? s.brand_name ?? "Unknown").replace(/,/g, " ");
         const area = (s.area_name ?? "Karachi").replace(/,/g, " ");
-        const conf = `${Math.round(s.confidence * 100)}%`;
-        const date = new Date(s.created_at).toLocaleDateString();
+        const conf = formatConfidencePct(s.confidence);
+        const date = formatScanDate(s.created_at);
         csv += `${s.id},${s.scanned_by_role},${pName},${bName},${s.verdict},${conf},${area},${date}\n`;
       });
 
@@ -113,7 +115,7 @@ export async function GET(req: NextRequest) {
       // Regional Hotspot Analysis (PDF)
       const scans = await fetchScans("latitude=not.is.null&longitude=not.is.null&select=area_name,verdict");
       const areaMap: Record<string, { total: number, suspicious: number }> = {};
-      scans.forEach((s: any) => {
+      scans.forEach((s: ScanRow) => {
         const area = s.area_name ?? "Karachi";
         if (!areaMap[area]) areaMap[area] = { total: 0, suspicious: 0 };
         areaMap[area].total++;
@@ -122,7 +124,7 @@ export async function GET(req: NextRequest) {
 
       const lines = [
         "=================================================",
-        "REGIONAL HOTSPOT ANALYSIS - Q2 2026",
+        "REGIONAL HOTSPOT ANALYSIS - ALL RECORDED SCANS",
         "=================================================",
         `Report Generated: ${new Date().toLocaleString()}`,
         "",
@@ -146,7 +148,7 @@ export async function GET(req: NextRequest) {
       // Brand Integrity Score Report (CSV)
       const scans = await fetchScans("select=verdict,product_id,product:Product(brand_name),brand_name");
       const brandMap: Record<string, { total: number, genuine: number }> = {};
-      scans.forEach((s: any) => {
+      scans.forEach((s: ScanRow) => {
         const bName = s.product?.brand_name ?? s.brand_name ?? "Unknown Brand";
         if (!brandMap[bName]) brandMap[bName] = { total: 0, genuine: 0 };
         brandMap[bName].total++;
@@ -166,28 +168,95 @@ export async function GET(req: NextRequest) {
         }
       });
     } else if (id === 5) {
-      // AI Model Performance Metrics (PDF)
+      // Verification Pipeline Metrics (PDF).
+      //
+      // This used to emit invented model-quality figures ("Logo Match Accuracy
+      // 92.4% -> 94.8%", "False Positive Rate 4.2%") as a downloadable PDF a
+      // brand could act on. None of it was measurable: accuracy and false-
+      // positive rate need ground truth about whether a verdict was CORRECT,
+      // and nothing in the schema records that — no reviewer confirmation, no
+      // adjudication column.
+      //
+      // Everything below is computed from the Scan table instead: how the
+      // pipeline's verdicts are distributed, how confident it was, and how
+      // often each extraction stage produced a value. Those are real
+      // throughput metrics, and they are labelled as such.
+      // Only the columns this report selects, so the aggregation below is
+      // type-checked rather than riding on `any` like the older branches.
+      interface MetricRow {
+        verdict: string | null;
+        confidence: number | null;
+        barcode: string | null;
+        extracted_batch: string | null;
+        cv_anomaly_score: number | null;
+      }
+
+      const scans: MetricRow[] = await fetchScans(
+        "select=verdict,confidence,barcode,extracted_batch,cv_anomaly_score"
+      );
+
+      const total = scans.length;
+      const pct = (n: number) => (total > 0 ? `${((n / total) * 100).toFixed(1)}%` : "n/a");
+      const countBy = (fn: (s: MetricRow) => boolean) => scans.filter(fn).length;
+
+      const genuine = countBy((s) => s.verdict === "genuine");
+      const suspicious = countBy((s) => s.verdict === "suspicious");
+      const unverified = countBy((s) => s.verdict === "unverified");
+      const withBarcode = countBy((s) => s.barcode != null && s.barcode !== "");
+      const withBatch = countBy((s) => s.extracted_batch != null && s.extracted_batch !== "");
+      const withCv = countBy((s) => s.cv_anomaly_score != null);
+
+      const avg = (vals: number[]) =>
+        vals.length > 0
+          ? `${((vals.reduce((a, b) => a + b, 0) / vals.length) * 100).toFixed(1)}%`
+          : "n/a";
+      const confOf = (verdict?: string) =>
+        avg(
+          scans
+            .filter((s) => (verdict ? s.verdict === verdict : true))
+            .map((s) => s.confidence ?? 0)
+        );
+      const confAll = confOf();
+      const confGenuine = confOf("genuine");
+      const confSuspicious = confOf("suspicious");
+
       const lines = [
         "=================================================",
-        "AI MODEL PERFORMANCE METRICS",
+        "VERIFICATION PIPELINE METRICS",
         "=================================================",
         `Report Generated: ${new Date().toLocaleString()}`,
+        `Scans Analysed: ${total}`,
         "",
-        "Model: Gemini 3.1 Flash Lite (Multimodal)",
-        "Metric | Baseline | Current Build",
-        "-----------------------------------------",
-        "Logo Match Accuracy | 92.4% | 94.8%",
-        "Packaging Design Similarity | 89.1% | 91.2%",
-        "Barcode Extractor Reliability | 98.2% | 99.1%",
-        "False Positive Rate | 4.2% | 2.9%",
-        "Average Processing Time | 2.1s | 1.8s"
+        "NOTE: These are throughput and confidence metrics measured from",
+        "logged scans. They are NOT model accuracy - confirming whether a",
+        "verdict was correct requires ground-truth review, which this system",
+        "does not currently record.",
+        "",
+        "VERDICT DISTRIBUTION",
+        "-------------------------------------------------",
+        `Genuine | ${genuine} | ${pct(genuine)}`,
+        `Suspicious | ${suspicious} | ${pct(suspicious)}`,
+        `Unverified | ${unverified} | ${pct(unverified)}`,
+        `Resolved (non-unverified) | ${total - unverified} | ${pct(total - unverified)}`,
+        "",
+        "MEAN CONFIDENCE",
+        "-------------------------------------------------",
+        `All scans | ${confAll}`,
+        `Genuine verdicts | ${confGenuine}`,
+        `Suspicious verdicts | ${confSuspicious}`,
+        "",
+        "EXTRACTION COVERAGE",
+        "-------------------------------------------------",
+        `Barcode captured | ${withBarcode} | ${pct(withBarcode)}`,
+        `Batch code read (OCR) | ${withBatch} | ${pct(withBatch)}`,
+        `Packaging scored (CV) | ${withCv} | ${pct(withCv)}`,
       ];
 
-      const pdfBuffer = generatePDF("AI Model Performance Metrics", lines);
+      const pdfBuffer = generatePDF("Verification Pipeline Metrics", lines);
       return new NextResponse(new Uint8Array(pdfBuffer), {
         headers: {
           "Content-Type": "application/pdf",
-          "Content-Disposition": 'attachment; filename="AI_Performance_Metrics.pdf"'
+          "Content-Disposition": 'attachment; filename="Verification_Pipeline_Metrics.pdf"'
         }
       });
     } else if (id === 6) {
@@ -198,8 +267,12 @@ export async function GET(req: NextRequest) {
       let csv = "Product ID,SKU,Product Name,Brand Name,Avg Unit Price (PKR)\n";
       if (prodRes.ok) {
         const products = await prodRes.json();
-        products.forEach((p: any) => {
-          csv += `${p.id},${p.sku},${p.product_name.replace(/,/g, " ")},${p.brand_name.replace(/,/g, " ")},${p.avg_unit_price_pkr}\n`;
+        // `?? ""` before .replace: a product row with a null name or brand
+        // used to throw here and fail the whole export.
+        products.forEach((p: ProductRow) => {
+          const name = (p.product_name ?? "").replace(/,/g, " ");
+          const brand = (p.brand_name ?? "").replace(/,/g, " ");
+          csv += `${p.id ?? ""},${p.sku ?? ""},${name},${brand},${p.avg_unit_price_pkr ?? 0}\n`;
         });
       }
 

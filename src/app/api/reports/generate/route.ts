@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { ScanRow } from "@/lib/supabaseTypes";
 
 // PDF generation helper
 function generatePDF(title: string, dataLines: string[]): Buffer {
@@ -33,7 +34,7 @@ function generatePDF(title: string, dataLines: string[]): Buffer {
   return Buffer.concat(pdfParts.map(p => typeof p === "string" ? Buffer.from(p, "utf-8") : p));
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -53,9 +54,9 @@ export async function POST(req: NextRequest) {
 
     const scans = await statsRes.json();
     const total = scans.length;
-    const genuine = scans.filter((s: any) => s.verdict === "genuine").length;
-    const suspicious = scans.filter((s: any) => s.verdict === "suspicious").length;
-    const unverified = scans.filter((s: any) => s.verdict === "unverified").length;
+    const genuine = scans.filter((s: ScanRow) => s.verdict === "genuine").length;
+    const suspicious = scans.filter((s: ScanRow) => s.verdict === "suspicious").length;
+    const unverified = scans.filter((s: ScanRow) => s.verdict === "unverified").length;
 
     const rate = total > 0 ? Math.round((suspicious / total) * 100) : 0;
 
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
     ];
 
     const areaMap: Record<string, number> = {};
-    scans.forEach((s: any) => {
+    scans.forEach((s: ScanRow) => {
       const area = s.area_name ?? "Unknown Area";
       areaMap[area] = (areaMap[area] || 0) + 1;
     });

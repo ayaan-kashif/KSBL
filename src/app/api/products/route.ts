@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { ProductRow } from "@/lib/supabaseTypes";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
     const products = await prodRes.json();
 
     // Map database fields to the frontend inventory model structure
-    const mapped = products.map((p: any) => {
+    const mapped = products.map((p: ProductRow) => {
       const scansList = p.scans ?? [];
       const totalScans = scansList.length;
 
@@ -35,24 +36,12 @@ export async function GET(req: NextRequest) {
         displayVerdict = "unverified";
       }
 
-      // Dynamic color/accent matching the verdict.
-      // These mirror the --verdict-* tokens in globals.css but are emitted as
-      // literal hex, not var() references: the inventory card appends a hex
-      // alpha suffix to `accent` (`accent + '40'`), which only works on a
-      // literal colour — a var() call would produce invalid CSS.
-      let color = "#ecfdf5";   // --verdict-genuine-bg
-      let accent = "#047857";  // --verdict-genuine
-      if (displayVerdict === "suspicious") {
-        color = "#fffbeb";     // --verdict-suspicious-bg
-        accent = "#b45309";    // --verdict-suspicious
-      } else if (displayVerdict === "counterfeit") {
-        color = "#fff1f2";     // --verdict-counterfeit-bg
-        accent = "#be123c";    // --verdict-counterfeit
-      } else if (displayVerdict === "unverified") {
-        color = "#f1f5f9";     // neutral slate surface
-        accent = "#5f6b7d";    // --text-muted
-      }
-
+      // No colour is emitted here. This endpoint used to return literal
+      // light-theme hex for `color`/`accent`, which pinned the inventory cards
+      // to light-mode colours on the dark canvas — and put presentation
+      // decisions in the API, where a theme change could never reach them.
+      // `verdict` is the semantic fact; the client maps it to --verdict-*
+      // tokens that follow the active theme.
       return {
         id: p.id,
         name: p.product_name,
@@ -61,8 +50,6 @@ export async function GET(req: NextRequest) {
         stock: totalScans, // Stock is count of scans representing market retail presence!
         verdict: displayVerdict,
         status: p.status, // "active", "flagged", "recalled"
-        color,
-        accent,
         reference_batch_pattern: p.reference_batch_pattern,
         reference_image_url: p.reference_image_url
       };

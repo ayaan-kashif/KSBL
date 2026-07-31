@@ -33,7 +33,7 @@ function StepWelcome() {
         <h2 className={styles.stepTitle}>What is ShelfWatch?</h2>
         <p className={styles.stepBody}>
           ShelfWatch uses advanced AI to instantly verify pharmaceutical and consumer product authenticity —
-          protecting Pakistan's supply chain from counterfeit goods in real time.
+          protecting Pakistan&apos;s supply chain from counterfeit goods in real time.
         </p>
         <div className={styles.featureList}>
           {[

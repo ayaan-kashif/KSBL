@@ -18,6 +18,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { ProductRow } from "@/lib/supabaseTypes";
 
 const QuerySchema = z.object({
   brand_id: z.string().min(1, "brand_id is required"),
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
     let productIds: string[] = [];
     if (productsRes.ok) {
       const products = await productsRes.json();
-      productIds = products.map((p: any) => p.id).filter(Boolean);
+      productIds = products.map((p: ProductRow) => p.id).filter(Boolean);
     }
 
     // 3. Query all scans for this brand with location data in the date range

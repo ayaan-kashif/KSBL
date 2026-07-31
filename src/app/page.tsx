@@ -7,6 +7,7 @@ import Button from '@/components/Button';
 import MetricCard from '@/components/MetricCard';
 import Tilt3D from '@/components/Tilt3D';
 import ThemeToggle from '@/components/ThemeToggle';
+import { getPublicStats, type PublicStats } from '@/lib/api';
 
 const features = [
   {
@@ -35,20 +36,58 @@ const features = [
   },
 ];
 
-export default function HomePage() {
-  const [scanCount, setScanCount] = useState(0);
+/** Counts up to `target` over 1.6s, so a real figure still lands with impact. */
+function useCountUp(target: number | null): number {
+  const [value, setValue] = useState(0);
 
   useEffect(() => {
-    const target = 24891;
-    const duration = 2000;
+    // Covers both null (not loaded) and 0 (loaded, genuinely zero). Neither
+    // needs an animation, and setting state here synchronously would trigger a
+    // cascading render.
+    if (!target) return;
+
+    const duration = 1600;
     const start = Date.now();
     const timer = setInterval(() => {
       const progress = Math.min((Date.now() - start) / duration, 1);
-      setScanCount(Math.floor(progress * target));
+      // ease-out cubic — decelerates into the final number instead of
+      // stopping dead, which is what makes a counter read as settling.
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.floor(eased * target));
       if (progress >= 1) clearInterval(timer);
     }, 16);
     return () => clearInterval(timer);
+  }, [target]);
+
+  // Clamping here rather than resetting state in the effect keeps the hook
+  // honest if `target` ever drops below an already-animated value.
+  return target === null ? 0 : Math.min(value, target);
+}
+
+export default function HomePage() {
+  // Starts null, not 0: null means "not loaded yet" and renders a dash, while 0
+  // is a real answer meaning "no scans yet". Collapsing the two would show a
+  // confident 0 during every page load.
+  const [stats, setStats] = useState<PublicStats | null>(null);
+  const [statsFailed, setStatsFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPublicStats().then((res) => {
+      if (cancelled) return;
+      if (res.data) setStats(res.data);
+      else setStatsFailed(true);
+    });
+    return () => { cancelled = true; };
   }, []);
+
+  const scanCount = useCountUp(stats ? stats.total_scans : null);
+  const fakeCount = useCountUp(stats ? stats.suspicious_count : null);
+
+  // Em dash rather than a zero or a spinner: the hero must never assert a
+  // number the database did not supply.
+  const pending = stats === null;
+  const dash = '—';
 
   return (
     <div className={styles.page}>
@@ -63,7 +102,10 @@ export default function HomePage() {
             Admin Portal
           </Link>
           <ThemeToggle compact />
+          {/* Log In stays ghost so Sign Up is the header's single primary
+              action — two solid buttons side by side would compete. */}
           <Button href="/login" variant="ghost" size="sm">Log In</Button>
+          <Button href="/signup" variant="primary" size="sm">Sign Up</Button>
         </nav>
       </header>
 
@@ -91,11 +133,34 @@ export default function HomePage() {
             </Button>
           </div>
 
+          {/* All three are live counts from /api/stats/public. "Accuracy" used
+              to sit here at a hardcoded 98.6%, but nothing in the schema
+              records whether a verdict was later confirmed correct, so there
+              is no ground truth to compute accuracy from. Resolved Rate is the
+              real, defensible metric: the share of scans the pipeline reached
+              a confident verdict on. */}
           <div className={styles.statsRow}>
-            <MetricCard label="Scans Today" value={scanCount.toLocaleString()} icon="qr_code_scanner" />
-            <MetricCard label="Fakes Caught" value="1,247" icon="gpp_maybe" />
-            <MetricCard label="Accuracy" value="98.6%" icon="verified" />
+            <MetricCard
+              label="Total Scans"
+              value={pending ? dash : scanCount.toLocaleString()}
+              icon="qr_code_scanner"
+            />
+            <MetricCard
+              label="Fakes Caught"
+              value={pending ? dash : fakeCount.toLocaleString()}
+              icon="gpp_maybe"
+            />
+            <MetricCard
+              label="Resolved Rate"
+              value={pending ? dash : `${(stats.resolved_rate * 100).toFixed(1)}%`}
+              icon="verified"
+            />
           </div>
+          {statsFailed && (
+            <p className={styles.statsNote} role="status">
+              Live figures are unavailable right now.
+            </p>
+          )}
         </div>
 
         {/* Decorative mock result. It illustrates the product rather than

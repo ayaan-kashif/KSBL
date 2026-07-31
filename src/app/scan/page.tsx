@@ -150,6 +150,9 @@ export default function ScanPage() {
           <div className={styles.photoReviewSection}>
             <div className={styles.photoSlotRow}>
               <div className={styles.photoSlot}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- this is a
+                    local object URL from the camera capture, not a served asset;
+                    next/image cannot optimize blob:/data: sources. */}
                 <img src={frontPreview} alt="Front of product" className={styles.photoSlotImg} />
                 <span className={styles.photoSlotLabel}>Front</span>
                 <button className={styles.photoSlotRemove} onClick={handleRetakeFront} disabled={scanning} title="Retake">
@@ -159,6 +162,9 @@ export default function ScanPage() {
 
               {backPreview ? (
                 <div className={styles.photoSlot}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- this is a
+                      local object URL from the camera capture, not a served asset;
+                      next/image cannot optimize blob:/data: sources. */}
                   <img src={backPreview} alt="Back of product" className={styles.photoSlotImg} />
                   <span className={styles.photoSlotLabel}>Back</span>
                   <button className={styles.photoSlotRemove} onClick={handleRemoveBack} disabled={scanning} title="Remove">

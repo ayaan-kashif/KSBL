@@ -20,6 +20,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { ProductRow, ScanRow } from "@/lib/supabaseTypes";
 
 const QuerySchema = z.object({
   brand_id: z.string().min(1, "brand_id is required"),
@@ -92,11 +93,11 @@ export async function GET(req: NextRequest) {
       }
     );
 
-    let productIds: string[] = [];
+    const productIds: string[] = [];
     const productPriceMap = new Map<string, number>();
     if (productsRes.ok) {
       const products = await productsRes.json();
-      products.forEach((p: any) => {
+      products.forEach((p: ProductRow) => {
         if (p.id) {
           productIds.push(p.id);
           productPriceMap.set(p.id, p.avg_unit_price_pkr ?? 0);
@@ -130,14 +131,14 @@ export async function GET(req: NextRequest) {
     const scans = await scansRes.json();
 
     const total_scans = scans.length;
-    const genuine_count = scans.filter((s: any) => s.verdict === "genuine").length;
-    const suspicious_count = scans.filter((s: any) => s.verdict === "suspicious").length;
-    const unverified_count = scans.filter((s: any) => s.verdict === "unverified").length;
+    const genuine_count = scans.filter((s: ScanRow) => s.verdict === "genuine").length;
+    const suspicious_count = scans.filter((s: ScanRow) => s.verdict === "suspicious").length;
+    const unverified_count = scans.filter((s: ScanRow) => s.verdict === "unverified").length;
     const suspicious_rate = total_scans > 0 ? suspicious_count / total_scans : 0;
 
     // 4. Calculate estimated losses based on unit prices
     let estimated_losses_pkr = 0;
-    scans.forEach((s: any) => {
+    scans.forEach((s: ScanRow) => {
       if (s.verdict === "suspicious") {
         const price = s.product_id ? (productPriceMap.get(s.product_id) || FALLBACK_UNIT_PRICE_PKR) : FALLBACK_UNIT_PRICE_PKR;
         estimated_losses_pkr += price;

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import styles from './result.module.css';
 import Button from '@/components/Button';
 import BilingualText from '@/components/BilingualText';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useLanguage } from '@/components/LanguageContext';
+import { useSessionJson } from '@/lib/useScanResult';
 import { UI_COPY, pick } from '@/lib/verdictCopy';
 
 interface ProductData {
@@ -57,22 +58,18 @@ interface VerificationResult {
   displayVerdict?: "genuine" | "suspicious" | "counterfeit" | "unverified";
 }
 
+/** Translucent variant of a verdict colour, theme-aware. */
+const tint = (color: string, pct: number) =>
+  `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+
 export default function ResultPage() {
-  const [result, setResult] = useState<VerificationResult | null>(null);
+  // Read straight from sessionStorage rather than mirroring it into state via
+  // an effect: the old pattern rendered one throwaway frame with no result and
+  // tripped React's set-state-in-effect rule.
+  const result = useSessionJson<VerificationResult>('shelfwatch_verify_result');
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const { lang } = useLanguage();
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem('shelfwatch_verify_result');
-    if (stored) {
-      try {
-        setResult(JSON.parse(stored));
-      } catch (err) {
-        console.error('Failed to parse verification result from sessionStorage:', err);
-      }
-    }
-  }, []);
 
   const handleReport = async () => {
     if (!result?.scan_id || reported) return;
@@ -130,13 +127,6 @@ export default function ResultPage() {
   const reason = result?.reason || "Visual inspection could not be verified securely.";
 
   // Theme styling configurations based on status.
-  // NOTE: themeColor is a plain hex value (matching the --verdict-* tokens in
-  // globals.css) rather than a var() reference, because it gets alpha-suffixed
-  // below (`${themeColor}40`) to derive translucent fills/borders — that
-  // hex-alpha trick only works on literal hex colors, not on var() calls.
-  // Rendered from displayVerdict, which is the superset the API returns
-  // (`counterfeit` is display-only — the DB stored `suspicious`). Older
-  // cached results predate the field, so fall back to `status`.
   const displayVerdict =
     result?.displayVerdict ??
     (status === "Likely Original"
@@ -145,7 +135,7 @@ export default function ResultPage() {
         ? "counterfeit"
         : "suspicious");
 
-  let themeColor = "#b45309"; // --verdict-suspicious
+  let themeColor = "var(--verdict-suspicious)";
   let themeIcon = "warning";
   let statusHeadline = "NEEDS MANUAL REVIEW";
   let statusUrdu = "مشکوک";
@@ -153,14 +143,14 @@ export default function ResultPage() {
   let statusSubUrdu = "ظاہری تضادات پائے گئے۔ دستی جانچ کی سفارش کی جاتی ہے۔";
 
   if (displayVerdict === "genuine") {
-    themeColor = "#047857"; // --verdict-genuine
+    themeColor = "var(--verdict-genuine)";
     themeIcon = "verified";
     statusHeadline = "LIKELY ORIGINAL";
     statusUrdu = "اصلی";
     statusSub = "This product matches all official manufacturer specifications.";
     statusSubUrdu = "یہ مصنوع کارخانہ دار کی تمام سرکاری تفصیلات سے مطابقت رکھتی ہے۔";
   } else if (displayVerdict === "counterfeit") {
-    themeColor = "#be123c"; // --verdict-counterfeit
+    themeColor = "var(--verdict-counterfeit)";
     themeIcon = "gpp_maybe";
     statusHeadline = "LIKELY COUNTERFEIT";
     statusUrdu = "جعلی";
@@ -169,7 +159,7 @@ export default function ResultPage() {
   } else if (displayVerdict === "unverified") {
     // Deliberately neutral, not alarming: no reference was available, which
     // is an absence of evidence rather than evidence against the product.
-    themeColor = "#475069"; // --text-secondary
+    themeColor = "var(--text-secondary)";
     themeIcon = "help_outline";
     statusHeadline = "UNVERIFIED";
     statusUrdu = "غیر تصدیق شدہ";
@@ -209,12 +199,12 @@ export default function ResultPage() {
         </div>
 
         {/* Verdict Hero Badge */}
-        <div className={`liquid-glass-gradient-border ${styles.headerCard}`} style={{ boxShadow: `var(--glass-shadow), 0 0 40px ${themeColor}26` }}>
+        <div className={`liquid-glass-gradient-border ${styles.headerCard}`} style={{ boxShadow: `var(--glass-shadow), 0 0 40px ${tint(themeColor, 15)}` }}>
           <div
             className={styles.warningIconWrapper}
             style={{
-              background: `${themeColor}20`,
-              borderColor: `${themeColor}40`
+              background: `${tint(themeColor, 13)}`,
+              borderColor: `${tint(themeColor, 25)}`
             }}
           >
             <span className={`material-symbols-outlined ${styles.warningIcon}`} style={{ color: themeColor }}>
@@ -282,7 +272,7 @@ export default function ResultPage() {
               style={{
                 width: `${score}%`,
                 background: `linear-gradient(to right, var(--cyan-glow), ${themeColor})`,
-                boxShadow: `0 0 10px ${themeColor}80`
+                boxShadow: `0 0 10px ${tint(themeColor, 50)}`
               }}
             ></div>
           </div>
@@ -364,8 +354,8 @@ export default function ResultPage() {
           <div
             className={styles.urgentWarning}
             style={{
-              background: `${themeColor}1f`,
-              border: `1px solid ${themeColor}4d`
+              background: `${tint(themeColor, 12)}`,
+              border: `1px solid ${tint(themeColor, 30)}`
             }}
           >
             <span className="material-symbols-outlined" style={{ color: themeColor, marginTop: '2px', fontVariationSettings: "'FILL' 1" }}>
@@ -386,8 +376,8 @@ export default function ResultPage() {
           <div
             className={styles.urgentWarning}
             style={{
-              background: `${themeColor}1a`,
-              border: `1px solid ${themeColor}40`
+              background: `${tint(themeColor, 10)}`,
+              border: `1px solid ${tint(themeColor, 25)}`
             }}
           >
             <span className="material-symbols-outlined" style={{ color: themeColor, marginTop: '2px', fontVariationSettings: "'FILL' 1" }}>
