@@ -15,7 +15,7 @@
   left: -15rem;
   width: 50rem;
   height: 50rem;
-  background: radial-gradient(circle, rgba(0, 119, 168, 0.07) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--cyan-glow) 7%, transparent) 0%, transparent 70%);
   animation: drift1 12s ease-in-out infinite;
   pointer-events: none;
 }
@@ -25,7 +25,7 @@
   right: -10rem;
   width: 40rem;
   height: 40rem;
-  background: radial-gradient(circle, rgba(109, 40, 217, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--purple-glow) 6%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 @keyframes drift1 {
@@ -57,13 +57,13 @@
   width: 5rem;
   height: 5rem;
   background: var(--bg-glass-card);
-  border: 1px solid rgba(0, 119, 168, 0.3);
+  border: 1px solid color-mix(in srgb, var(--cyan-glow) 30%, transparent);
   border-radius: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 2rem;
-  box-shadow: 0 0 30px rgba(0, 119, 168, 0.15);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--cyan-glow) 15%, transparent);
 }
 .logoMark .material-symbols-outlined {
   font-size: 40px;
@@ -98,7 +98,7 @@
   gap: 0.5rem;
   font-size: 14px;
   color: var(--text-secondary);
-  background: #f8fafc;
+  background: var(--color-surface-container-low);
   border: 1px solid var(--border-subtle);
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
@@ -130,8 +130,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(190, 18, 60, 0.12);
-  border: 1px solid rgba(190, 18, 60, 0.3);
+  background: color-mix(in srgb, var(--verdict-counterfeit) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verdict-counterfeit) 30%, transparent);
   color: var(--verdict-counterfeit);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
@@ -158,5 +158,62 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
+}
+
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   The auth card is the page's single focal object, so it takes the top of the
+   elevation scale — nothing else on the screen competes with it. The brand
+   mark beside it is a genuinely extruded solid; the trust pills sit one step
+   down so the eye ranks mark > card > pills without needing size to do it. */
+
+.page { position: relative; z-index: 1; min-height: 100dvh; }
+
+/* The global aurora already paints the atmosphere; these page-local orbs would
+   double it up into a muddy wash. */
+.bgOrb1, .bgOrb2 { display: none; }
+
+.loginCard,
+.signupCard {
+  box-shadow: var(--e5);
+  border-radius: var(--r-xl);
+}
+
+.logoMark {
+  border-radius: var(--r-xl);
+  border: 1px solid var(--border-subtle);
+  box-shadow:
+    var(--e3),
+    inset 0 1px 0 var(--lift-key),
+    0 10px 30px -10px color-mix(in srgb, var(--cyan-glow) 55%, transparent);
+}
+
+.trustPill {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1);
+  transition: transform var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
+}
+
+.trustPill:hover {
+  transform: translateX(4px);
+  box-shadow: var(--e2);
+}
+
+.errorBanner {
+  border-radius: var(--r-sm);
+  background: var(--verdict-counterfeit-bg);
+  border-color: var(--verdict-counterfeit-border);
+  box-shadow: var(--e1);
+}
+
+.adminLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trustPill:hover { transform: none; }
 }

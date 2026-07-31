@@ -94,7 +94,7 @@
 
 .input:focus {
   border-color: var(--cyan-glow);
-  box-shadow: 0 0 0 4px rgba(0, 119, 168, 0.15);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan-glow) 15%, transparent);
 }
 
 .hint {
@@ -121,7 +121,7 @@
 }
 
 .submit:hover:not(:disabled) {
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--lift-ambient) 100%, transparent);
 }
 
 .submit:active:not(:disabled) {
@@ -251,4 +251,103 @@
 
 .nextBtn:active {
   transform: scale(0.98);
+}
+
+/* -- Depth pass ------------------------------------------------------------
+   The partner redemption terminal, used at a counter and usually in a hurry.
+   The code field is a deep well and the result panel lands with the highest
+   elevation on the page: a redemption either happened or it did not, and that
+   has to be readable across a shop from arm's length.
+   ------------------------------------------------------------------------ */
+
+.page { position: relative; z-index: 1; }
+
+.form {
+  border-radius: var(--r-xl);
+  box-shadow: var(--e3);
+}
+
+.input {
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+  /* 16px prevents iOS Safari auto-zooming the page on focus */
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.input:focus {
+  box-shadow: var(--inset-well-deep), 0 0 0 4px rgba(8, 145, 178, 0.18);
+}
+
+/* 62px, not the app-wide 52px: this button is pressed at a shop counter,
+   often one-handed and in a hurry, so it keeps its oversized target. */
+.submit {
+  min-height: 62px;
+  border-radius: var(--r-md);
+  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.nextBtn {
+  min-height: 52px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+/* Disabled controls are exempt from the contrast minimum, but the previous
+   treatment (muted ink on a grey fill) still read like live text. Dropping the
+   elevation to zero and recessing the surface is what actually communicates
+   "not pressable" — the button visually sinks into the page. */
+.submit:disabled,
+.nextBtn:disabled {
+  transform: none;
+  box-shadow: var(--inset-well);
+  opacity: 0.55;
+}
+
+.submit:hover:not(:disabled),
+.nextBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--e3); }
+
+.submit:active:not(:disabled),
+.nextBtn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98, 0.95);
+  box-shadow: var(--e0);
+}
+
+.result {
+  border-radius: var(--r-xl);
+  box-shadow: var(--e4);
+}
+
+.resultIcon {
+  box-shadow:
+    var(--e3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+
+.resultMeta,
+.metaRow {
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.resultCode {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+.brandRow  { border-radius: var(--r-sm); }
+.brandIcon { border-radius: var(--r-xs); box-shadow: var(--e1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .submit:hover:not(:disabled), .nextBtn:hover:not(:disabled),
+  .submit:active:not(:disabled), .nextBtn:active:not(:disabled) { transform: none; }
 }

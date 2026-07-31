@@ -20,7 +20,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(245, 247, 251, 0.85);
+  background: color-mix(in srgb, var(--bg-base) 85%, transparent);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border-subtle);
@@ -89,7 +89,7 @@
   background: var(--bg-glass-card);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid rgba(0, 119, 168, 0.2);
+  border: 1px solid color-mix(in srgb, var(--cyan-glow) 20%, transparent);
 }
 
 .scoreGreeting {
@@ -156,7 +156,7 @@
 
 .searchInput:focus {
   border-color: var(--cyan-glow);
-  box-shadow: 0 0 0 3px rgba(0, 119, 168, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan-glow) 12%, transparent);
 }
 
 .clearBtn {
@@ -168,7 +168,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
@@ -176,7 +176,7 @@
 }
 
 .clearBtn:hover {
-  background: #e2e8f0;
+  background: var(--color-surface-container-highest);
 }
 
 /* ── Filter Chips ────────────────────────────────────────── */
@@ -348,4 +348,80 @@
 
 .badgeUrdu.badgeSecondary {
   font-size: 10px;
+}
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   A scrolling list of past scans: each row is a raised card that lifts on
+   hover, the search field and filter chips are recessed controls, and the
+   selected filter is the one chip that pops back out. That three-level split
+   is what keeps a long list scannable.
+   ============================================================================ */
+
+.page { position: relative; z-index: 1; }
+
+.scanCard {
+  border-radius: var(--r-md);
+  box-shadow: var(--e1);
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.scanCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--e3);
+}
+
+.searchWrapper {
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.searchInput {
+  /* 16px prevents iOS Safari auto-zooming the page on focus */
+  font-size: 16px;
+  background: transparent;
+}
+
+.filterChip {
+  min-height: 44px;
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+  transition:
+    background-color var(--t-base) var(--ease-out),
+    color var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.filterChipActive {
+  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.scorePill {
+  border-radius: var(--r-xl);
+  box-shadow: var(--e3);
+}
+
+.scorePoints,
+.countBadge { font-variant-numeric: tabular-nums; }
+
+.statusBadge,
+.badgeSecondary {
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+}
+
+.statusDot { box-shadow: 0 0 8px currentColor; }
+
+.emptyState,
+.stateMessage {
+  border-radius: var(--r-md);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanCard:hover { transform: none; }
 }

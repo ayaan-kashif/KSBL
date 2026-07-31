@@ -1,75 +1,101 @@
+/* ============================================================================
+   Input — the system's canonical RECESSED surface.
+
+   Everything here is the inverse of Button: the shadow enters from the top
+   (the lip casting inward), the bounce light sits along the bottom, and there
+   is no extrusion edge at all. That opposition is deliberate — it's what makes
+   "type here" feel physically unlike "press me" without either needing a label
+   to explain itself.
+   ============================================================================ */
+
 .wrapper {
   position: relative;
   display: flex;
   align-items: stretch;
-  min-height: 60px;
+  min-height: 62px;
+  border-radius: var(--r-sm);
   background: var(--bg-glass-input);
-  border-radius: 12px;
   border: 1px solid var(--border-interactive);
+  box-shadow: var(--inset-well);
   overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out),
+    background-color var(--t-base) var(--ease-out);
 }
 
+.wrapper:hover:not(.focused) {
+  border-color: var(--text-secondary);
+  box-shadow: var(--inset-well-deep);
+}
+
+/* Chromatic rim on focus. Drawn with mask-composite because a plain gradient
+   `border` isn't expressible in CSS. */
 .wrapper::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: inherit;
   padding: 1px;
   background: var(--liquid-border-grad);
   opacity: 0;
-  transition: opacity 0.2s ease;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-out);
 }
 
-.focused::after {
-  opacity: 1;
-}
+.focused::after { opacity: 1; }
 
+/* The well stays legible while focused — the halo is added ON TOP of the inset
+   rather than replacing it, so the field doesn't visually pop out on focus. */
 .focused {
-  box-shadow: 0 0 16px rgba(0, 119, 168, 0.15), 0 0 16px rgba(109, 40, 217, 0.1);
+  border-color: transparent;
+  box-shadow:
+    var(--inset-well-deep),
+    0 0 0 4px rgba(8, 145, 178, 0.18);
 }
 
-/* padding-top matches .field's so the icon glyph centers against the value
-   row specifically, not the label+value block as a whole (which, once a
-   floating label is present above the value, made the icon look off-center
-   relative to the actual text). */
+.focused .leadingIcon { color: var(--cyan-glow); }
+
+/* padding-top matches .field's so the glyph centres against the VALUE row
+   specifically, not the label+value block as a whole — once a floating label
+   sits above the value, centring on the block puts the icon visibly high. */
 .leadingIcon {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   padding: 26px 0 0 1rem;
   color: var(--text-secondary);
   font-size: 20px;
   pointer-events: none;
-  flex-shrink: 0;
+  transition: color var(--t-base) var(--ease-out);
 }
 
 .field {
   width: 100%;
+  padding: 26px 1rem 10px;
   background: transparent;
   border: none;
   outline: none;
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 15px;
+  /* 16px prevents iOS Safari auto-zooming the page on focus */
+  font-size: 16px;
   line-height: 20px;
-  padding: 26px 1rem 10px;
 }
 
-.field.noLeadingIcon {
-  padding-left: 1rem;
-}
+.field.noLeadingIcon { padding-left: 1rem; }
 
-/* Override the browser's default light autofill background/text so it
-   matches the dark glass theme instead of flashing white/yellow.
-   Uses the opaque --bg-glass-input-solid (not the translucent
-   --bg-glass-input) because inset box-shadow paints *over* the native
-   autofill fill rather than replacing it — a translucent color here lets
-   ~30% of that white/yellow show through, producing a washed-out grey
-   instead of the intended dark navy. */
+.wrapper:has(.leadingIcon) .field { padding-left: 0.6rem; }
+
+/* Override the browser's default autofill fill so it matches the theme instead
+   of flashing white/yellow. Uses the OPAQUE --bg-glass-input-solid, not the
+   translucent --bg-glass-input: an inset box-shadow paints over the native
+   autofill rather than replacing it, so a translucent colour here lets ~30% of
+   that yellow show through as a washed-out tint. */
 .field:-webkit-autofill,
 .field:-webkit-autofill:hover,
 .field:-webkit-autofill:focus,
@@ -81,10 +107,6 @@
   transition: background-color 9999s ease-in-out 0s;
 }
 
-.wrapper:has(.leadingIcon) .field {
-  padding-left: 0.6rem;
-}
-
 .label {
   position: absolute;
   left: 1rem;
@@ -93,19 +115,21 @@
   color: var(--text-muted);
   font-size: 15px;
   pointer-events: none;
-  transition: all 0.15s ease;
+  transition:
+    top var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-out),
+    font-size var(--t-fast) var(--ease-out),
+    color var(--t-fast) var(--ease-out);
 }
 
-.wrapper:has(.leadingIcon) .label {
-  left: 2.75rem;
-}
+.wrapper:has(.leadingIcon) .label { left: 2.75rem; }
 
 .labelFloated {
   top: 9px;
   transform: translateY(0);
   font-size: 11px;
   line-height: 14px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 600;
   color: var(--cyan-glow);
@@ -113,48 +137,22 @@
 
 /* padding-top matches .field's — see .leadingIcon comment above. */
 .toggleBtn {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 26px 1rem 0;
   background: transparent;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 26px 1rem 0;
-  flex-shrink: 0;
-  transition: color 0.15s ease;
+  transition: color var(--t-fast) var(--ease-out);
 }
 
-.toggleBtn:hover {
-  color: var(--text-primary);
-}
+.toggleBtn:hover { color: var(--text-primary); }
 
 .errorText {
-  margin-top: 0.4rem;
+  margin-top: 0.45rem;
   font-size: 12px;
+  font-weight: 500;
   color: var(--verdict-counterfeit);
 }
-
-/* ── Depth layer ───────────────────────────────────────────────────────────
-   Inputs are *recessed*: an inset shadow reads as a well cut into the
-   surface, which is the natural affordance for "put text here" and reads as
-   physically opposite to the raised buttons beside them. */
-.wrapper {
-  box-shadow: var(--inset-well);
-  transition:
-    border-color var(--t-base) var(--ease-out),
-    box-shadow var(--t-base) var(--ease-out),
-    background-color var(--t-base) var(--ease-out);
-}
-
-.wrapper:hover:not(.focused) { border-color: var(--border-interactive); }
-
-/* Focus ring uses a soft brand halo on top of the well, so the recess is
-   still legible while focused. */
-.focused {
-  box-shadow: var(--inset-well), 0 0 0 4px rgba(0, 119, 168, 0.15);
-}
-
-.focused .leadingIcon { color: var(--cyan-glow); }
-
-/* 16px prevents iOS Safari auto-zooming the page on focus */
-.field { font-size: 16px; }

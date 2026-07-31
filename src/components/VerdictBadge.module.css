@@ -1,15 +1,37 @@
+/* The verdict lozenge — the single most load-bearing element in the product.
+   Raised, tinted, and always paired with a distinct icon in the component, so
+   the verdict never depends on colour alone. */
+
 .badge {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-body);
   font-weight: 700;
   letter-spacing: 0.02em;
-  font-family: var(--font-body);
+  box-shadow: var(--e2);
 }
 
-/* The two languages stack rather than being slashed together, so neither
-   reads as an afterthought of the other. */
+/* Top gloss gives the lozenge a curved upper face rather than a flat fill. */
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+[data-theme='dark'] .badge::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, transparent 55%);
+}
+
+/* The two languages stack rather than being slashed together, so neither reads
+   as an afterthought of the other. */
 .labels {
   display: flex;
   flex-direction: column;
@@ -17,9 +39,7 @@
   line-height: 1.15;
 }
 
-.labelPrimary {
-  font-weight: 700;
-}
+.labelPrimary { font-weight: 700; }
 
 .labelSecondary {
   font-weight: 600;
@@ -32,7 +52,7 @@
   line-height: 1.9;
 }
 
-/* Sizes */
+/* ── Sizes ──────────────────────────────────────────────────────────────── */
 .sm { padding: 0.3rem 0.75rem; font-size: 12px; }
 .md { padding: 0.5rem 1.1rem; font-size: 14px; }
 .lg { padding: 0.7rem 1.6rem; font-size: 18px; }
@@ -52,65 +72,44 @@
 .md .urdu.labelSecondary { font-size: 13.5px; }
 .lg .urdu.labelSecondary { font-size: 16px; }
 
-/* Variants — tinted surface + 1px border + text colour, no glow. A coloured
-   halo does not register on a light canvas; the tint and border carry it. */
+/* ── Variants ───────────────────────────────────────────────────────────────
+   Tinted surface + 1px border + text colour. The coloured drop shadow is what
+   makes each read as a lit solid; on a light canvas a coloured HALO alone
+   would be invisible, so the shadow does the work instead. */
 .genuine {
   background: var(--verdict-genuine-bg);
   color: var(--verdict-genuine);
   border: 1px solid var(--verdict-genuine-border);
+  box-shadow: var(--e2), 0 6px 18px -6px rgba(16, 185, 129, 0.5);
 }
 
 .suspicious {
   background: var(--verdict-suspicious-bg);
   color: var(--verdict-suspicious);
   border: 1px solid var(--verdict-suspicious-border);
+  box-shadow: var(--e2), 0 6px 18px -6px rgba(245, 158, 11, 0.5);
 }
 
 .counterfeit {
   background: var(--verdict-counterfeit-bg);
   color: var(--verdict-counterfeit);
   border: 1px solid var(--verdict-counterfeit-border);
+  box-shadow: var(--e2), 0 6px 18px -6px rgba(244, 63, 94, 0.5);
 }
 
+/* Theme-token driven, not hardcoded slate — these previously pinned literal
+   light-mode hexes and would have rendered as bright chips on the dark canvas. */
 .unverified {
-  background: #f1f5f9;
+  background: var(--color-surface-container-high);
   color: var(--text-secondary);
   border: 1px solid var(--border-strong);
 }
 
 .processing {
-  background: #eff6ff;
+  background: var(--color-surface-container-high);
   color: var(--cyan-glow);
-  border: 1px solid #bae6fd;
+  border: 1px solid var(--cyan-glow);
   animation: processingPulse 2s ease-in-out infinite;
-}
-
-@keyframes processingPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .processing { animation: none; }
-}
-
-/* ── Depth layer ───────────────────────────────────────────────────────────
-   Raised lozenge. Each variant already pairs its colour with a distinct icon
-   in the component, so the verdict never depends on colour alone. */
-.badge {
-  position: relative;
-  isolation: isolate;
-  box-shadow: var(--e1);
-}
-
-.badge::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 55%);
-  pointer-events: none;
 }
 
 /* Expanding halo signals live work without the badge itself moving, so
@@ -122,10 +121,25 @@
   z-index: -2;
   border-radius: inherit;
   border: 1px solid var(--cyan-glow);
-  animation: pulse-ring 1.9s var(--ease-out) infinite;
+  animation: verdictRing 1.9s var(--ease-out) infinite;
   pointer-events: none;
 }
 
+@keyframes processingPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.62; }
+}
+
+/* Declared locally rather than reused from globals.css: css-loader rewrites
+   animation-name inside a module, so a global keyframe is not reliably
+   reachable by name from module scope. */
+@keyframes verdictRing {
+  0%   { transform: scale(0.94); opacity: 0.6; }
+  70%  { transform: scale(1.2); opacity: 0; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .processing { animation: none; }
   .processing::after { animation: none; opacity: 0.3; }
 }

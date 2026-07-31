@@ -8,7 +8,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.875rem 1.25rem;
-  background: rgba(245, 247, 251, 0.5);
+  background: color-mix(in srgb, var(--bg-base) 50%, transparent);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border-subtle);
@@ -147,7 +147,7 @@
 .progressBarTrack {
   height: 1rem;
   width: 100%;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border-radius: 9999px;
   overflow: hidden;
   border: 1px solid var(--border-subtle);
@@ -181,7 +181,7 @@
 .telemetryTrack {
   height: 6px;
   width: 100%;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -237,8 +237,86 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--text-primary);
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   border: 1px solid var(--border-subtle);
   border-radius: 9999px;
   padding: 1px 8px;
+}
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   The verdict card is the single most consequential surface in the product,
+   so it takes the top of the elevation scale and nothing on the screen
+   competes with it. The reason chips beneath are recessed: they are evidence
+   being read, not actions being offered.
+   ============================================================================ */
+
+.page { position: relative; z-index: 1; }
+
+.headerCard {
+  border-radius: var(--r-xl);
+  box-shadow: var(--e4);
+}
+
+.productSnapshot,
+.reasonChip,
+.snapshotDetails {
+  border-radius: var(--r-md);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.snapshotImage {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e2);
+}
+
+/* Gauges: recessed channel, lit fill — matching ProgressBar exactly so the
+   two never read as different components. */
+.progressBarTrack,
+.telemetryTrack {
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
+  overflow: hidden;
+}
+
+.progressBarFill,
+.telemetryFill {
+  border-radius: var(--r-pill);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.16);
+}
+
+.confidenceValue,
+.batchValue,
+.pathMetric { font-variant-numeric: tabular-nums; }
+
+/* An alert is raised — it demands action, so it must not read as page copy. */
+.urgentWarning {
+  border-radius: var(--r-md);
+  box-shadow: var(--e2);
+}
+
+.warningIconWrapper {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1);
+}
+
+.iconButton {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  transition:
+    background-color var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out),
+    transform var(--t-fast) var(--ease-squish);
+}
+
+.iconButton:hover { box-shadow: var(--e1); }
+.iconButton:active { transform: scale(0.9); }
+
+@media (prefers-reduced-motion: reduce) {
+  .iconButton:active { transform: none; }
 }

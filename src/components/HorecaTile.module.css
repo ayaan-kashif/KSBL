@@ -11,7 +11,7 @@
 
 .tile {
   width: 100%;
-  border-radius: 20px;
+  border-radius: var(--r-lg);
   padding: 24px;
 }
 
@@ -62,13 +62,27 @@
   background: var(--verdict-genuine);
 }
 
-/* ── Hero metric: the B2B number ─────────────────────────── */
+/* ── Hero metric: the B2B number ─────────────────────────────────────────────
+   Raised off the tile face — this is the number the tile exists to sell, so it
+   gets the only positive elevation inside the card. */
 .hero {
+  position: relative;
   margin-top: 16px;
   padding: 16px 18px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   background: var(--verdict-genuine-bg);
   border: 1px solid var(--verdict-genuine-border);
+  box-shadow:
+    var(--e1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 6px 18px -8px rgba(16, 185, 129, 0.45);
+}
+
+[data-theme='dark'] .hero {
+  box-shadow:
+    var(--e1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 24px -6px rgba(16, 185, 129, 0.35);
 }
 
 .heroLabel {
@@ -103,11 +117,14 @@
   margin-top: 12px;
 }
 
+/* Supporting metrics are RECESSED, so they sit visually beneath the hero
+   without needing to be smaller or greyer than they already are. */
 .metric {
   padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--color-surface-container-low);
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
   border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
 }
 
 .metricValue {
@@ -146,6 +163,7 @@
   flex-shrink: 0;
   border-radius: 6px;
   background: var(--color-surface-container-high);
+  box-shadow: var(--e1);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 11px;

@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f5f7fb 100%);
+  background: linear-gradient(135deg, var(--color-surface-container-low) 0%, var(--bg-base) 100%);
 }
 
 .chatContainer {
@@ -14,12 +14,12 @@
   max-height: 800px;
   display: flex;
   flex-direction: column;
-  background: rgba(241, 245, 249, 0.9);
+  background: color-mix(in srgb, var(--color-surface-container) 90%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: 1.25rem;
   overflow: hidden;
   backdrop-filter: blur(20px);
-  box-shadow: 0 0 60px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 0 60px color-mix(in srgb, var(--lift-ambient) 100%, transparent);
 }
 
 /* Header */
@@ -28,8 +28,8 @@
   align-items: center;
   gap: 0.875rem;
   padding: 1rem 1.25rem;
-  background: rgba(233, 238, 245, 0.8);
-  border-bottom: 1px solid rgba(203, 213, 225, 0.2);
+  background: color-mix(in srgb, var(--color-surface-container-high) 80%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) 20%, transparent);
   flex-shrink: 0;
 }
 
@@ -37,8 +37,8 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 50%;
-  background: rgba(4, 120, 87, 0.1);
-  border: 1px solid rgba(4, 120, 87, 0.25);
+  background: color-mix(in srgb, var(--verdict-genuine) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verdict-genuine) 25%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,7 +92,7 @@
   justify-content: center;
   transition: background 0.2s;
 }
-.headerBtn:hover { background: #e9eef5; }
+.headerBtn:hover { background: var(--color-surface-container-high); }
 
 /* Messages */
 .messagesArea {
@@ -102,17 +102,17 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  background: rgba(245, 247, 251, 0.5);
+  background: color-mix(in srgb, var(--bg-base) 50%, transparent);
 }
 .messagesArea::-webkit-scrollbar { width: 4px; }
 .messagesArea::-webkit-scrollbar-track { background: transparent; }
-.messagesArea::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.20); border-radius: 2px; }
+.messagesArea::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--lift-ambient) 100%, transparent); border-radius: 2px; }
 
 .dateSeparator {
   text-align: center;
   font-size: 11px;
   color: var(--color-on-surface-variant);
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   align-self: center;
@@ -137,8 +137,8 @@
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 50%;
-  background: rgba(4, 120, 87, 0.1);
-  border: 1px solid rgba(4, 120, 87, 0.2);
+  background: color-mix(in srgb, var(--verdict-genuine) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verdict-genuine) 20%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,7 +147,7 @@
 }
 
 .botBubble {
-  background: rgba(233, 238, 245, 0.9);
+  background: color-mix(in srgb, var(--color-surface-container-high) 90%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: 0 1rem 1rem 1rem;
   padding: 0.75rem 1rem;
@@ -158,8 +158,8 @@
 }
 
 .userBubble {
-  background: rgba(4, 120, 87, 0.12);
-  border: 1px solid rgba(4, 120, 87, 0.2);
+  background: color-mix(in srgb, var(--verdict-genuine) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verdict-genuine) 20%, transparent);
   border-radius: 1rem 0 1rem 1rem;
   padding: 0.75rem 1rem;
   font-size: 14px;
@@ -200,8 +200,8 @@
 /* Input Area */
 .inputArea {
   padding: 0.75rem 1rem;
-  background: rgba(241, 245, 249, 0.95);
-  border-top: 1px solid rgba(203, 213, 225, 0.2);
+  background: color-mix(in srgb, var(--color-surface-container) 95%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 20%, transparent);
   flex-shrink: 0;
 }
 
@@ -212,8 +212,8 @@
   overflow-x: auto;
 }
 .quickReply {
-  background: rgba(4, 120, 87,0.08);
-  border: 1px solid rgba(4, 120, 87,0.2);
+  background: color-mix(in srgb, var(--verdict-genuine) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verdict-genuine) 20%, transparent);
   color: var(--color-primary);
   padding: 0.3rem 0.875rem;
   border-radius: 9999px;
@@ -223,7 +223,7 @@
   white-space: nowrap;
   transition: all 0.15s;
 }
-.quickReply:hover { background: rgba(4, 120, 87,0.15); }
+.quickReply:hover { background: color-mix(in srgb, var(--verdict-genuine) 15%, transparent); }
 
 .inputRow {
   display: flex;
@@ -244,8 +244,8 @@
 
 .input {
   flex: 1;
-  background: rgba(241, 245, 249, 0.8);
-  border: 1px solid rgba(203, 213, 225, 0.4);
+  background: color-mix(in srgb, var(--color-surface-container) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
   border-radius: 1.25rem;
   color: var(--color-on-surface);
   font-size: 14px;
@@ -259,7 +259,7 @@
   transition: border-color 0.2s;
 }
 .input::placeholder { color: var(--color-on-surface-variant); opacity: 0.5; }
-.input:focus { border-color: rgba(4, 120, 87,0.3); }
+.input:focus { border-color: color-mix(in srgb, var(--verdict-genuine) 30%, transparent); }
 
 .sendBtn {
   width: 2.5rem;
@@ -275,5 +275,79 @@
   flex-shrink: 0;
   transition: all 0.2s;
 }
-.sendBtn:hover:not(:disabled) { box-shadow: 0 0 15px rgba(4, 120, 87,0.4); }
+.sendBtn:hover:not(:disabled) { box-shadow: 0 0 15px color-mix(in srgb, var(--verdict-genuine) 40%, transparent); }
 .sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* -- Depth pass ------------------------------------------------------------
+   A chat transcript. Bubbles are raised (each is a discrete object), the
+   composer is a recessed well, and send is the one extruded control -- the
+   same read as every other input/action pair in the app.
+   ------------------------------------------------------------------------ */
+
+.page { position: relative; z-index: 1; }
+
+.chatContainer {
+  border-radius: var(--r-xl);
+  box-shadow: var(--e4);
+  overflow: hidden;
+}
+
+.botBubble,
+.userBubble { box-shadow: var(--e1); }
+
+/* Asymmetric corners: the square corner points at the speaker, which is what
+   makes a bubble read as coming FROM someone rather than floating free. */
+.botBubble  { border-radius: var(--r-md) var(--r-md) var(--r-md) 4px; }
+.userBubble { border-radius: var(--r-md) var(--r-md) 4px var(--r-md); }
+
+.botAvatar,
+.botAvatarSmall { box-shadow: var(--e1); }
+
+.statusDot { box-shadow: 0 0 8px currentColor; }
+
+.inputRow {
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.input {
+  /* 16px prevents iOS Safari auto-zooming the page on focus */
+  font-size: 16px;
+  background: transparent;
+}
+
+.sendBtn,
+.attachBtn,
+.headerBtn {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.sendBtn { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+
+.sendBtn:active:not(:disabled),
+.attachBtn:active,
+.headerBtn:active { transform: scale(0.9); box-shadow: var(--e0); }
+
+.quickReply {
+  min-height: 44px;
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.quickReply:hover { transform: translateY(-2px); box-shadow: var(--e2); }
+
+.inputArea { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sendBtn:active:not(:disabled), .attachBtn:active,
+  .headerBtn:active, .quickReply:hover { transform: none; }
+}

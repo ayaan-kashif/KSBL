@@ -1,157 +1,204 @@
+/* ============================================================================
+   Button — the most-touched raised surface in the app, so it carries the
+   clearest physical response of anything in the system.
+
+   The extrusion is built from three stacked layers, not one shadow:
+     ::before  a top gloss, sitting above the fill but below the label, so the
+               button reads as a lit solid rather than a flat colour swatch
+     ::after   a specular streak that sweeps across on hover
+     box-shadow  the elevation ladder, whose first stop is a SOLID unblurred
+               edge — that's the button's visible thickness
+
+   Press does three things at once (drop past rest, squash, collapse the
+   shadow). Any one alone reads as a tween; together they read as material.
+   ============================================================================ */
+
 .btn {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  min-height: 44px; /* touch-target minimum */
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: var(--r-sm);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.01em;
-  border-radius: 12px;
-  padding: 0.8rem 1.5rem;
-  cursor: pointer;
-  text-decoration: none;
-  border: none;
-  transition: box-shadow 0.2s ease, transform 0.1s ease, background 0.2s ease, border-color 0.2s ease;
   white-space: nowrap;
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.fullWidth {
-  width: 100%;
-}
-
-/* Sizes */
-.sm { padding: 0.55rem 1rem; font-size: 13px; border-radius: 10px; }
-.md { padding: 0.8rem 1.5rem; font-size: 14px; }
-.lg { padding: 1rem 2rem; font-size: 16px; border-radius: 14px; }
-
-/* Primary */
-.primary {
-  background: var(--liquid-primary-grad);
-  color: #ffffff;
-}
-.primary:hover:not(:disabled) {
-  box-shadow: var(--accent-glow-shadow);
-}
-
-/* Ghost / Secondary */
-.ghost {
-  background: var(--bg-glass-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  color: var(--text-primary);
-  border: 1px solid var(--border-interactive);
-}
-.ghost:hover:not(:disabled) {
-  background: var(--bg-glass-hover);
-  border-color: var(--text-secondary);
-}
-
-/* Danger */
-.danger {
-  background: rgba(190, 18, 60, 0.12);
-  color: var(--verdict-counterfeit);
-  border: 1px solid rgba(190, 18, 60, 0.4);
-}
-.danger:hover:not(:disabled) {
-  background: rgba(190, 18, 60, 0.18);
-  box-shadow: 0 0 20px rgba(190, 18, 60, 0.25);
-}
-
-.icon {
-  font-size: 1.15em;
-  line-height: 1;
-}
-
-.spin {
-  animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* ── Depth layer ───────────────────────────────────────────────────────────
-   Buttons are the most-touched raised surface, so they carry the clearest
-   physical response: hover lifts toward the viewer, press travels *below*
-   rest and collapses the shadow. Colours come from the light palette above;
-   only geometry and timing are added here. */
-.btn {
-  position: relative;
-  min-height: 44px; /* touch-target minimum */
-  isolation: isolate;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
   transition:
-    transform var(--t-fast) var(--ease-out),
+    transform var(--t-fast) var(--ease-squish),
     box-shadow var(--t-base) var(--ease-out),
     background-color var(--t-base) var(--ease-out),
     border-color var(--t-base) var(--ease-out),
     filter var(--t-base) var(--ease-out);
 }
 
-/* Top gloss: sits above the fill, below the label, so the button reads as a
-   lit solid rather than a flat colour swatch. */
+/* Top gloss — the key light landing on the button's upper face. */
 .btn::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 50%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.06) 45%,
+    transparent 70%
+  );
   pointer-events: none;
   transition: opacity var(--t-base) var(--ease-out);
 }
 
-.sm { min-height: 36px; }
-.lg { min-height: 52px; }
+/* Specular streak. Parked off the left edge and swept across on hover — the
+   highlight you'd see travel over a curved glossy surface as it tips. */
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  z-index: -1;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 100%
+  );
+  transform: skewX(-18deg);
+  pointer-events: none;
+  transition: left var(--t-slow) var(--ease-out);
+}
 
-.primary { box-shadow: var(--e2); }
+.btn:hover:not(:disabled)::after { left: 130%; }
+
+.fullWidth { width: 100%; }
+
+/* ── Sizes ──────────────────────────────────────────────────────────────── */
+.sm { padding: 0.55rem 1rem; font-size: 13px; border-radius: var(--r-xs); min-height: 36px; }
+.md { padding: 0.8rem 1.5rem; font-size: 14px; min-height: 44px; }
+.lg { padding: 1rem 2rem; font-size: 16px; border-radius: var(--r-md); min-height: 54px; }
+
+/* The small button stays 36px tall for dense rows, so its hit area is extended
+   past its visual bounds to clear the 44px minimum: 36 + 4px top + 4px bottom.
+   That requires letting the pseudo-element escape the clip, which in turn means
+   giving up the specular streak — at this size the streak was a 2px flicker
+   nobody could see, and a tappable control beats a highlight. */
+.sm {
+  overflow: visible;
+}
+
+.sm::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  z-index: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  transform: none;
+  transition: none;
+}
+
+.sm:hover:not(:disabled)::after { left: -4px; }
+
+/* ── Primary ────────────────────────────────────────────────────────────────
+   The one saturated, fully-extruded surface per screen. Hover lifts AND
+   brightens; press travels below rest so the thickness edge disappears. */
+.primary {
+  background: var(--liquid-primary-grad);
+  color: #ffffff;
+  box-shadow:
+    var(--e2),
+    0 6px 20px -6px rgba(109, 40, 217, 0.5);
+}
 .primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--e3);
-  filter: saturate(1.08) brightness(1.04);
+  transform: translateY(-3px);
+  box-shadow:
+    var(--e3),
+    0 14px 32px -8px rgba(109, 40, 217, 0.55);
+  filter: saturate(1.1) brightness(1.05);
 }
 .primary:active:not(:disabled) {
-  transform: translateY(1px) scale(0.975);
+  transform: translateY(2px) scale(0.97, 0.94);
+  box-shadow: var(--e0), 0 2px 6px -2px rgba(109, 40, 217, 0.4);
+}
+
+/* ── Ghost / secondary ──────────────────────────────────────────────────── */
+.ghost {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--text-primary);
+  border: 1px solid var(--border-interactive);
   box-shadow: var(--e1);
 }
-
-.ghost { box-shadow: var(--e1); }
 .ghost:hover:not(:disabled) {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  background: var(--bg-glass-hover);
+  border-color: var(--text-secondary);
   box-shadow: var(--e2);
-  border-color: var(--border-interactive);
 }
 .ghost:active:not(:disabled) {
-  transform: translateY(1px) scale(0.975);
-  box-shadow: var(--e0);
+  transform: translateY(2px) scale(0.97, 0.94);
+  box-shadow: var(--inset-well);
 }
 
-.danger { box-shadow: var(--e1); }
+/* ── Danger ─────────────────────────────────────────────────────────────────
+   Tinted rather than solid: destructive actions should read as deliberate and
+   visually subordinate to the primary CTA, never compete with it. */
+.danger {
+  background: var(--verdict-counterfeit-bg);
+  color: var(--verdict-counterfeit);
+  border: 1px solid var(--verdict-counterfeit-border);
+  box-shadow: var(--e1);
+}
 .danger:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--e2);
+  transform: translateY(-3px);
+  box-shadow: var(--e2), 0 8px 22px -8px rgba(244, 63, 94, 0.5);
+  filter: brightness(1.03);
 }
 .danger:active:not(:disabled) {
-  transform: translateY(1px) scale(0.975);
-  box-shadow: var(--e0);
+  transform: translateY(2px) scale(0.97, 0.94);
+  box-shadow: var(--inset-well);
 }
 
+/* ── Disabled ───────────────────────────────────────────────────────────────
+   Flattened to the page. Removing the elevation is what communicates
+   "not pressable" — opacity alone still looks like a button. */
 .btn:disabled {
-  box-shadow: var(--e0);
+  opacity: 0.5;
+  cursor: not-allowed;
   transform: none;
+  box-shadow: var(--e0);
+  filter: grayscale(0.35);
+}
+.btn:disabled::before,
+.btn:disabled::after { opacity: 0; }
+
+.icon {
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+.spin { animation: spin 0.9s linear infinite; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .btn:hover:not(:disabled),
   .btn:active:not(:disabled) { transform: none; }
+  .btn:hover:not(:disabled)::after { left: -60%; }
 }

@@ -19,7 +19,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(245, 247, 251, 0.85);
+  background: color-mix(in srgb, var(--bg-base) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
@@ -33,7 +33,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border: 1px solid var(--border-subtle);
   color: var(--color-on-surface);
   cursor: pointer;
@@ -42,7 +42,7 @@
 
 .backBtn:hover,
 .shareBtn:hover {
-  background: #e2e8f0;
+  background: var(--color-surface-container-highest);
 }
 
 .topTitle {
@@ -90,9 +90,9 @@
   width: 112px;
   height: 112px;
   border-radius: 50%;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border: 2px solid var(--border-strong);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--lift-ambient) 77%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,7 +101,7 @@
 .questionIcon {
   font-size: 52px;
   color: var(--color-on-surface-variant);
-  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.18));
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--lift-ambient) 100%, transparent));
 }
 
 /* ── Status Text ─────────────────────────────────────────── */
@@ -132,7 +132,7 @@
 /* ── Confidence Card ─────────────────────────────────────── */
 .confidenceCard {
   width: 100%;
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
@@ -163,7 +163,7 @@
 
 .meterTrack {
   height: 6px;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -187,8 +187,8 @@
   align-items: flex-start;
   gap: 12px;
   padding: 16px 18px;
-  background: rgba(180, 83, 9, 0.07);
-  border: 1px solid rgba(180, 83, 9, 0.22);
+  background: color-mix(in srgb, var(--verdict-suspicious) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verdict-suspicious) 22%, transparent);
   border-radius: 14px;
 }
 
@@ -207,7 +207,7 @@
 /* ── Details Card ────────────────────────────────────────── */
 .detailsCard {
   width: 100%;
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
@@ -242,7 +242,7 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -294,13 +294,13 @@
   border-radius: 14px;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 0 24px rgba(180, 83, 9, 0.25);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--verdict-suspicious) 25%, transparent);
   transition: box-shadow 0.2s, transform 0.15s;
   text-align: center;
 }
 
 .btnPrimary:hover {
-  box-shadow: 0 0 36px rgba(180, 83, 9, 0.45);
+  box-shadow: 0 0 36px color-mix(in srgb, var(--verdict-suspicious) 45%, transparent);
 }
 
 .btnPrimary:active {
@@ -313,7 +313,7 @@
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-family: var(--font-outfit), sans-serif;
   font-size: 16px;
@@ -327,10 +327,91 @@
 }
 
 .btnOutline:hover {
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border-color: var(--border-interactive);
 }
 
 .btnOutline:active {
   transform: scale(0.97);
+}
+
+/* -- Depth pass ------------------------------------------------------------
+   Mirrors scan/genuine exactly, in the amber key. The two verdict screens MUST
+   share their geometry -- if "unverified" were laid out differently from
+   "genuine", the difference would read as severity rather than as outcome.
+   ------------------------------------------------------------------------ */
+
+.page { position: relative; z-index: 1; }
+
+.iconCircle {
+  box-shadow:
+    var(--e3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.18),
+    0 14px 34px -10px color-mix(in srgb, var(--verdict-suspicious) 60%, transparent);
+}
+
+.confidenceCard,
+.detailsCard,
+.noticeCard {
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+}
+
+.detailRow {
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.detailIconWrap,
+.noticeIconWrap {
+  border-radius: var(--r-xs);
+  box-shadow: var(--e1);
+}
+
+.meterTrack {
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
+  overflow: hidden;
+}
+
+.meterFill {
+  border-radius: var(--r-pill);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.16);
+}
+
+.confValue { font-variant-numeric: tabular-nums; }
+
+.btnPrimary,
+.btnOutline {
+  min-height: 48px;
+  border-radius: var(--r-sm);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.btnPrimary { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+.btnOutline { box-shadow: var(--e1); }
+
+.btnPrimary:hover,
+.btnOutline:hover { transform: translateY(-2px); box-shadow: var(--e3); }
+
+.btnPrimary:active,
+.btnOutline:active {
+  transform: translateY(1px) scale(0.98, 0.95);
+  box-shadow: var(--e0);
+}
+
+.backBtn,
+.shareBtn { min-width: 44px; min-height: 44px; border-radius: 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btnPrimary:hover, .btnOutline:hover,
+  .btnPrimary:active, .btnOutline:active { transform: none; }
 }

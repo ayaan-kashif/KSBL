@@ -289,3 +289,58 @@
   gap: 10px;
   padding-top: 4px;
 }
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   One consistent rule across the dashboard: data the user READS is recessed,
+   surfaces they can ACT on are raised. That split is what lets a dense panel
+   stay legible without adding more borders or more colour.
+   ============================================================================ */
+
+.page { position: relative; z-index: 1; background: transparent; }
+
+.incidentPanel {
+  border-radius: var(--r-lg);
+  box-shadow: var(--e3);
+}
+
+/* Read-only data wells. */
+.detailItem {
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+/* Findings are raised — they're the panel's alerts, not its metadata. */
+.flagItem {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1);
+}
+
+/* A gauge, matching ProgressBar: recessed channel, lit fill. */
+.confTrack {
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
+}
+
+.confFill {
+  border-radius: var(--r-pill);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.18),
+    0 0 12px -2px var(--verdict-accent);
+  transition: width var(--t-slow) var(--ease-out);
+}
+
+.counterfeitBadge {
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+}
+
+.confValue { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .confFill { transition-duration: 0.01ms; }
+}

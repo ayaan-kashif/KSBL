@@ -1,81 +1,186 @@
-:root {
-  /* ============================================================
-     LIQUID GLASS design tokens — LIGHT THEME
-     Token names are unchanged from the dark theme so every
-     downstream module keeps resolving; only the values flipped.
-     Contrast ratios in comments are measured against the surface
-     the token is actually used on (#f5f7fb canvas / #ffffff card).
-     ============================================================ */
+/* ============================================================================
+   PRISM DEPTH — ShelfWatch design system
+   ============================================================================
+   A 3D design language built on four physical cues, applied together at every
+   raised surface. Anything that only does one of them reads as a sticker:
 
-  /* Canvas & Surface Colors */
-  --bg-base: #f5f7fb;
+     1. EXTRUSION   a solid, unblurred edge under the surface — its thickness.
+     2. KEY LIGHT   a white specular line along the top edge (light from above).
+     3. RIM LIGHT   a chromatic cyan→violet edge where the surface catches the
+                    ambient prism. This is the signature of the system.
+     4. GROUNDING   a tight contact shadow (ambient occlusion) plus a wide soft
+                    ambient shadow — the surface sits in a room, not on a void.
+
+   --e1..--e5 bundle all four so elevation never gets hand-rolled. Recessed
+   surfaces (inputs, tracks, wells) invert the cue set with --inset-*, which is
+   what makes "type here" feel physically unlike "press me".
+
+   THEMING: light is the default in :root. Dark overrides only the values, never
+   the recipes — in dark, extrusion inverts (the thickness edge goes black, the
+   key light goes translucent white) and depth leans on glow instead of shade,
+   because a black shadow on a black canvas is invisible.
+   ============================================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Canvas & surfaces ────────────────────────────────────────────────── */
+  --bg-base: #eaeef6;
+  --bg-sunken: #dfe5f0;
   --bg-surface: #ffffff;
-  --bg-glass-card: rgba(255, 255, 255, 0.78);
-  /* Deliberately a slate tint, not white-at-higher-alpha: 0.78 white and 0.95
-     white over this canvas differ by ~1%, so a "brighten on hover" is
-     invisible in a light theme. Hover has to DARKEN to register. */
-  --bg-glass-hover: rgba(241, 245, 249, 0.95);
-  --bg-glass-input: rgba(255, 255, 255, 0.88);
+  --bg-glass-card: rgba(255, 255, 255, 0.82);
+  /* Deliberately a slate tint, not white-at-higher-alpha: 0.82 white and 0.95
+     white over this canvas differ by ~1%, so "brighten on hover" is invisible
+     in a light theme. Hover has to DARKEN to register. */
+  --bg-glass-hover: rgba(238, 242, 249, 0.95);
+  --bg-glass-input: rgba(255, 255, 255, 0.9);
   --bg-glass-input-solid: #ffffff;
 
-  /* Signature Liquid Gradients — accents/borders only, never behind text.
-     NOTE: #0091c2 carries white text at only 3.60:1 (fails AA for body
-     copy), so text-bearing fills use --liquid-primary-grad-text below. */
-  --liquid-primary-grad: linear-gradient(135deg, #0091c2 0%, #6d28d9 100%);
-  --liquid-primary-grad-text: linear-gradient(135deg, #0077a8 0%, #6d28d9 100%);
-  --liquid-border-grad: linear-gradient(135deg, rgba(0, 145, 194, 0.45) 0%, rgba(109, 40, 217, 0.45) 100%);
-  --liquid-border-subtle: linear-gradient(135deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.06) 100%);
-
-  /* Accent Colors — darkened so they stay legible AS TEXT on white */
+  /* ── Prism accents ────────────────────────────────────────────────────────
+     Two tiers on purpose. The -vivid pair is saturated for RIM LIGHT, glows and
+     decorative gradients — it never sits behind text. The plain pair is
+     darkened to stay legible AS TEXT on white, and its contrast is audited. */
   --cyan-glow: #0077a8;        /* 5.00:1 on #fff */
   --purple-glow: #6d28d9;      /* 7.10:1 on #fff */
-  --accent-glow-shadow: 0 6px 20px rgba(109, 40, 217, 0.16), 0 0 8px rgba(0, 119, 168, 0.12);
+  --cyan-vivid: #06b6d4;
+  --purple-vivid: #7c3aed;
+  --magenta-vivid: #d946ef;
 
-  /* Verdict Status Colors — text-safe; -bg/-border pairs for tinted chips */
+  --liquid-primary-grad: linear-gradient(135deg, #0891b2 0%, #6d28d9 100%);
+  --liquid-primary-grad-text: linear-gradient(135deg, #0077a8 0%, #6d28d9 100%);
+  --liquid-border-grad: linear-gradient(135deg, rgba(8, 145, 178, 0.5) 0%, rgba(124, 58, 237, 0.5) 100%);
+  --liquid-border-subtle: linear-gradient(135deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.06) 100%);
+  --prism-sweep: linear-gradient(120deg, #0891b2 0%, #6d28d9 45%, #d946ef 100%);
+  --accent-glow-shadow: 0 8px 28px rgba(109, 40, 217, 0.22), 0 2px 10px rgba(8, 145, 178, 0.18);
+
+  /* ── Verdict status ───────────────────────────────────────────────────────
+     Text-safe foregrounds with -bg/-border pairs for tinted chips. These carry
+     the product's whole meaning, so each is contrast-checked on BOTH the page
+     canvas and its own tinted background. */
   --verdict-genuine: #047857;          /* 5.48:1 on #fff, 5.21:1 on its own -bg */
   --verdict-genuine-bg: #ecfdf5;
   --verdict-genuine-border: #6ee7b7;
+  --verdict-genuine-vivid: #10b981;
   --verdict-suspicious: #b45309;       /* 5.02:1 on #fff, 4.84:1 on its own -bg */
   --verdict-suspicious-bg: #fffbeb;
   --verdict-suspicious-border: #fcd34d;
+  --verdict-suspicious-vivid: #f59e0b;
   --verdict-counterfeit: #be123c;      /* 6.29:1 on #fff, 5.72:1 on its own -bg */
   --verdict-counterfeit-bg: #fff1f2;
   --verdict-counterfeit-border: #fda4af;
+  --verdict-counterfeit-vivid: #f43f5e;
 
-  /* Text Colors */
-  --text-primary: #0f172a;     /* 16.65:1 on canvas */
-  --text-secondary: #475069;   /* 7.48:1 on canvas */
-  --text-muted: #5f6b7d;       /* 5.04:1 on canvas — #64748b was 4.44:1, under AA */
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --text-primary: #0b1220;     /* 17.8:1 on canvas */
+  --text-secondary: #465069;   /* 7.4:1 on canvas */
+  --text-muted: #5d6a7e;       /* 5.0:1 on canvas — #64748b was 4.44:1, under AA */
+  --text-inverse: #f8fafc;
 
-  /* Borders & elevation.
-     --border-subtle/-strong are DECORATIVE separators (card edges,
-     dividers) — WCAG 1.4.11 does not require 3:1 for these.
-     --border-interactive is for anything that delimits a CONTROL
-     (inputs, checkboxes, focus rings) where 3:1 IS required. */
-  --border-subtle: rgba(15, 23, 42, 0.10);
-  --border-strong: rgba(15, 23, 42, 0.18);
-  --border-interactive: #7e8b9c;   /* 3.47:1 on #fff, 3.23:1 on canvas */
+  /* ── Borders ──────────────────────────────────────────────────────────────
+     --border-subtle/-strong are DECORATIVE separators (card edges, dividers);
+     WCAG 1.4.11 does not require 3:1 for those. --border-interactive delimits a
+     CONTROL (inputs, checkboxes, focus rings) where 3:1 IS required. */
+  --border-subtle: rgba(15, 23, 42, 0.09);
+  --border-strong: rgba(15, 23, 42, 0.17);
+  --border-interactive: #7b8899;   /* 3.47:1 on #fff */
 
-  /* Shadows & Glass Effects */
-  --glass-blur: blur(12px);
-  --glass-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.08);
-  --inset-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* ── The four depth cues, as raw ingredients ──────────────────────────── */
+  --lift-key: rgba(255, 255, 255, 0.95);      /* specular top edge  */
+  --lift-edge: rgba(15, 23, 42, 0.07);        /* extruded thickness */
+  --lift-contact: rgba(15, 23, 42, 0.10);     /* ambient occlusion  */
+  --lift-ambient: rgba(15, 23, 42, 0.13);     /* the room           */
+  --rim-light: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
 
-  /* Fonts — served via next/font (see src/app/layout.tsx), not @import,
-     so there's no extra Google Fonts network round-trip / layout shift */
+  --glass-blur: blur(16px) saturate(1.6);
+  --glass-blur-heavy: blur(28px) saturate(1.8);
+
+  /* ── Elevation ladder ─────────────────────────────────────────────────────
+     e1 chips/inline · e2 cards · e3 hover/popovers · e4 sheets · e5 modals.
+     Read each line as: key light, extrusion, contact, ambient. */
+  --e0: none;
+  --e1:
+    inset 0 1px 0 var(--lift-key),
+    0 1px 0 var(--lift-edge),
+    0 1px 2px var(--lift-contact),
+    0 2px 6px -1px var(--lift-ambient);
+  --e2:
+    inset 0 1px 0 var(--lift-key),
+    0 1px 0 var(--lift-edge),
+    0 2px 4px -1px var(--lift-contact),
+    0 8px 20px -4px var(--lift-ambient);
+  --e3:
+    inset 0 1px 0 var(--lift-key),
+    0 2px 0 var(--lift-edge),
+    0 4px 8px -2px var(--lift-contact),
+    0 16px 36px -8px var(--lift-ambient);
+  --e4:
+    inset 0 1px 0 var(--lift-key),
+    0 3px 0 var(--lift-edge),
+    0 8px 16px -4px var(--lift-contact),
+    0 28px 60px -12px var(--lift-ambient);
+  --e5:
+    inset 0 1px 0 var(--lift-key),
+    0 4px 0 var(--lift-edge),
+    0 12px 24px -6px var(--lift-contact),
+    0 48px 100px -20px var(--lift-ambient);
+
+  /* Preserved alias — several unmigrated modules still reference it. */
+  --glass-shadow: var(--e2);
+  --inset-glow: inset 0 1px 0 var(--lift-key);
+
+  /* Recessed wells — the inverse cue set. Shadow enters from the TOP (the lip
+     casts inward) and the bounce light sits at the bottom. */
+  --inset-well:
+    inset 0 2px 4px rgba(15, 23, 42, 0.09),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.85);
+  --inset-well-deep:
+    inset 0 3px 8px rgba(15, 23, 42, 0.13),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.9);
+
+  /* ── Fonts — served via next/font (see layout.tsx), not @import, so there's
+     no extra Google Fonts round-trip or layout shift. */
   --font-heading: var(--font-outfit), sans-serif;
   --font-body: var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
   --font-urdu: var(--font-noto-arabic), sans-serif;
 
-  /* ============================================================
-     Legacy tokens — remapped to light. Several routes (inventory,
-     reports, settings, onboarding, whatsapp,
-     scan/genuine|simplified|unverified) still consume these; if they
-     kept their dark values those routes would render as dark islands
-     on a light canvas. The container ladder is inverted: "lowest"
-     is now the brightest surface, "highest" the most recessed.
-     ============================================================ */
+  /* ── Radius ───────────────────────────────────────────────────────────── */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 26px;
+  --r-2xl: 34px;
+  --r-pill: 999px;
+
+  /* ── Spacing (4pt rhythm) ─────────────────────────────────────────────── */
+  --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
+  --s-5: 20px;  --s-6: 24px;  --s-8: 32px;  --s-10: 40px;
+  --s-12: 48px; --s-16: 64px; --s-20: 80px;
+
+  /* ── Motion ───────────────────────────────────────────────────────────────
+     --ease-spring overshoots on purpose; it's what makes a press feel like it
+     rebounds off something solid rather than easing back. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-squish: cubic-bezier(0.5, -0.35, 0.35, 1.4);
+  --t-fast: 140ms;
+  --t-base: 240ms;
+  --t-slow: 420ms;
+
+  /* ── Layering ─────────────────────────────────────────────────────────── */
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-nav: 40;
+  --z-overlay: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+
+  /* ── Legacy Material-ish tokens ───────────────────────────────────────────
+     Several routes (inventory, reports, settings, onboarding, whatsapp,
+     scan/genuine|simplified|unverified) still consume these. The container
+     ladder is inverted relative to a dark theme: "lowest" is the BRIGHTEST
+     surface here, "highest" the most recessed. */
   --color-primary: #047857;
   --color-primary-container: #d1fae5;
   --color-on-primary: #ffffff;
@@ -94,22 +199,22 @@
   --color-on-error: #ffffff;
   --color-on-error-container: #881337;
 
-  --color-background: #f5f7fb;
-  --color-on-background: #0f172a;
+  --color-background: #eaeef6;
+  --color-on-background: #0b1220;
 
-  --color-surface: #f5f7fb;
-  --color-surface-dim: #f5f7fb;
+  --color-surface: #eaeef6;
+  --color-surface-dim: #dfe5f0;
   --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #f8fafc;
   --color-surface-container: #f1f5f9;
-  --color-surface-container-high: #e9eef5;
-  --color-surface-container-highest: #e2e8f0;
+  --color-surface-container-high: #e7edf5;
+  --color-surface-container-highest: #dde5ef;
 
-  --color-on-surface: #0f172a;
-  --color-on-surface-variant: #475069;
-  --color-inverse-surface: #0f172a;
-  --color-inverse-on-surface: #f5f7fb;
+  --color-on-surface: #0b1220;
+  --color-on-surface-variant: #465069;
+  --color-inverse-surface: #0b1220;
+  --color-inverse-on-surface: #eaeef6;
 
   --color-outline: #94a3b8;
   --color-outline-variant: #cbd5e1;
@@ -120,238 +225,195 @@
   --spacing-stack-sm: 8px;
   --spacing-stack-md: 16px;
   --spacing-stack-lg: 32px;
-
-  /* ============================================================
-     DEPTH SCALE
-     Colour-independent, so it layers onto the light palette above
-     without touching any of its audited contrast decisions.
-
-     On a light canvas depth cannot come from a glow — a coloured halo
-     over white is nearly invisible (see .glow-teal below). It comes from
-     three cues applied together at every raised surface:
-       1. a white specular top edge (light source sits above)
-       2. a soft slate ambient shadow (the "room")
-       3. a tight contact shadow (anchors the surface to what's below)
-     --e1..--e4 bundle all three. Use these instead of hand-rolled
-     shadows so elevation stays consistent across the app.
-     --glass-shadow above is preserved and equals --e2.
-     ============================================================ */
-  --e0: none;
-  --e1:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 1px 2px rgba(15, 23, 42, 0.05),
-    0 2px 6px rgba(15, 23, 42, 0.04);
-  --e2:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 8px 24px rgba(15, 23, 42, 0.08);
-  --e3:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 2px 4px rgba(15, 23, 42, 0.07),
-    0 16px 40px rgba(15, 23, 42, 0.11);
-  --e4:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 4px 8px rgba(15, 23, 42, 0.09),
-    0 32px 72px rgba(15, 23, 42, 0.16);
-
-  /* Recessed wells — inputs and progress tracks invert the elevation cue
-     so "type here" reads as physically different from "press me". */
-  --inset-well: inset 0 2px 4px rgba(15, 23, 42, 0.07);
-  --inset-well-deep: inset 0 2px 6px rgba(15, 23, 42, 0.10);
-
-  /* Radius */
-  --r-xs: 8px;
-  --r-sm: 12px;
-  --r-md: 16px;
-  --r-lg: 18px;
-  --r-xl: 24px;
-  --r-pill: 999px;
-
-  /* Spacing (4pt rhythm) */
-  --s-1: 4px;
-  --s-2: 8px;
-  --s-3: 12px;
-  --s-4: 16px;
-  --s-5: 20px;
-  --s-6: 24px;
-  --s-8: 32px;
-  --s-10: 40px;
-  --s-12: 48px;
-  --s-16: 64px;
-
-  /* Motion */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --t-fast: 140ms;
-  --t-base: 220ms;
-  --t-slow: 360ms;
-
-  /* Layering */
-  --z-raised: 10;
-  --z-sticky: 20;
-  --z-nav: 40;
-  --z-overlay: 100;
-  --z-modal: 200;
-  --z-toast: 300;
 }
 
-* {
-  box-sizing: border-box;
+/* ============================================================================
+   DARK THEME
+   Only values change — every recipe above is reused. Two inversions matter:
+   the extrusion edge becomes BLACK (a lit edge under a dark card would read as
+   a seam), and depth shifts from shadow to glow, because a black shadow on a
+   near-black canvas carries no information.
+   ============================================================================ */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-base: #070910;
+  --bg-sunken: #04050a;
+  --bg-surface: #10141f;
+  --bg-glass-card: rgba(148, 163, 200, 0.07);
+  --bg-glass-hover: rgba(148, 163, 200, 0.13);
+  --bg-glass-input: rgba(5, 7, 12, 0.6);
+  --bg-glass-input-solid: #0d111a;
+
+  /* Text-safe on dark now means BRIGHTER, so the vivid pair and the text pair
+     converge — a saturated cyan clears AA on #070910 where it failed on #fff. */
+  --cyan-glow: #22d3ee;        /* 9.4:1 on --bg-base  */
+  --purple-glow: #a78bfa;      /* 8.1:1 on --bg-base  */
+  --cyan-vivid: #22d3ee;
+  --purple-vivid: #a78bfa;
+  --magenta-vivid: #e879f9;
+
+  --liquid-primary-grad: linear-gradient(135deg, #0891b2 0%, #7c3aed 100%);
+  --liquid-primary-grad-text: linear-gradient(135deg, #22d3ee 0%, #a78bfa 100%);
+  --liquid-border-grad: linear-gradient(135deg, rgba(34, 211, 238, 0.55) 0%, rgba(167, 139, 250, 0.55) 100%);
+  --liquid-border-subtle: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 100%);
+  --prism-sweep: linear-gradient(120deg, #22d3ee 0%, #a78bfa 45%, #e879f9 100%);
+  --accent-glow-shadow: 0 8px 32px rgba(124, 58, 237, 0.4), 0 2px 14px rgba(34, 211, 238, 0.3);
+
+  --verdict-genuine: #34d399;
+  --verdict-genuine-bg: rgba(16, 185, 129, 0.14);
+  --verdict-genuine-border: rgba(52, 211, 153, 0.45);
+  --verdict-genuine-vivid: #10b981;
+  --verdict-suspicious: #fbbf24;
+  --verdict-suspicious-bg: rgba(245, 158, 11, 0.14);
+  --verdict-suspicious-border: rgba(251, 191, 36, 0.45);
+  --verdict-suspicious-vivid: #f59e0b;
+  --verdict-counterfeit: #fb7185;
+  --verdict-counterfeit-bg: rgba(244, 63, 94, 0.14);
+  --verdict-counterfeit-border: rgba(251, 113, 133, 0.45);
+  --verdict-counterfeit-vivid: #f43f5e;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #a9b6cc;
+  --text-muted: #8493ab;
+  --text-inverse: #0b1220;
+
+  --border-subtle: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-interactive: #64748b;
+
+  --lift-key: rgba(255, 255, 255, 0.14);
+  --lift-edge: rgba(0, 0, 0, 0.6);
+  --lift-contact: rgba(0, 0, 0, 0.55);
+  --lift-ambient: rgba(0, 0, 0, 0.6);
+  --rim-light: 0 0 0 1px rgba(255, 255, 255, 0.07) inset;
+
+  --inset-well:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --inset-well-deep:
+    inset 0 3px 10px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+
+  --color-primary: #34d399;
+  --color-primary-container: rgba(16, 185, 129, 0.18);
+  --color-on-primary: #04231a;
+  --color-on-primary-container: #a7f3d0;
+  --color-primary-fixed: rgba(16, 185, 129, 0.2);
+  --color-primary-fixed-dim: #10b981;
+  --color-inverse-primary: #047857;
+
+  --color-secondary: #fbbf24;
+  --color-secondary-container: rgba(245, 158, 11, 0.18);
+  --color-on-secondary: #2a1a02;
+  --color-on-secondary-container: #fde68a;
+
+  --color-error: #fb7185;
+  --color-error-container: rgba(244, 63, 94, 0.18);
+  --color-on-error: #2b040f;
+  --color-on-error-container: #fecdd3;
+
+  --color-background: #070910;
+  --color-on-background: #f1f5f9;
+
+  --color-surface: #070910;
+  --color-surface-dim: #04050a;
+  --color-surface-bright: #1c2233;
+  --color-surface-container-lowest: #05070c;
+  --color-surface-container-low: #0c1018;
+  --color-surface-container: #10141f;
+  --color-surface-container-high: #171d2b;
+  --color-surface-container-highest: #1f2637;
+
+  --color-on-surface: #f1f5f9;
+  --color-on-surface-variant: #a9b6cc;
+  --color-inverse-surface: #f1f5f9;
+  --color-inverse-on-surface: #070910;
+
+  --color-outline: #64748b;
+  --color-outline-variant: #334155;
+}
+
+/* ============================================================================
+   BASE
+   ============================================================================ */
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
+  margin: 0;
+  /* dvh, not vh — 100vh sits under mobile browser chrome */
+  min-height: 100dvh;
+  overflow-x: hidden;
   background-color: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-body);
-  margin: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
-  /* Atmosphere kept but dialled right down — at the dark theme's 0.08
-     these tinted washes read as smudges/dirt on a light canvas. */
-  background-image:
-    radial-gradient(circle at 15% 20%, rgba(0, 145, 194, 0.05) 0%, transparent 45%),
-    radial-gradient(circle at 85% 75%, rgba(109, 40, 217, 0.05) 0%, transparent 45%);
-  background-attachment: fixed;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Atmosphere ───────────────────────────────────────────────────────────────
+   Three fixed layers under all content, painted on ::before/::after so no page
+   has to render its own orbs:
+     ::before  a slow-drifting aurora mesh — the "prism" the rim light implies
+     ::after   a fine grain, which is what stops large gradients from banding
+   Both are pointer-events:none and sit at z-index 0; page content lives above.
+   Kept deliberately faint in light mode — at dark-theme opacity these tinted
+   washes read as smudges on a light canvas. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 12% 18%, rgba(8, 145, 178, 0.16) 0%, transparent 68%),
+    radial-gradient(34% 38% at 88% 26%, rgba(124, 58, 237, 0.14) 0%, transparent 68%),
+    radial-gradient(42% 40% at 72% 84%, rgba(217, 70, 239, 0.10) 0%, transparent 68%),
+    radial-gradient(36% 36% at 24% 78%, rgba(16, 185, 129, 0.09) 0%, transparent 68%);
+  filter: blur(20px);
+  animation: aurora-drift 34s ease-in-out infinite alternate;
+}
+
+[data-theme='dark'] body::before {
+  background:
+    radial-gradient(38% 42% at 12% 18%, rgba(8, 145, 178, 0.3) 0%, transparent 68%),
+    radial-gradient(34% 38% at 88% 26%, rgba(124, 58, 237, 0.28) 0%, transparent 68%),
+    radial-gradient(42% 40% at 72% 84%, rgba(217, 70, 239, 0.18) 0%, transparent 68%),
+    radial-gradient(36% 36% at 24% 78%, rgba(16, 185, 129, 0.16) 0%, transparent 68%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+[data-theme='dark'] body::after { opacity: 0.28; }
+
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2%, -2.5%, 0) scale(1.08); }
+  100% { transform: translate3d(-2%, 2%, 0) scale(1.04); }
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   margin: 0;
-}
-
-p {
-  margin: 0;
-}
-
-/* ============================================================
-   Liquid Glass utilities
-   ============================================================ */
-.liquid-glass {
-  background: var(--bg-glass-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-radius: 18px;
-  /* A white border on a white card is invisible — this single line is
-     what makes the light theme read as layered rather than flat. */
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--glass-shadow), var(--inset-glow);
-}
-
-.liquid-glass-gradient-border {
-  background: var(--bg-glass-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-radius: 18px;
-  position: relative;
-  box-shadow: var(--glass-shadow);
-}
-
-.liquid-glass-gradient-border::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  padding: 1px;
-  background: var(--liquid-border-grad);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* ============================================================
-   Legacy glass utilities — kept for unmigrated routes
-   ============================================================ */
-.glass-panel {
-  background: var(--bg-glass-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
-}
-
-.glass-modal {
-  background: var(--bg-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-strong);
-  border-radius: 0.75rem;
-  box-shadow: var(--glass-shadow);
-}
-
-/* Glows do not read on a light canvas — a coloured halo over white is
-   nearly invisible. These now lift with a shadow + tinted border instead. */
-.glow-teal {
-  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.14);
-  border: 1px solid var(--verdict-genuine-border);
-}
-
-.glow-amber {
-  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.14);
-  border: 1px solid var(--verdict-suspicious-border);
-}
-
-.glow-button {
-  transition: box-shadow 0.2s ease, transform 0.1s ease, border-color 0.2s ease;
-}
-
-.glow-button:hover {
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
-  border-color: var(--border-interactive);
-}
-
-.glow-button:active {
-  transform: scale(0.95);
-}
-
-/* Typography Utilities */
-.text-label-caps {
-  font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.text-body-md {
-  font-size: 16px;
-  line-height: 24px;
-}
-
-.text-headline-md {
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 600;
-}
-
-.text-headline-lg {
-  font-size: 32px;
-  line-height: 40px;
   letter-spacing: -0.02em;
-  font-weight: 700;
 }
 
-.text-primary { color: var(--color-primary); }
-.text-secondary { color: var(--color-secondary); }
-.text-error { color: var(--color-error); }
-.text-on-surface { color: var(--color-on-surface); }
-.text-on-surface-variant { color: var(--color-on-surface-variant); }
-
-.bg-primary { background-color: var(--color-primary); }
-.bg-error-container { background-color: var(--color-error-container); }
-.bg-secondary-container { background-color: var(--color-secondary-container); }
-
-/* ============================================================
-   DEPTH & MOTION LAYER
-   Built on the light palette's own tokens — adds dimension and
-   interaction feedback without redefining any colour.
-   ============================================================ */
-
-html { -webkit-text-size-adjust: 100%; }
-
-/* dvh accounts for mobile browser chrome, which 100vh does not */
-body { min-height: 100dvh; }
+p { margin: 0; }
 
 /* Numeric columns must not jitter as values change */
 .tabular,
@@ -360,18 +422,25 @@ body { min-height: 100dvh; }
   font-feature-settings: 'tnum' 1;
 }
 
-/* Upstream ships no visible focus ring. --cyan-glow is 5.00:1 on white,
-   comfortably clearing the 3:1 WCAG 1.4.11 bar for a focus indicator. */
+/* Upstream shipped no visible focus ring. --cyan-glow clears the 3:1 WCAG
+   1.4.11 bar for a focus indicator in both themes. */
 :where(a, button, [role='button'], input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--cyan-glow);
-  outline-offset: 2px;
+  outline-offset: 3px;
   border-radius: var(--r-xs);
 }
 
-/* ── Surfaces ─────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(124, 58, 237, 0.25);
+  color: var(--text-primary);
+}
 
-/* `--surface-elevation` lets a caller re-elevate without redeclaring the
-   whole recipe: <div class="surface" style="--surface-elevation:var(--e3)"> */
+/* ============================================================================
+   SURFACES
+   ============================================================================ */
+
+/* `--surface-elevation` lets a caller re-elevate without redeclaring the whole
+   recipe:  <div class="surface" style="--surface-elevation:var(--e4)"> */
 .surface {
   position: relative;
   background: var(--bg-glass-card);
@@ -385,9 +454,44 @@ body { min-height: 100dvh; }
 .surface-flat   { --surface-elevation: var(--e1); }
 .surface-raised { --surface-elevation: var(--e3); }
 .surface-float  { --surface-elevation: var(--e4); }
+.surface-modal  { --surface-elevation: var(--e5); }
 
-/* Diagonal specular sweep — suggests a glossy plane catching light.
-   Kept far weaker than the dark theme's: white-on-white needs only a hint. */
+/* Recessed plane — for anything the eye should read as cut INTO the page:
+   input wells, progress tracks, code blocks, empty states. */
+.sunken {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  box-shadow: var(--inset-well);
+}
+
+/* ── Rim light ────────────────────────────────────────────────────────────────
+   The system's signature. A 1px chromatic gradient border drawn with a
+   mask-composite trick (a plain gradient `border` isn't possible in CSS). It
+   fires strongest at the top-left, where the implied key light hits. */
+.rim {
+  position: relative;
+}
+.rim::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--liquid-border-grad);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.75;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+.rim:hover::before { opacity: 1; }
+
+/* Diagonal specular sweep — the surface reading as a glossy plane catching
+   light. Far weaker in light mode: white-on-white needs only a hint. */
+.sheen::after,
 .surface-sheen::after {
   content: '';
   position: absolute;
@@ -396,14 +500,89 @@ body { min-height: 100dvh; }
   pointer-events: none;
   background: linear-gradient(
     145deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.12) 30%,
-    transparent 55%
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.1) 28%,
+    transparent 52%
+  );
+}
+[data-theme='dark'] .sheen::after,
+[data-theme='dark'] .surface-sheen::after {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.03) 28%,
+    transparent 52%
   );
 }
 
-/* Interactive lift — hover raises toward the viewer, press pushes past rest
-   for a physical rebound. Transform-only, so it never triggers layout. */
+/* ============================================================================
+   3D — REAL PERSPECTIVE
+   Not a faked offset: .scene establishes a vanishing point and .plate keeps its
+   children in the same 3D space, so .depth-* layers genuinely separate in Z and
+   parallax against each other as the plate rotates.
+   ============================================================================ */
+
+.scene {
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+}
+
+.plate {
+  transform-style: preserve-3d;
+  /* --rx/--ry/--tz are written by Tilt3D on pointer move; the defaults keep the
+     plate flat and usable when JS hasn't run or is disabled. */
+  transform:
+    rotateX(var(--rx, 0deg))
+    rotateY(var(--ry, 0deg))
+    translateZ(var(--tz, 0px));
+  transition: transform var(--t-base) var(--ease-out);
+  will-change: transform;
+}
+
+.depth-1 { transform: translateZ(18px); transform-style: preserve-3d; }
+.depth-2 { transform: translateZ(38px); transform-style: preserve-3d; }
+.depth-3 { transform: translateZ(64px); transform-style: preserve-3d; }
+
+/* Moving spotlight — Tilt3D writes --mx/--my as percentages of the element, so
+   the highlight tracks the cursor across the surface like a real reflection.
+   Deliberately on ::after, because .rim owns ::before and the two are designed
+   to be composed on the same element. .sheen also uses ::after, so pick one of
+   sheen/spotlight per element — a static gloss and a tracking one on the same
+   surface would read as two conflicting light sources anyway. */
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-out);
+  background: radial-gradient(
+    circle 220px at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.55),
+    transparent 65%
+  );
+}
+.spotlight:hover::after { opacity: 1; }
+[data-theme='dark'] .spotlight::after {
+  background: radial-gradient(
+    circle 220px at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.1),
+    transparent 65%
+  );
+}
+
+/* Legacy aliases from the previous system */
+.tilt { perspective: 1400px; transform-style: preserve-3d; }
+.tilt-layer { transform: translateZ(38px); transform-style: preserve-3d; }
+
+/* ============================================================================
+   INTERACTION PHYSICS
+   Transform + shadow only, so none of this triggers layout.
+   ============================================================================ */
+
+/* Hover raises toward the viewer; press travels BELOW rest and collapses the
+   shadow, which is what sells the surface as a physical object being pushed. */
 .lift {
   transition:
     transform var(--t-base) var(--ease-out),
@@ -412,61 +591,234 @@ body { min-height: 100dvh; }
     background-color var(--t-base) var(--ease-out);
 }
 .lift:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   border-color: var(--border-strong);
   box-shadow: var(--e3);
 }
 .lift:active {
-  transform: translateY(0) scale(0.985);
+  transform: translateY(1px) scale(0.985);
   box-shadow: var(--e1);
   transition-duration: var(--t-fast);
 }
 
-/* Perspective container: children on their own Z planes get real parallax
-   rather than a faked offset. */
-.tilt { perspective: 1200px; transform-style: preserve-3d; }
-.tilt-layer { transform: translateZ(40px); transform-style: preserve-3d; }
+/* Deformable press — the button squashes on the axis it's pushed along and
+   springs past rest on release. --ease-squish is what makes it read as
+   material rather than as a scale tween. */
+.squish {
+  transition: transform var(--t-fast) var(--ease-squish), box-shadow var(--t-base) var(--ease-out);
+}
+.squish:active {
+  transform: scale(0.94, 0.9);
+}
+
+/* ============================================================================
+   GLASS UTILITIES (compat surface for unmigrated routes)
+   ============================================================================ */
+
+.liquid-glass {
+  position: relative;
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--r-lg);
+  /* A white border on a white card is invisible — this single line is what
+     makes the light theme read as layered rather than flat. */
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--e2);
+}
+
+.liquid-glass-gradient-border {
+  position: relative;
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+}
+.liquid-glass-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--liquid-border-grad);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.glass-panel {
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  box-shadow: var(--e1);
+}
+
+.glass-modal {
+  background: var(--bg-surface);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-xl);
+  box-shadow: var(--e5);
+}
+
+/* Scrim strong enough to isolate foreground content in both themes */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgba(6, 9, 16, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Coloured halos are nearly invisible over white, so in light mode these lift
+   with a shadow + tinted border instead of an actual glow. */
+.glow-teal {
+  box-shadow: 0 6px 20px rgba(4, 120, 87, 0.18), var(--e1);
+  border: 1px solid var(--verdict-genuine-border);
+}
+.glow-amber {
+  box-shadow: 0 6px 20px rgba(180, 83, 9, 0.18), var(--e1);
+  border: 1px solid var(--verdict-suspicious-border);
+}
+[data-theme='dark'] .glow-teal { box-shadow: 0 0 28px rgba(16, 185, 129, 0.3), var(--e2); }
+[data-theme='dark'] .glow-amber { box-shadow: 0 0 28px rgba(245, 158, 11, 0.3), var(--e2); }
+
+.glow-button {
+  transition:
+    box-shadow var(--t-base) var(--ease-out),
+    transform var(--t-fast) var(--ease-out),
+    border-color var(--t-base) var(--ease-out);
+}
+.glow-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--e3);
+  border-color: var(--border-interactive);
+}
+.glow-button:active { transform: translateY(1px) scale(0.97); }
+
+/* ============================================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================================ */
+
+.text-label-caps {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.text-body-md { font-size: 16px; line-height: 24px; }
+.text-headline-md { font-size: 24px; line-height: 32px; font-weight: 600; }
+.text-headline-lg {
+  font-size: clamp(28px, 4vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
 
 .text-gradient {
-  /* the -text variant: the plain gradient fails AA as text (see :root) */
+  /* the -text variant: the vivid gradient fails AA as text (see :root) */
   background: var(--liquid-primary-grad-text);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* ── Entrance motion ──────────────────────────────────────────────────── */
+/* Extruded display type — a stack of offset shadows gives the glyphs real
+   thickness, then a soft drop grounds them. Headings only; unreadable at
+   body sizes. */
+.text-extruded {
+  color: var(--text-primary);
+  text-shadow:
+    0 1px 0 var(--lift-edge),
+    0 2px 0 var(--lift-edge),
+    0 3px 0 var(--lift-edge),
+    0 6px 14px var(--lift-ambient);
+}
+
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-error { color: var(--color-error); }
+.text-on-surface { color: var(--color-on-surface); }
+.text-on-surface-variant { color: var(--color-on-surface-variant); }
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-error-container { background-color: var(--color-error-container); }
+.bg-secondary-container { background-color: var(--color-secondary-container); }
+
+/* ============================================================================
+   MOTION
+   ============================================================================ */
+
 @keyframes rise-in {
-  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.985); }
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.97); }
   to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 @keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scale-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 @keyframes shimmer  { from { background-position: -180% 0; } to { background-position: 180% 0; } }
 @keyframes pulse-ring {
   0%   { transform: scale(0.94); opacity: 0.6; }
-  70%  { transform: scale(1.18); opacity: 0; }
-  100% { transform: scale(1.18); opacity: 0; }
+  70%  { transform: scale(1.2); opacity: 0; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+/* Entrance that arrives out of depth rather than from offscreen */
+@keyframes depth-in {
+  from { opacity: 0; transform: perspective(1000px) translate3d(0, 24px, -140px) rotateX(9deg); }
+  to   { opacity: 1; transform: perspective(1000px) translate3d(0, 0, 0) rotateX(0deg); }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+@keyframes prism-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .animate-rise  { animation: rise-in var(--t-slow) var(--ease-out) both; }
 .animate-fade  { animation: fade-in var(--t-base) var(--ease-out) both; }
 .animate-scale { animation: scale-in var(--t-base) var(--ease-spring) both; }
+.animate-depth { animation: depth-in var(--t-slow) var(--ease-out) both; }
+.animate-float { animation: float-y 6s ease-in-out infinite; }
 
-/* Staggered entrance — 50ms cadence reads as a wave without dragging */
+/* Prism text that slowly cycles its hue. Decorative headings only. */
+.animate-prism {
+  background: var(--prism-sweep);
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: prism-shift 9s ease-in-out infinite;
+}
+
+/* Staggered entrance — 55ms reads as a wave without dragging */
 .stagger > * { animation: rise-in var(--t-slow) var(--ease-out) both; }
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 50ms; }
-.stagger > *:nth-child(3) { animation-delay: 100ms; }
-.stagger > *:nth-child(4) { animation-delay: 150ms; }
-.stagger > *:nth-child(5) { animation-delay: 200ms; }
-.stagger > *:nth-child(6) { animation-delay: 250ms; }
-.stagger > *:nth-child(7) { animation-delay: 300ms; }
-.stagger > *:nth-child(8) { animation-delay: 350ms; }
-.stagger > *:nth-child(n + 9) { animation-delay: 400ms; }
+.stagger > *:nth-child(2) { animation-delay: 55ms; }
+.stagger > *:nth-child(3) { animation-delay: 110ms; }
+.stagger > *:nth-child(4) { animation-delay: 165ms; }
+.stagger > *:nth-child(5) { animation-delay: 220ms; }
+.stagger > *:nth-child(6) { animation-delay: 275ms; }
+.stagger > *:nth-child(7) { animation-delay: 330ms; }
+.stagger > *:nth-child(8) { animation-delay: 385ms; }
+.stagger > *:nth-child(n + 9) { animation-delay: 440ms; }
 
 .skeleton {
-  background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container) 25%,
+    var(--color-surface-container-low) 50%,
+    var(--color-surface-container) 75%
+  );
   background-size: 220% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--r-sm);
@@ -482,17 +834,11 @@ body { min-height: 100dvh; }
   border: 0;
 }
 
-/* ── Depth applied to the existing glass utilities ────────────────────── */
-.liquid-glass { box-shadow: var(--e2); }
-.liquid-glass-gradient-border { box-shadow: var(--e2); }
-.glass-modal { box-shadow: var(--e4); }
-
-/* ============================================================
-   Reduced motion — upstream shipped no guard, so this is the
-   safety net for every animation in the app. Ambient/decorative
-   motion is stripped; state changes stay perceptible but near
-   instant, so no affordance is ever removed.
-   ============================================================ */
+/* ============================================================================
+   REDUCED MOTION
+   Ambient and decorative motion is stripped entirely; state changes stay
+   perceptible but near-instant, so no affordance is ever removed.
+   ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -502,7 +848,11 @@ body { min-height: 100dvh; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .lift:hover { transform: none; }
+  html { scroll-behavior: auto; }
+  body::before { animation: none; }
+  .lift:hover,
+  .squish:active,
+  .plate { transform: none !important; }
 }
 
 /* Backdrop-filter is still unsupported in a few engines; fall back to opaque
@@ -510,7 +860,12 @@ body { min-height: 100dvh; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root {
     --bg-glass-card: #ffffff;
-    --bg-glass-hover: #f1f5f9;
+    --bg-glass-hover: #eef2f9;
     --bg-glass-input: #ffffff;
+  }
+  [data-theme='dark'] {
+    --bg-glass-card: #10141f;
+    --bg-glass-hover: #1f2637;
+    --bg-glass-input: #0d111a;
   }
 }

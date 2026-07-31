@@ -1,269 +1,518 @@
+/* ============================================================================
+   Landing page. The atmosphere (aurora mesh + grain) is painted globally by
+   body::before/::after, so this file draws no background of its own — it only
+   has to stay above it, which every section does via position:relative.
+   ============================================================================ */
+
 .page {
-  min-height: 100vh;
   position: relative;
-  overflow: hidden;
+  min-height: 100dvh;
   font-family: var(--font-body);
 }
 
-/* Animated BG */
-.bgGradient {
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse at 20% 50%, rgba(0, 119, 168, 0.07) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 20%, rgba(109, 40, 217, 0.07) 0%, transparent 50%),
-              var(--bg-base);
-  z-index: 0;
-}
-.bgOrb1 {
-  position: fixed;
-  top: -10rem;
-  left: -10rem;
-  width: 40rem;
-  height: 40rem;
-  background: radial-gradient(circle, rgba(0, 119, 168, 0.08) 0%, transparent 70%);
-  animation: drift1 12s ease-in-out infinite;
-  z-index: 0;
-}
-.bgOrb2 {
-  position: fixed;
-  bottom: -10rem;
-  right: -5rem;
-  width: 30rem;
-  height: 30rem;
-  background: radial-gradient(circle, rgba(109, 40, 217, 0.07) 0%, transparent 70%);
-  animation: drift2 15s ease-in-out infinite;
-  z-index: 0;
-}
-.bgOrb3 {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 50rem;
-  height: 30rem;
-  background: radial-gradient(ellipse, rgba(4, 120, 87, 0.03) 0%, transparent 70%);
-  z-index: 0;
-}
-
-@keyframes drift1 {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(40px, 30px); }
-}
-@keyframes drift2 {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(-30px, -20px); }
-}
-
-.header {
+/* Every section sits on the same stacking plane, above the global atmosphere. */
+.header,
+.hero,
+.showcase,
+.features,
+.ctaBanner,
+.footer {
   position: relative;
-  z-index: 10;
+  z-index: 1;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-6);
+  padding-top: max(var(--s-4), env(safe-area-inset-top));
+  background: color-mix(in srgb, var(--bg-base) 70%, transparent);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(245, 247, 251, 0.4);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 0 var(--lift-key) inset;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--s-2);
   font-family: var(--font-heading);
   font-size: 24px;
   font-weight: 700;
-  background: var(--liquid-primary-grad);
+  letter-spacing: -0.025em;
+  background: var(--liquid-primary-grad-text);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  letter-spacing: -0.01em;
 }
+
+/* The mark keeps a real colour — a gradient-clipped glyph at this size
+   turns to mush, and the shield is the brand's anchor. */
 .logo .material-symbols-outlined {
   color: var(--cyan-glow);
+  -webkit-text-fill-color: var(--cyan-glow);
 }
 
-.nav { display: flex; align-items: center; gap: 1rem; }
-
-.adminNavLink {
+.nav {
   display: flex;
   align-items: center;
+  gap: var(--s-2);
+}
+
+.adminNavLink {
+  display: none;
+  align-items: center;
   gap: 0.35rem;
-  padding: 0.5rem 0.25rem;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-xs);
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.2s ease;
   white-space: nowrap;
-}
-.adminNavLink:hover {
-  color: var(--cyan-glow);
-}
-.adminNavLink .material-symbols-outlined {
-  font-size: 16px;
+  transition: color var(--t-base) var(--ease-out), background-color var(--t-base) var(--ease-out);
 }
 
-/* Hero */
+/* Hidden on phones: five controls in a 375px header is a mis-tap generator,
+   and the admin portal is not a consumer destination. */
+@media (min-width: 640px) {
+  .adminNavLink { display: flex; }
+}
+
+.adminNavLink:hover {
+  color: var(--cyan-glow);
+  background: var(--bg-glass-hover);
+}
+
+.adminNavLink .material-symbols-outlined { font-size: 18px; }
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
 .hero {
-  position: relative;
-  z-index: 5;
-  text-align: center;
-  padding: 5rem 1.25rem 3rem;
-  max-width: 800px;
+  display: grid;
+  gap: var(--s-12);
+  align-items: center;
+  max-width: 1180px;
   margin: 0 auto;
+  padding: var(--s-16) var(--s-5) var(--s-12);
+}
+
+@media (min-width: 980px) {
+  .hero {
+    grid-template-columns: 1.05fr 0.95fr;
+    padding-top: var(--s-20);
+  }
+}
+
+.heroCopy {
+  text-align: center;
+}
+
+@media (min-width: 980px) {
+  .heroCopy { text-align: left; }
 }
 
 .heroBadge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  margin-bottom: var(--s-6);
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--r-pill);
   background: var(--bg-glass-card);
-  border: 1px solid rgba(0, 119, 168, 0.25);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--e1);
   color: var(--cyan-glow);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  padding: 0.35rem 1rem;
-  border-radius: 9999px;
-  margin-bottom: 2rem;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .heroTitle {
+  margin-bottom: var(--s-5);
   font-family: var(--font-heading);
-  font-size: clamp(36px, 6vw, 64px);
+  font-size: clamp(38px, 7vw, 68px);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   color: var(--text-primary);
-  margin-bottom: 1.5rem;
 }
 
 .heroAccent {
-  background: var(--liquid-primary-grad);
+  background: var(--prism-sweep);
+  background-size: 220% 220%;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  color: transparent;
+  animation: heroPrism 9s ease-in-out infinite;
+}
+
+@keyframes heroPrism {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .heroSubtitle {
+  max-width: 54ch;
+  margin: 0 auto var(--s-3);
   font-size: 18px;
-  line-height: 28px;
+  line-height: 1.6;
   color: var(--text-secondary);
-  margin-bottom: 0.75rem;
-  max-width: 560px;
-  margin-left: auto;
-  margin-right: auto;
+}
+
+@media (min-width: 980px) {
+  .heroSubtitle { margin-inline: 0; }
 }
 
 .heroUrdu {
+  margin-bottom: var(--s-8);
   font-family: var(--font-urdu);
   font-size: 18px;
-  line-height: 32px;
-  color: var(--text-secondary);
+  /* Naskh clips at Latin leading. */
+  line-height: 2;
   direction: rtl;
-  margin-bottom: 2.5rem;
-  opacity: 0.8;
+  color: var(--text-muted);
 }
 
 .heroCta {
   display: flex;
-  gap: 1rem;
+  gap: var(--s-3);
   justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: 4rem;
+  margin-bottom: var(--s-10);
 }
 
-/* Stats */
+@media (min-width: 980px) {
+  .heroCta { justify-content: flex-start; }
+}
+
 .statsRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1.25rem;
-  max-width: 640px;
-  margin: 0 auto;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s-4);
 }
 
-/* Features */
-.features {
-  position: relative;
-  z-index: 5;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
-  padding: 0 2rem 4rem;
-  max-width: 1100px;
-  margin: 0 auto;
+/* ── Hero showcase ───────────────────────────────────────────────────────────
+   A mock scan result rendered as a genuine 3D stack: the scene owns the
+   vanishing point, the card tips inside it, and the three chips live on
+   separate Z planes so they parallax against the card face as it rotates.
+   Decorative — aria-hidden in the markup. */
+.showcase {
+  display: none;
 }
+
+@media (min-width: 980px) {
+  .showcase {
+    display: block;
+    perspective: 1500px;
+  }
+}
+
+.showcaseCard {
+  position: relative;
+  padding: var(--s-8) var(--s-6);
+  border-radius: var(--r-2xl);
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  box-shadow: var(--e5);
+  /* Resting tilt, so the card reads as dimensional before the pointer ever
+     touches it. Tilt3D overwrites --rx/--ry on hover. */
+  --rx: 4deg;
+  --ry: -9deg;
+}
+
+.showcaseGlow {
+  position: absolute;
+  inset: -12%;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--liquid-primary-grad);
+  filter: blur(70px);
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.showcaseHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+
+.showcaseLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.showcaseVerdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--r-pill);
+  background: var(--verdict-genuine-bg);
+  border: 1px solid var(--verdict-genuine-border);
+  color: var(--verdict-genuine);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: var(--e1);
+}
+
+/* The scan target — a recessed viewport with a sweeping laser line, which is
+   the one place in the app where a well is meant to read as a camera aperture
+   rather than a text field. */
+.showcaseScreen {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 190px;
+  border-radius: var(--r-lg);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well-deep);
+  overflow: hidden;
+}
+
+.showcaseScreen .material-symbols-outlined {
+  font-size: 82px;
+  color: var(--cyan-glow);
+  opacity: 0.55;
+}
+
+.scanLine {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, transparent, var(--cyan-vivid), transparent);
+  box-shadow: 0 0 16px 2px var(--cyan-vivid);
+  animation: scanSweep 2.8s var(--ease-out) infinite;
+}
+
+@keyframes scanSweep {
+  0%   { top: 12%; opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 88%; opacity: 0; }
+}
+
+.showcaseRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+}
+
+.showcaseRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--r-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--e1);
+  font-size: 13px;
+}
+
+.showcaseRowKey {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.showcaseRowValue {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Chips break out past the card's edge and float on their own Z planes — the
+   detail that makes the stack read as depth rather than a drop shadow. */
+.floatChip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--r-pill);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--e4);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.floatChip .material-symbols-outlined { font-size: 16px; }
+
+.chipTopLeft {
+  top: -18px;
+  left: -28px;
+  transform: translateZ(70px);
+  color: var(--verdict-genuine);
+  animation: chipFloat 7s ease-in-out infinite;
+}
+
+.chipRight {
+  top: 42%;
+  right: -34px;
+  transform: translateZ(96px);
+  color: var(--cyan-glow);
+  animation: chipFloat 8.5s ease-in-out infinite reverse;
+}
+
+.chipBottom {
+  bottom: -20px;
+  left: 18%;
+  transform: translateZ(56px);
+  color: var(--purple-glow);
+  animation: chipFloat 6.2s ease-in-out infinite 0.6s;
+}
+
+/* translateZ has to be restated inside the keyframes: a transform on the
+   element is REPLACED by the animated one, so omitting Z would flatten the
+   chip onto the card face the moment the animation starts. */
+@keyframes chipFloat {
+  0%, 100% { transform: translateZ(var(--chip-z, 70px)) translateY(0); }
+  50%      { transform: translateZ(var(--chip-z, 70px)) translateY(-11px); }
+}
+
+.chipTopLeft { --chip-z: 70px; }
+.chipRight   { --chip-z: 96px; }
+.chipBottom  { --chip-z: 56px; }
+
+/* ── Features ───────────────────────────────────────────────────────────── */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--s-5);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--s-6) var(--s-16);
+}
+
+.featureScene { perspective: 1000px; }
 
 .featureCard {
-  padding: 1.75rem 1.5rem;
-  transition: all 0.2s ease;
-}
-.featureCard:hover {
-  background: var(--bg-glass-hover);
-  transform: translateY(-2px);
+  position: relative;
+  height: 100%;
+  padding: var(--s-6);
+  border-radius: var(--r-lg);
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--e2);
+  overflow: hidden;
+  transition: box-shadow var(--t-base) var(--ease-out), transform var(--t-base) var(--ease-out);
 }
 
+.featureCard:hover { box-shadow: var(--e4); }
+
+/* --tint is set per card from the feature's own accent colour, so the wash and
+   the icon chip always agree without hardcoding four variants here. */
 .featureIcon {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
-  font-size: 24px;
+  width: 3.1rem;
+  height: 3.1rem;
+  margin-bottom: var(--s-4);
+  border-radius: var(--r-md);
+  color: #ffffff;
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--tint, var(--cyan-vivid)) 100%, white 18%) 0%,
+    var(--tint, var(--cyan-vivid)) 100%);
+  box-shadow:
+    var(--e2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.2);
 }
-.featureIcon .material-symbols-outlined { font-size: 24px; }
+
+.featureIcon .material-symbols-outlined { font-size: 26px; }
 
 .featureTitle {
+  margin-bottom: var(--s-2);
   font-family: var(--font-heading);
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-.featureDesc {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 22px;
 }
 
-/* CTA Banner */
+.featureDesc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ── CTA banner ─────────────────────────────────────────────────────────── */
 .ctaBanner {
-  position: relative;
-  z-index: 5;
-  text-align: center;
-  padding: 4rem 1.25rem;
-  background: rgba(0, 119, 168, 0.05);
-  border-top: 1px solid rgba(0, 119, 168, 0.1);
-  border-bottom: 1px solid rgba(0, 119, 168, 0.1);
-  margin-bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-}
-.ctaTitle {
-  font-family: var(--font-heading);
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.75rem;
-}
-.ctaDesc {
-  font-size: 16px;
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
+  text-align: center;
+  max-width: 1180px;
+  margin: 0 auto var(--s-16);
+  padding: var(--s-16) var(--s-6);
+  border-radius: var(--r-2xl);
+  background:
+    radial-gradient(80% 120% at 50% -20%, rgba(124, 58, 237, 0.18) 0%, transparent 65%),
+    var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--e3);
 }
 
+.ctaTitle {
+  margin-bottom: var(--s-3);
+  font-family: var(--font-heading);
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.ctaDesc {
+  max-width: 52ch;
+  margin-bottom: var(--s-8);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
 .footer {
-  position: relative;
-  z-index: 5;
+  padding: var(--s-8) var(--s-6);
+  padding-bottom: max(var(--s-8), env(safe-area-inset-bottom));
   text-align: center;
-  padding: 2rem;
-  color: var(--text-muted);
   font-size: 13px;
+  color: var(--text-muted);
   border-top: 1px solid var(--border-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroAccent,
+  .scanLine,
+  .chipTopLeft,
+  .chipRight,
+  .chipBottom { animation: none; }
+  .scanLine { top: 50%; opacity: 1; }
 }

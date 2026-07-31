@@ -1,65 +1,98 @@
+/* Floating dock. Detaching it from the screen edge and giving it the top of the
+   elevation scale is what makes it read as hovering above the content rather
+   than welded to the bottom of the viewport. */
+
 .nav {
   position: fixed;
-  bottom: 0.75rem;
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 60;
+  z-index: var(--z-nav);
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.5rem;
-  background: var(--bg-glass-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-subtle);
-  border-radius: 20px;
-  box-shadow: var(--glass-shadow), var(--inset-glow);
   width: calc(100% - 1.5rem);
-  max-width: 420px;
+  max-width: 430px;
+  padding: 0.4rem;
+  border-radius: var(--r-xl);
+  background: var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--e4);
+}
+
+/* Chromatic rim, so the dock catches the same ambient prism as every other
+   raised surface instead of looking like a plain grey bar. */
+.nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--liquid-border-grad);
+  opacity: 0.5;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {
-  .nav {
-    display: none;
-  }
+  .nav { display: none; }
 }
 
+/* 52px keeps every destination above the 44px touch-target minimum */
 .link {
   position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.15rem;
-  padding: 0.55rem 0.25rem;
+  min-height: 52px;
+  padding: 0.5rem 0.25rem;
+  border-radius: var(--r-md);
   color: var(--text-muted);
   text-decoration: none;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  border-radius: 14px;
-  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color var(--t-base) var(--ease-out),
+    transform var(--t-fast) var(--ease-squish);
 }
 
-.linkActive {
-  color: #ffffff;
-}
+.link:active { transform: scale(0.92, 0.88); }
+
+.linkActive { color: #ffffff; }
 
 .linkActive .pill {
   opacity: 1;
   transform: scale(1);
 }
 
+/* The active indicator is an extruded solid that grows into place rather than
+   cross-fading, so the destination feels selected rather than merely
+   highlighted. Its inner bottom shadow gives the cap a curved top face. */
 .pill {
   position: absolute;
   inset: 0;
-  border-radius: 14px;
+  z-index: -1;
+  border-radius: var(--r-md);
   background: var(--liquid-primary-grad);
   opacity: 0;
-  transform: scale(0.85);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: -1;
-  box-shadow: var(--accent-glow-shadow);
+  transform: scale(0.8);
+  box-shadow:
+    var(--e2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+  transition:
+    opacity var(--t-base) var(--ease-out),
+    transform var(--t-base) var(--ease-spring);
 }
 
 .icon {
@@ -67,8 +100,8 @@
   line-height: 1;
 }
 
-/* Language switch sits outside the equal-width link row so the four nav
-   items keep their spacing; it only takes the width it needs. */
+/* Language switch sits outside the equal-width link row so the nav items keep
+   their spacing; it only takes the width it needs. */
 .langSlot {
   display: flex;
   align-items: center;
@@ -76,32 +109,6 @@
   padding-inline-start: 0.25rem;
   margin-inline-start: 0.25rem;
   border-inline-start: 1px solid var(--border-subtle);
-}
-
-/* ── Depth layer ───────────────────────────────────────────────────────────
-   Detaching the dock from the screen edge and giving it the top of the
-   elevation scale is what makes it read as hovering above the content
-   rather than welded to the bottom of the viewport. */
-.nav {
-  bottom: max(0.75rem, env(safe-area-inset-bottom));
-  box-shadow: var(--e4);
-}
-
-/* 52px keeps every destination above the 44px touch-target minimum */
-.link {
-  min-height: 52px;
-  -webkit-tap-highlight-color: transparent;
-  transition: color var(--t-base) var(--ease-out), transform var(--t-fast) var(--ease-out);
-}
-.link:active { transform: scale(0.94); }
-
-/* Spring-scaled indicator grows into place rather than cross-fading, so the
-   active destination feels selected rather than merely highlighted. */
-.pill {
-  box-shadow: var(--e2);
-  transition:
-    opacity var(--t-base) var(--ease-out),
-    transform var(--t-base) var(--ease-spring);
 }
 
 @media (prefers-reduced-motion: reduce) {

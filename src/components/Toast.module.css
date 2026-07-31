@@ -1,9 +1,12 @@
+/* Toasts float highest in the stack, so they take the top of the elevation
+   scale — that separation is what stops them reading as part of the page. */
+
 .viewport {
   position: fixed;
-  top: 1rem;
+  top: max(1rem, env(safe-area-inset-top));
   right: 1rem;
   left: 1rem;
-  z-index: 1000;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -25,45 +28,48 @@
   gap: 0.75rem;
   width: 100%;
   padding: 0.9rem 1rem;
+  border-radius: var(--r-md);
   background: var(--bg-glass-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-radius: 14px;
-  box-shadow: var(--glass-shadow), var(--inset-glow);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  box-shadow: var(--e5);
   pointer-events: auto;
-  animation: slideIn 0.25s ease-out;
   overflow: hidden;
+  /* Spring easing on entry: the toast overshoots slightly and settles, which
+     reads as something being tossed onto the stack. */
+  animation: toastIn var(--t-base) var(--ease-spring) both;
 }
 
+/* Status-coloured chromatic rim. Colour is never the only signal — each
+   variant also carries a distinct icon from the component. */
 .toast::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 14px;
+  border-radius: inherit;
   padding: 1px;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
 }
 
 .success::before {
-  background: linear-gradient(135deg, rgba(4, 120, 87, 0.7) 0%, rgba(0, 119, 168, 0.5) 100%);
+  background: linear-gradient(135deg, var(--verdict-genuine-vivid) 0%, var(--cyan-vivid) 100%);
 }
-
 .error::before {
-  background: linear-gradient(135deg, rgba(190, 18, 60, 0.7) 0%, rgba(109, 40, 217, 0.5) 100%);
+  background: linear-gradient(135deg, var(--verdict-counterfeit-vivid) 0%, var(--purple-vivid) 100%);
 }
-
 .info::before {
   background: var(--liquid-border-grad);
 }
 
 .icon {
   flex-shrink: 0;
+  margin-top: 0.1rem;
   font-size: 20px;
   line-height: 1;
-  margin-top: 0.1rem;
 }
 
 .success .icon { color: var(--verdict-genuine); }
@@ -74,62 +80,39 @@
   flex: 1;
   font-family: var(--font-body);
   font-size: 13.5px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--text-primary);
 }
 
+/* Visually 18px but a 32px hit area — meets the touch minimum without the
+   glyph looking oversized next to the message text. */
 .closeBtn {
-  flex-shrink: 0;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out);
 }
 
 .closeBtn:hover {
   color: var(--text-primary);
+  background: var(--bg-glass-hover);
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* ── Depth layer ───────────────────────────────────────────────────────────
-   Toasts float highest in the stack, so they take the top of the elevation
-   scale — that separation is what stops them reading as part of the page. */
-.toast {
-  box-shadow: var(--e4);
-  animation: toast-in var(--t-base) var(--ease-spring) both;
-}
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translate3d(0, -12px, 0) scale(0.96); }
+@keyframes toastIn {
+  from { opacity: 0; transform: translate3d(0, -14px, 0) scale(0.95); }
   to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
-
-/* Visually 18px but a 32px hit area — meets the touch-target minimum without
-   the glyph looking oversized next to the message text. */
-.closeBtn {
-  width: 32px;
-  height: 32px;
-  margin: -6px -6px 0 0;
-  border-radius: var(--r-xs);
-  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
-}
-.closeBtn:hover { background: var(--bg-glass-hover); }
-
-.viewport { top: max(1rem, env(safe-area-inset-top)); }

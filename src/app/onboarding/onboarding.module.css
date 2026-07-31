@@ -19,7 +19,7 @@
   width: 600px;
   height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(4, 120, 87, 0.07) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--verdict-genuine) 7%, transparent) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -31,7 +31,7 @@
   width: 600px;
   height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(180, 83, 9, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--verdict-suspicious) 6%, transparent) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -40,14 +40,14 @@
 .card {
   position: relative;
   z-index: 1;
-  background: rgba(241, 245, 249, 0.82);
+  background: color-mix(in srgb, var(--color-surface-container) 82%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
   width: 100%;
   max-width: 520px;
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(4, 120, 87, 0.05);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--lift-ambient) 100%, transparent), 0 0 0 1px color-mix(in srgb, var(--verdict-genuine) 5%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -72,7 +72,7 @@
   height: 8px;
   border-radius: 50%;
   border: none;
-  background: #e2e8f0;
+  background: var(--color-surface-container-highest);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0;
@@ -82,11 +82,11 @@
   width: 28px;
   border-radius: 4px;
   background: var(--color-primary);
-  box-shadow: 0 0 10px rgba(4, 120, 87, 0.5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--verdict-genuine) 50%, transparent);
 }
 
 .dotDone {
-  background: rgba(4, 120, 87, 0.4);
+  background: color-mix(in srgb, var(--verdict-genuine) 40%, transparent);
 }
 
 /* Navigation */
@@ -134,12 +134,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 20px rgba(4, 120, 87, 0.3);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--verdict-genuine) 30%, transparent);
 }
 
 .nextBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(4, 120, 87, 0.45);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--verdict-genuine) 45%, transparent);
 }
 
 .nextBtn:active {
@@ -180,13 +180,13 @@
   width: 80px;
   height: 80px;
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(4, 120, 87, 0.15), rgba(4, 120, 87, 0.03));
-  border: 1.5px solid rgba(4, 120, 87, 0.25);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--verdict-genuine) 15%, transparent), color-mix(in srgb, var(--verdict-genuine) 3%, transparent));
+  border: 1.5px solid color-mix(in srgb, var(--verdict-genuine) 25%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-primary);
-  box-shadow: 0 8px 32px rgba(4, 120, 87, 0.15);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--verdict-genuine) 15%, transparent);
 }
 
 .logoText {
@@ -206,7 +206,7 @@
 }
 
 .welcomeCard {
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 20px;
@@ -231,7 +231,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(4, 120, 87, 0.1);
+  background: color-mix(in srgb, var(--verdict-genuine) 10%, transparent);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -330,8 +330,8 @@
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 2.5px solid rgba(4, 120, 87, 0.3);
-  background: rgba(4, 120, 87, 0.06);
+  border: 2.5px solid color-mix(in srgb, var(--verdict-genuine) 30%, transparent);
+  background: color-mix(in srgb, var(--verdict-genuine) 6%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -342,25 +342,25 @@
 
 .permissionGranted {
   border-color: var(--color-primary) !important;
-  background: rgba(4, 120, 87, 0.12) !important;
-  box-shadow: 0 0 32px rgba(4, 120, 87, 0.25) !important;
+  background: color-mix(in srgb, var(--verdict-genuine) 12%, transparent) !important;
+  box-shadow: 0 0 32px color-mix(in srgb, var(--verdict-genuine) 25%, transparent) !important;
   animation: none !important;
 }
 
 .permissionDenied {
   border-color: var(--color-error) !important;
-  background: rgba(190, 18, 60, 0.08) !important;
+  background: color-mix(in srgb, var(--verdict-counterfeit) 8%, transparent) !important;
   color: var(--color-error) !important;
   animation: none !important;
 }
 
 @keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.2); }
-  50% { box-shadow: 0 0 0 16px rgba(4, 120, 87, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--verdict-genuine) 20%, transparent); }
+  50% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--verdict-genuine) 0%, transparent); }
 }
 
 .permissionCard {
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   padding: 16px;
@@ -396,13 +396,13 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 20px rgba(4, 120, 87, 0.3);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--verdict-genuine) 30%, transparent);
   width: 100%;
 }
 
 .cameraBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(4, 120, 87, 0.45);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--verdict-genuine) 45%, transparent);
 }
 
 .statusMessage {
@@ -415,5 +415,101 @@
   font-weight: 600;
   padding: 12px;
   border-radius: 10px;
-  background: #f1f5f9;
+  background: var(--color-surface-container);
+}
+
+/* -- Depth pass ------------------------------------------------------------
+   A carousel of full-bleed cards. The card is the only raised object per step,
+   and the pager dots invert: completed and current dots pop out, unvisited
+   ones stay sunk into the track.
+   ------------------------------------------------------------------------ */
+
+.page { position: relative; z-index: 1; }
+
+/* The global aurora already paints the atmosphere; these would double it up. */
+.bgGlow1, .bgGlow2 { display: none; }
+
+.card,
+.welcomeCard,
+.permissionCard {
+  border-radius: var(--r-xl);
+  box-shadow: var(--e4);
+}
+
+.logoWrap,
+.logoIcon {
+  border-radius: var(--r-xl);
+  box-shadow:
+    var(--e3),
+    inset 0 1px 0 var(--lift-key),
+    0 12px 30px -12px color-mix(in srgb, var(--cyan-glow) 55%, transparent);
+}
+
+.featureItem,
+.permissionItem,
+.scanStep {
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.featureIcon,
+.scanStepIcon,
+.scanStepNumber {
+  border-radius: var(--r-xs);
+  box-shadow: var(--e1);
+}
+
+.permissionRing {
+  box-shadow:
+    var(--e3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+
+.dot { box-shadow: var(--inset-well); }
+.dotActive,
+.dotDone { box-shadow: var(--e1); }
+
+/* The dots stay 8px because a pager reads as a pager at that size and nothing
+   bigger, so the hit area is extended past the visual bounds instead: 8px of
+   dot plus 18px on every side clears the 44px minimum. The container's 8px gap
+   means adjacent hit areas would otherwise touch, so the gap is widened to 12px
+   to preserve the 8px minimum spacing BETWEEN targets. */
+.dots { gap: 12px; }
+
+.dot {
+  position: relative;
+}
+
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+}
+
+.nextBtn,
+.cameraBtn {
+  min-height: 52px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.nextBtn:hover:not(:disabled),
+.cameraBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--e3); }
+
+.nextBtn:active:not(:disabled),
+.cameraBtn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98, 0.95);
+  box-shadow: var(--e0);
+}
+
+.backBtn { min-width: 44px; min-height: 44px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nextBtn:hover:not(:disabled), .cameraBtn:hover:not(:disabled),
+  .nextBtn:active:not(:disabled), .cameraBtn:active:not(:disabled) { transform: none; }
 }

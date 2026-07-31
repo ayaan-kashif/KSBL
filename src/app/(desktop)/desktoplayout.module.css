@@ -16,3 +16,14 @@
     padding-left: 16rem; /* clears the fixed Sidebar rail */
   }
 }
+
+/* -- Depth pass ------------------------------------------------------------
+   The desktop shell. It only has to stay above the global aurora and keep the
+   fixed Sidebar/TopNav from overlapping the content they sit in front of.
+   ------------------------------------------------------------------------ */
+
+.layout,
+.main {
+  position: relative;
+  z-index: 1;
+}

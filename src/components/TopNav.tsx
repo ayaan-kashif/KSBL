@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './TopNav.module.css';
 import LanguageToggle from './LanguageToggle';
+import ThemeToggle from './ThemeToggle';
 
 export default function TopNav() {
   const pathname = usePathname();
@@ -24,6 +25,7 @@ export default function TopNav() {
         </nav>
         <div className={styles.headerIcons}>
           <LanguageToggle />
+          <ThemeToggle />
           <Link href="/login" className={styles.iconButton} aria-label="Account">
             <span className="material-symbols-outlined">account_circle</span>
           </Link>
@@ -31,6 +33,7 @@ export default function TopNav() {
       </div>
       <div className={styles.mobileActions}>
         <LanguageToggle compact />
+        <ThemeToggle compact />
         <Link href="/login" className={styles.iconButton} aria-label="Account">
           <span className="material-symbols-outlined">account_circle</span>
         </Link>

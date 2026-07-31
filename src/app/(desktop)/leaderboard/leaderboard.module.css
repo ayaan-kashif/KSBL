@@ -89,3 +89,44 @@
   color: #ffffff;
   background: var(--liquid-primary-grad);
 }
+
+/* -- Depth pass ------------------------------------------------------------
+   A ranking table. The rank badge is the only extruded element per row, so
+   position reads before any of the surrounding numbers do.
+   ------------------------------------------------------------------------ */
+
+.page { position: relative; z-index: 1; background: transparent; }
+
+.tableCard {
+  border-radius: var(--r-lg);
+  box-shadow: var(--e3);
+}
+
+/* Sticky header needs its own background or rows scroll visibly through it. */
+.th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface-container-high);
+  box-shadow: 0 1px 0 var(--border-subtle);
+}
+
+.tr { transition: background-color var(--t-base) var(--ease-out); }
+.tr:hover { background: var(--bg-glass-hover); }
+
+.rankBadge {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pointsBadge {
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+  font-variant-numeric: tabular-nums;
+}
+
+.td,
+.tdMuted { font-variant-numeric: tabular-nums; }
+
+.tdEmpty { color: var(--text-muted); }

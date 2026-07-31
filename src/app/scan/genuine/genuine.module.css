@@ -19,7 +19,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(245, 247, 251, 0.85);
+  background: color-mix(in srgb, var(--bg-base) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
@@ -33,7 +33,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border: 1px solid var(--border-subtle);
   color: var(--color-on-surface);
   cursor: pointer;
@@ -42,7 +42,7 @@
 
 .backBtn:hover,
 .shareBtn:hover {
-  background: rgba(4, 120, 87, 0.12);
+  background: color-mix(in srgb, var(--verdict-genuine) 12%, transparent);
 }
 
 .topTitle {
@@ -77,7 +77,7 @@
   position: absolute;
   inset: -20px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(4, 120, 87, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--verdict-genuine) 8%, transparent) 0%, transparent 70%);
   animation: outerPulse 3s ease-in-out infinite;
 }
 
@@ -90,7 +90,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(4, 120, 87, 0.25);
+  border: 2px solid color-mix(in srgb, var(--verdict-genuine) 25%, transparent);
   animation: innerPulse 2s ease-in-out infinite;
 }
 
@@ -103,11 +103,11 @@
   width: 112px;
   height: 112px;
   border-radius: 50%;
-  background: radial-gradient(135deg, rgba(4, 120, 87, 0.18) 0%, rgba(4, 120, 87, 0.06) 100%);
-  border: 2px solid rgba(4, 120, 87, 0.4);
+  background: radial-gradient(135deg, color-mix(in srgb, var(--verdict-genuine) 18%, transparent) 0%, color-mix(in srgb, var(--verdict-genuine) 6%, transparent) 100%);
+  border: 2px solid color-mix(in srgb, var(--verdict-genuine) 40%, transparent);
   box-shadow:
-    0 0 40px rgba(4, 120, 87, 0.3),
-    inset 0 0 20px rgba(4, 120, 87, 0.08);
+    0 0 40px color-mix(in srgb, var(--verdict-genuine) 30%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--verdict-genuine) 8%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,14 +115,14 @@
 }
 
 @keyframes iconBreathe {
-  0%, 100% { box-shadow: 0 0 40px rgba(4, 120, 87, 0.3), inset 0 0 20px rgba(4, 120, 87, 0.08); }
-  50%       { box-shadow: 0 0 60px rgba(4, 120, 87, 0.5), inset 0 0 30px rgba(4, 120, 87, 0.12); }
+  0%, 100% { box-shadow: 0 0 40px color-mix(in srgb, var(--verdict-genuine) 30%, transparent), inset 0 0 20px color-mix(in srgb, var(--verdict-genuine) 8%, transparent); }
+  50%       { box-shadow: 0 0 60px color-mix(in srgb, var(--verdict-genuine) 50%, transparent), inset 0 0 30px color-mix(in srgb, var(--verdict-genuine) 12%, transparent); }
 }
 
 .checkIcon {
   font-size: 52px;
   color: var(--color-primary);
-  filter: drop-shadow(0 0 12px rgba(4, 120, 87, 0.8));
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--verdict-genuine) 80%, transparent));
 }
 
 /* ── Status Text ─────────────────────────────────────────── */
@@ -132,12 +132,12 @@
   font-weight: 700;
   color: var(--color-primary);
   text-align: center;
-  text-shadow: 0 0 20px rgba(4, 120, 87, 0.4);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--verdict-genuine) 40%, transparent);
 }
 
 .statusUrdu {
   font-size: 20px;
-  color: rgba(4, 120, 87, 0.7);
+  color: color-mix(in srgb, var(--verdict-genuine) 70%, transparent);
   text-align: center;
   direction: rtl;
   letter-spacing: 0.02em;
@@ -154,9 +154,9 @@
 /* ── Confidence Card ─────────────────────────────────────── */
 .confidenceCard {
   width: 100%;
-  background: rgba(4, 120, 87, 0.05);
+  background: color-mix(in srgb, var(--verdict-genuine) 5%, transparent);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(4, 120, 87, 0.18);
+  border: 1px solid color-mix(in srgb, var(--verdict-genuine) 18%, transparent);
   border-radius: 16px;
   padding: 18px 20px;
   display: flex;
@@ -185,7 +185,7 @@
 
 .meterTrack {
   height: 6px;
-  background: #e9eef5;
+  background: var(--color-surface-container-high);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -194,7 +194,7 @@
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary), var(--color-primary-fixed));
   border-radius: 3px;
-  box-shadow: 0 0 8px rgba(4, 120, 87, 0.6);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--verdict-genuine) 60%, transparent);
   transition: width 1s ease-out;
 }
 
@@ -206,7 +206,7 @@
 /* ── Details Card ────────────────────────────────────────── */
 .detailsCard {
   width: 100%;
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
@@ -241,8 +241,8 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(4, 120, 87, 0.08);
-  border: 1px solid rgba(4, 120, 87, 0.15);
+  background: color-mix(in srgb, var(--verdict-genuine) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verdict-genuine) 15%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -302,13 +302,13 @@
   border-radius: 14px;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 0 24px rgba(4, 120, 87, 0.3);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--verdict-genuine) 30%, transparent);
   transition: box-shadow 0.2s, transform 0.15s;
   text-align: center;
 }
 
 .btnPrimary:hover {
-  box-shadow: 0 0 36px rgba(4, 120, 87, 0.5);
+  box-shadow: 0 0 36px color-mix(in srgb, var(--verdict-genuine) 50%, transparent);
 }
 
 .btnPrimary:active {
@@ -321,12 +321,12 @@
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  background: rgba(4, 120, 87, 0.06);
+  background: color-mix(in srgb, var(--verdict-genuine) 6%, transparent);
   color: var(--color-primary);
   font-family: var(--font-outfit), sans-serif;
   font-size: 16px;
   font-weight: 600;
-  border: 1.5px solid rgba(4, 120, 87, 0.35);
+  border: 1.5px solid color-mix(in srgb, var(--verdict-genuine) 35%, transparent);
   border-radius: 14px;
   cursor: pointer;
   text-decoration: none;
@@ -335,8 +335,8 @@
 }
 
 .btnOutline:hover {
-  background: rgba(4, 120, 87, 0.12);
-  border-color: rgba(4, 120, 87, 0.6);
+  background: color-mix(in srgb, var(--verdict-genuine) 12%, transparent);
+  border-color: color-mix(in srgb, var(--verdict-genuine) 60%, transparent);
 }
 
 .btnOutline:active {
@@ -349,4 +349,88 @@
   justify-content: center;
   text-align: center;
   padding-inline: 1.25rem;
+}
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   The "genuine" screen is a moment of relief, so the hero mark is the one
+   thing that reads as physically present: a raised disc with a green key
+   light. The evidence rows below it recede, letting the verdict stay the
+   only thing competing for the eye.
+   ============================================================================ */
+
+.page { position: relative; z-index: 1; }
+
+.iconCircle {
+  box-shadow:
+    var(--e3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.18),
+    0 14px 34px -10px color-mix(in srgb, var(--verdict-genuine) 60%, transparent);
+}
+
+.confidenceCard,
+.detailsCard {
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+}
+
+.detailRow {
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.detailIconWrap {
+  border-radius: var(--r-xs);
+  box-shadow: var(--e1);
+}
+
+.meterTrack {
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
+  overflow: hidden;
+}
+
+.meterFill {
+  border-radius: var(--r-pill);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.16);
+}
+
+.confValue { font-variant-numeric: tabular-nums; }
+
+.btnPrimary,
+.btnOutline {
+  min-height: 48px;
+  border-radius: var(--r-sm);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.btnPrimary { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+.btnOutline { box-shadow: var(--e1); }
+
+.btnPrimary:hover,
+.btnOutline:hover { transform: translateY(-2px); box-shadow: var(--e3); }
+
+.btnPrimary:active,
+.btnOutline:active {
+  transform: translateY(1px) scale(0.98, 0.95);
+  box-shadow: var(--e0);
+}
+
+.backBtn,
+.shareBtn {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btnPrimary:hover, .btnOutline:hover,
+  .btnPrimary:active, .btnOutline:active { transform: none; }
 }

@@ -44,14 +44,14 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
-  box-shadow: 0 0 20px rgba(4, 120, 87, 0.25);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--verdict-genuine) 25%, transparent);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .generateBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(4, 120, 87, 0.4);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--verdict-genuine) 40%, transparent);
 }
 
 /* Stats Bar */
@@ -67,7 +67,7 @@
   align-items: center;
   gap: 4px;
   padding: 16px;
-  background: rgba(241, 245, 249, 0.7);
+  background: color-mix(in srgb, var(--color-surface-container) 70%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
@@ -102,7 +102,7 @@
   align-items: center;
   gap: 16px;
   padding: 20px 24px;
-  background: rgba(241, 245, 249, 0.65);
+  background: color-mix(in srgb, var(--color-surface-container) 65%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
@@ -113,7 +113,7 @@
 .row:hover {
   transform: translateX(4px);
   border-color: var(--border-strong);
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--lift-ambient) 54%, transparent);
 }
 
 .rowIcon {
@@ -206,7 +206,7 @@
 .downloadBtn:hover:not(:disabled) {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  background: rgba(4, 120, 87, 0.06);
+  background: color-mix(in srgb, var(--verdict-genuine) 6%, transparent);
 }
 
 .downloadBtn:disabled {
@@ -217,7 +217,7 @@
 .downloadDone {
   border-color: var(--color-primary) !important;
   color: var(--color-primary) !important;
-  background: rgba(4, 120, 87, 0.08) !important;
+  background: color-mix(in srgb, var(--verdict-genuine) 8%, transparent) !important;
 }
 
 .spin {
@@ -239,4 +239,73 @@
   .rowRight {
     flex-wrap: wrap;
   }
+}
+
+/* -- Depth pass ------------------------------------------------------------
+   A list of generated reports. Each row is a raised object that lifts under
+   the pointer; the stat bar above is recessed, because those numbers are read
+   rather than clicked.
+   ------------------------------------------------------------------------ */
+
+.page { position: relative; z-index: 1; background: transparent; }
+
+.statCard {
+  border-radius: var(--r-md);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.statValue { font-variant-numeric: tabular-nums; }
+
+.row {
+  border-radius: var(--r-md);
+  box-shadow: var(--e1);
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.row:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--e3);
+}
+
+.rowIcon {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1);
+}
+
+.formatBadge {
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+}
+
+.generateBtn,
+.downloadBtn {
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.generateBtn { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+.downloadBtn { box-shadow: var(--e1); }
+
+.generateBtn:hover:not(:disabled),
+.downloadBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--e3); }
+
+.generateBtn:active:not(:disabled),
+.downloadBtn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98, 0.95);
+  box-shadow: var(--e0);
+}
+
+.generateBtn:disabled,
+.downloadBtn:disabled { transform: none; box-shadow: var(--e0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .row:hover,
+  .generateBtn:hover:not(:disabled), .downloadBtn:hover:not(:disabled),
+  .generateBtn:active:not(:disabled), .downloadBtn:active:not(:disabled) { transform: none; }
 }

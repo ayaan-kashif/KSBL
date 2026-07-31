@@ -36,7 +36,7 @@
 }
 
 .card {
-  background: rgba(241, 245, 249, 0.7);
+  background: color-mix(in srgb, var(--color-surface-container) 70%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
@@ -62,7 +62,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(4, 120, 87, 0.12);
+  background: color-mix(in srgb, var(--verdict-genuine) 12%, transparent);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -114,7 +114,7 @@
   padding: 12px 40px 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-family: var(--font-inter), sans-serif;
   font-size: 14px;
@@ -124,7 +124,7 @@
 
 .input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--verdict-genuine) 10%, transparent);
 }
 
 .inputDisabled {
@@ -148,7 +148,7 @@
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: rgba(241, 245, 249, 0.8);
+  background: color-mix(in srgb, var(--color-surface-container) 80%, transparent);
   color: var(--color-on-surface);
   font-family: var(--font-inter), sans-serif;
   font-size: 14px;
@@ -165,7 +165,7 @@
 
 .select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--verdict-genuine) 10%, transparent);
 }
 
 /* Card Actions */
@@ -194,11 +194,11 @@
 
 .btnPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(4, 120, 87, 0.35);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--verdict-genuine) 35%, transparent);
 }
 
 .btnSaved {
-  background: rgba(4, 120, 87, 0.2) !important;
+  background: color-mix(in srgb, var(--verdict-genuine) 20%, transparent) !important;
   color: var(--color-primary) !important;
 }
 
@@ -220,7 +220,7 @@
 
 .btnOutlined:hover {
   border-color: var(--border-interactive);
-  background: #f1f5f9;
+  background: var(--color-surface-container);
 }
 
 .btnDanger {
@@ -229,8 +229,8 @@
   gap: 6px;
   padding: 11px 20px;
   border-radius: 10px;
-  border: 1.5px solid rgba(190, 18, 60, 0.3);
-  background: rgba(190, 18, 60, 0.08);
+  border: 1.5px solid color-mix(in srgb, var(--verdict-counterfeit) 30%, transparent);
+  background: color-mix(in srgb, var(--verdict-counterfeit) 8%, transparent);
   color: var(--color-error);
   font-family: var(--font-outfit), sans-serif;
   font-size: 14px;
@@ -240,8 +240,8 @@
 }
 
 .btnDanger:hover {
-  background: rgba(190, 18, 60, 0.15);
-  border-color: rgba(190, 18, 60, 0.5);
+  background: color-mix(in srgb, var(--verdict-counterfeit) 15%, transparent);
+  border-color: color-mix(in srgb, var(--verdict-counterfeit) 50%, transparent);
   transform: translateY(-1px);
 }
 
@@ -306,7 +306,7 @@
   position: absolute;
   inset: 0;
   border-radius: 99px;
-  background: #e2e8f0;
+  background: var(--color-surface-container-highest);
   border: 1px solid var(--border-subtle);
   transition: background 0.25s ease, border-color 0.25s ease;
 }
@@ -321,11 +321,11 @@
   top: 2px;
   left: 2px;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.11);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--lift-ambient) 85%, transparent);
 }
 
 .toggleInput:checked + .toggleSlider {
-  background: rgba(4, 120, 87, 0.2);
+  background: color-mix(in srgb, var(--verdict-genuine) 20%, transparent);
   border-color: var(--color-primary);
 }
 
@@ -374,7 +374,7 @@
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--color-outline-variant);
-  background: #f8fafc;
+  background: var(--color-surface-container-low);
 }
 
 .apiKeyCode {
@@ -407,7 +407,7 @@
 
 .apiBtn:hover {
   color: var(--color-primary);
-  background: rgba(4, 120, 87, 0.08);
+  background: color-mix(in srgb, var(--verdict-genuine) 8%, transparent);
 }
 
 .apiWarning {
@@ -434,14 +434,14 @@
 }
 
 .modal {
-  background: rgba(241, 245, 249, 0.97);
+  background: color-mix(in srgb, var(--color-surface-container) 97%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--lift-ambient) 100%, transparent);
 }
 
 .modalHeader {
@@ -485,4 +485,150 @@
   padding: 16px 24px 20px;
   border-top: 1px solid var(--border-subtle);
   justify-content: flex-end;
+}
+
+/* -- Depth pass ------------------------------------------------------------
+   Settings is mostly form controls, so it leans hardest on the system's
+   central opposition: every field is a recessed well, every action is an
+   extruded solid, and the toggle is a rocker -- a cap riding in a channel.
+   The API key panel is the one destructive-adjacent area, so it stays
+   visually separated by its own elevation rather than by colour alone.
+   ------------------------------------------------------------------------ */
+
+.page { position: relative; z-index: 1; background: transparent; }
+
+.card {
+  border-radius: var(--r-lg);
+  box-shadow: var(--e3);
+}
+
+.cardIcon {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1);
+}
+
+.input,
+.select,
+.apiKeyInput {
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+  /* 16px prevents iOS Safari auto-zooming the page on focus */
+  font-size: 16px;
+  transition: box-shadow var(--t-base) var(--ease-out);
+}
+
+.input:focus,
+.select:focus,
+.apiKeyInput:focus {
+  outline: none;
+  box-shadow: var(--inset-well-deep), 0 0 0 4px rgba(8, 145, 178, 0.18);
+}
+
+/* Read-only is NOT disabled: it stays fully legible and copyable, and only
+   the lock glyph signals that it cannot be edited. */
+.inputDisabled {
+  box-shadow: var(--inset-well);
+  opacity: 1;
+  color: var(--text-secondary);
+}
+
+.toggleRow {
+  border-radius: var(--r-sm);
+  transition: background-color var(--t-base) var(--ease-out);
+}
+
+.toggleRow:hover { background: var(--bg-glass-hover); }
+
+/* A rocker: recessed channel, extruded cap. */
+.toggleSlider {
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+  transition: background-color var(--t-base) var(--ease-out);
+}
+
+.toggleSlider::before {
+  box-shadow: var(--e2);
+  transition: transform var(--t-base) var(--ease-spring);
+}
+
+.apiKeySection {
+  border-radius: var(--r-md);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.apiKeyCode {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.apiStatus {
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+}
+
+.btnPrimary,
+.btnOutlined,
+.btnDanger,
+.btnSaved,
+.apiBtn {
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.btnPrimary,
+.btnSaved  { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+.btnOutlined,
+.btnDanger,
+.apiBtn    { box-shadow: var(--e1); }
+
+.btnPrimary:hover:not(:disabled),
+.btnOutlined:hover:not(:disabled),
+.btnDanger:hover:not(:disabled),
+.apiBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--e3); }
+
+.btnPrimary:active:not(:disabled),
+.btnOutlined:active:not(:disabled),
+.btnDanger:active:not(:disabled),
+.apiBtn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98, 0.95);
+  box-shadow: var(--e0);
+}
+
+.btnPrimary:disabled,
+.btnOutlined:disabled,
+.btnDanger:disabled,
+.apiBtn:disabled { transform: none; box-shadow: var(--e0); }
+
+/* -- Modal ---------------------------------------------------------------- */
+.modalOverlay {
+  background: rgba(6, 9, 16, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.modal {
+  border-radius: var(--r-xl);
+  box-shadow: var(--e5);
+}
+
+.modalClose { min-width: 44px; min-height: 44px; border-radius: 50%; }
+
+.apiWarning {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btnPrimary:hover:not(:disabled), .btnOutlined:hover:not(:disabled),
+  .btnDanger:hover:not(:disabled), .apiBtn:hover:not(:disabled),
+  .btnPrimary:active:not(:disabled), .btnOutlined:active:not(:disabled),
+  .btnDanger:active:not(:disabled), .apiBtn:active:not(:disabled) { transform: none; }
+  .toggleSlider::before { transition-duration: 0.01ms; }
 }

@@ -21,23 +21,32 @@ export const viewport: Viewport = {
   // notched devices, which the fixed nav bars depend on for clearance.
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#080a12" },
-    { media: "(prefers-color-scheme: light)", color: "#eef1f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#070910" },
+    { media: "(prefers-color-scheme: light)", color: "#eaeef6" },
   ],
 };
 
 /**
  * Applies the stored theme (or the OS preference) to <html> before the first
- * paint. Running this as a normal effect would let the dark default render
- * first and then snap to light — a visible flash on every load.
+ * paint. Running this as a normal effect would let the default theme render
+ * first and then snap to the other one — a visible flash on every load.
+ *
+ * The attribute is always stamped with the RESOLVED value, never left off:
+ * globals.css keys its dark palette on [data-theme='dark'], so an absent
+ * attribute means light, and "no stored preference on a dark-mode OS" has to
+ * resolve to an explicit 'dark' rather than falling through to the default.
  */
 const THEME_BOOTSTRAP = `
 (function () {
   try {
     var stored = localStorage.getItem('shelfwatch-theme');
-    var theme = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-    if (theme === 'light') document.documentElement.dataset.theme = 'light';
-  } catch (e) {}
+    var theme = stored === 'light' || stored === 'dark'
+      ? stored
+      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  } catch (e) {
+    document.documentElement.dataset.theme = 'light';
+  }
 })();
 `;
 

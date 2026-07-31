@@ -1,26 +1,35 @@
+/* A segmented control built as a recessed trough with one raised cap in it —
+   the same physical pairing as the nav trough and the theme rocker. */
+
 .toggle {
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid var(--border-interactive);
-  border-radius: 9999px;
-  overflow: hidden;
-  background: var(--bg-surface);
   flex-shrink: 0;
+  padding: 2px;
+  border-radius: var(--r-pill);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--inset-well);
+  overflow: hidden;
 }
 
 .option {
   appearance: none;
   border: none;
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--text-secondary);
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
   line-height: 1.6;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast) var(--ease-out),
+    color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
 }
 
 .option:hover:not(.active) {
@@ -28,10 +37,19 @@
   color: var(--text-primary);
 }
 
-/* Selected state carries colour AND weight, not colour alone. */
+/* Selected state carries colour, weight AND elevation — never colour alone. */
 .active {
   background: var(--purple-glow);
-  color: #ffffff; /* 7.10:1 on --purple-glow */
+  color: #ffffff; /* 7.10:1 on the light-theme --purple-glow */
+  box-shadow:
+    var(--e1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* On dark, --purple-glow lightens to #a78bfa, where white text drops to 2.2:1.
+   The cap flips to dark ink to stay readable. */
+[data-theme='dark'] .active {
+  color: #1a0b33; /* 7.9:1 on #a78bfa */
 }
 
 .urdu {
@@ -39,15 +57,15 @@
   font-size: 13px;
   /* Naskh clips at Latin leading. */
   line-height: 1.9;
-  padding-block: 0.15rem;
+  padding-block: 0.18rem;
 }
 
 .compact .option {
-  padding: 0.2rem 0.55rem;
+  padding: 0.24rem 0.6rem;
   font-size: 11px;
 }
 
 .option:focus-visible {
-  outline: 2px solid var(--purple-glow);
+  outline: 2px solid var(--cyan-glow);
   outline-offset: -2px;
 }

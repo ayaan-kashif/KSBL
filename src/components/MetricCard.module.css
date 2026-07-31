@@ -1,38 +1,54 @@
+/* A metric tile as a physical plate: the container holds the vanishing point,
+   the card tips within it, and the contents sit on separate Z planes so they
+   parallax against the card face instead of riding flat on it. */
+
+.scene {
+  /* The scene must NOT clip — a tilting plate and its shadow both overflow the
+     footprint, and hidden overflow here would shear the corners off mid-tilt. */
+  min-height: 118px;
+}
+
 .card {
   position: relative;
-  padding: var(--s-5);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
   min-height: 118px;
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  /* The corner wash rides as a background LAYER rather than a pseudo-element:
+     .rim owns ::before and .spotlight owns ::after on this same card, so both
+     slots are already spoken for. A radial gradient is soft on its own and
+     needs no blur filter, which also keeps the card off the compositor's
+     expensive path. */
+  background:
+    radial-gradient(
+      70% 90% at 108% -18%,
+      var(--metric-wash, rgba(124, 58, 237, 0.16)) 0%,
+      transparent 62%
+    ),
+    var(--bg-glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--e2);
   overflow: hidden;
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out),
+    background-color var(--t-base) var(--ease-out);
 }
 
-/* Brand wash bleeding in from the top-right corner. Gives the card an
-   implied light source and stops a grid of metrics reading as flat tiles. */
-.card::after {
-  content: '';
-  position: absolute;
-  top: -40%;
-  right: -20%;
-  width: 70%;
-  height: 140%;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 145, 194, 0.10) 0%, rgba(109, 40, 217, 0.10) 100%);
-  filter: blur(28px);
-  opacity: 0.65;
-  pointer-events: none;
-  transition: opacity var(--t-base) var(--ease-out);
+.card:hover {
+  box-shadow: var(--e3);
+  --metric-wash: rgba(124, 58, 237, 0.28);
 }
-
-.card:hover::after { opacity: 1; }
 
 .topRow {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
-  position: relative;
 }
 
 .label {
@@ -43,16 +59,20 @@
   color: var(--text-muted);
 }
 
+/* The icon chip is its own extruded solid sitting on the card face. */
 .iconWrap {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--r-sm);
-  background: var(--liquid-primary-grad);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: var(--e1);
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--r-sm);
+  background: var(--liquid-primary-grad);
+  box-shadow:
+    var(--e2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.16);
 }
 
 .icon {
@@ -69,8 +89,8 @@
   font-size: 32px;
   font-weight: 600;
   line-height: 1.1;
-  color: var(--text-primary);
   letter-spacing: -0.03em;
+  color: var(--text-primary);
 }
 
 .trendRow {

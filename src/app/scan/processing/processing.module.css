@@ -13,7 +13,7 @@
   justify-content: center;
   align-items: center;
   padding: 0.875rem 1.25rem;
-  background: rgba(245, 247, 251, 0.7);
+  background: color-mix(in srgb, var(--bg-base) 70%, transparent);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border-subtle);
@@ -66,17 +66,17 @@
 .radarRing1, .radarRing2, .radarRing3 {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(0, 119, 168, 0.2);
+  border: 1px solid color-mix(in srgb, var(--cyan-glow) 20%, transparent);
 }
 .radarRing1 { inset: 0; }
-.radarRing2 { inset: 25%; border-color: rgba(109, 40, 217, 0.3); }
-.radarRing3 { inset: 50%; border-color: rgba(0, 119, 168, 0.45); }
+.radarRing2 { inset: 25%; border-color: color-mix(in srgb, var(--purple-glow) 30%, transparent); }
+.radarRing3 { inset: 50%; border-color: color-mix(in srgb, var(--cyan-glow) 45%, transparent); }
 
 .radarSweep {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 119, 168, 0.12) 60deg, rgba(109, 40, 217, 0.35) 90deg, transparent 91deg);
+  background: conic-gradient(from 0deg, transparent 0deg, color-mix(in srgb, var(--cyan-glow) 12%, transparent) 60deg, color-mix(in srgb, var(--purple-glow) 35%, transparent) 90deg, transparent 91deg);
   animation: sweep 2s linear infinite;
 }
 @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -128,14 +128,14 @@
   animation: innerBounce 1.5s ease-in-out infinite;
 }
 @keyframes innerBounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.6); } }
-@keyframes activePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(0, 119, 168, 0); } 50% { box-shadow: 0 0 0 5px rgba(0, 119, 168, 0.2); } }
+@keyframes activePulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan-glow) 0%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--cyan-glow) 20%, transparent); } }
 
 .stepDotPending {
   width: 2rem; height: 2rem; border-radius: 50%;
   border: 2px solid var(--border-interactive);
-  background: #f8fafc; flex-shrink: 0;
+  background: var(--color-surface-container-low); flex-shrink: 0;
 }
-.stepLine { width: 2px; flex: 1; min-height: 1.5rem; background: #cbd5e1; margin: 0.25rem auto; }
+.stepLine { width: 2px; flex: 1; min-height: 1.5rem; background: var(--color-outline-variant); margin: 0.25rem auto; }
 .stepLineDone { width: 2px; flex: 1; min-height: 1.5rem; background: var(--cyan-glow); opacity: 0.5; margin: 0.25rem auto; }
 
 .stepContent { padding-bottom: 1.5rem; padding-top: 0.25rem; }
@@ -143,3 +143,46 @@
 .stepLabelActive { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 0.15rem; }
 .stepLabelPending { font-size: 14px; font-weight: 500; color: var(--text-muted); margin-bottom: 0.15rem; }
 .stepSub { font-size: 12px; color: var(--text-secondary); }
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   A waiting screen has one job: prove work is happening. The radar is the
+   only moving element, so it gets real dimension (a raised hub over a
+   recessed dish) while the step list stays quiet beneath it.
+   ============================================================================ */
+
+.page { position: relative; z-index: 1; }
+
+.radarContainer {
+  border-radius: 50%;
+  background: var(--bg-sunken);
+  box-shadow:
+    var(--inset-well-deep),
+    0 0 0 6px var(--bg-glass-card),
+    0 0 0 7px var(--border-subtle),
+    0 18px 40px -14px var(--lift-ambient);
+}
+
+.radarCenter {
+  box-shadow:
+    var(--e2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 22px -4px var(--cyan-vivid);
+}
+
+.step {
+  border-radius: var(--r-sm);
+  transition: background-color var(--t-base) var(--ease-out);
+}
+
+/* Completed and active steps are raised out of the track; pending ones stay
+   flush with it, so progress is legible without reading a single label. */
+.stepDotDone,
+.stepDotActive {
+  box-shadow: var(--e1), 0 0 12px -2px currentColor;
+}
+
+.stepDotPending { box-shadow: var(--inset-well); }
+
+.progressWrap {
+  border-radius: var(--r-md);
+}

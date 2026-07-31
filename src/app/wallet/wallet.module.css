@@ -20,7 +20,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px 14px;
-  background: rgba(245, 247, 251, 0.9);
+  background: color-mix(in srgb, var(--bg-base) 90%, transparent);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border-subtle);
@@ -273,4 +273,62 @@
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
+}
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   A voucher is a physical object, so the card is treated as one: raised, with
+   the redemption code sunk into its face like a stamped panel. Spent and
+   expired vouchers lose their elevation entirely — the card visually
+   flattens into the page, which reads as "used up" without relying on the
+   status chip's colour alone.
+   ============================================================================ */
+
+.page { position: relative; z-index: 1; }
+
+.card {
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--e3);
+}
+
+.cardInactive,
+.cardInactive:hover {
+  transform: none;
+  box-shadow: var(--inset-well);
+  opacity: 0.72;
+}
+
+/* The code is stamped INTO the voucher — a well, not a button, so nobody
+   tries to press it. */
+.codeBlock {
+  border-radius: var(--r-md);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well-deep);
+}
+
+.code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+.qr {
+  border-radius: var(--r-sm);
+  background: #ffffff;   /* scanners need a true-white quiet zone */
+  box-shadow: var(--e2);
+}
+
+.statusChip {
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover { transform: none; }
 }

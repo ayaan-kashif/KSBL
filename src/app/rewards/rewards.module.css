@@ -17,7 +17,7 @@
   top: 0;
   z-index: 10;
   padding: 16px 20px 14px;
-  background: rgba(245, 247, 251, 0.9);
+  background: color-mix(in srgb, var(--bg-base) 90%, transparent);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border-subtle);
@@ -283,7 +283,7 @@
 }
 
 .redeemBtn:hover {
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--lift-ambient) 100%, transparent);
 }
 
 .redeemBtn:active {
@@ -317,7 +317,7 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(15, 23, 42, 0.45);
+  background: color-mix(in srgb, var(--lift-ambient) 100%, transparent);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -331,7 +331,7 @@
   border: 1px solid var(--border-subtle);
   border-bottom: none;
   border-radius: 22px 22px 0 0;
-  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 -8px 32px color-mix(in srgb, var(--lift-ambient) 100%, transparent);
   padding: 20px 20px 28px;
 }
 
@@ -438,7 +438,7 @@
 }
 
 .sheetConfirm:hover {
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--lift-ambient) 100%, transparent);
 }
 
 .sheetConfirm:disabled,
@@ -487,4 +487,138 @@
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
+}
+
+/* ── Depth pass ─────────────────────────────────────────────────────────────
+   A rewards catalogue is a wall of near-identical cards, which is exactly the
+   case where flat design collapses into visual noise. Elevation does the
+   sorting instead: available offers sit up off the page and lift under the
+   pointer, locked ones stay pressed flat into it, and the redeem CTA is the
+   only fully-extruded control on each card.
+   ============================================================================ */
+
+.page { position: relative; z-index: 1; }
+
+.balanceRow {
+  border-radius: var(--r-xl);
+  box-shadow:
+    var(--e3),
+    inset 0 1px 0 var(--lift-key);
+}
+
+.balanceValue { font-variant-numeric: tabular-nums; }
+
+.card {
+  border-radius: var(--r-lg);
+  box-shadow: var(--e2);
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--e4);
+}
+
+/* Locked offers are pressed INTO the page — the inverse of the available
+   ones, so the state is legible before the chip is even read. */
+.cardLocked {
+  box-shadow: var(--inset-well);
+  transform: none;
+}
+
+.cardLocked:hover {
+  transform: none;
+  box-shadow: var(--inset-well);
+}
+
+.logo,
+.logoFallback {
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1);
+}
+
+.nflBadge,
+.lockedChip {
+  border-radius: var(--r-pill);
+  box-shadow: var(--e1);
+}
+
+.redeemBtn {
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out),
+    filter var(--t-base) var(--ease-out);
+}
+
+.redeemBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--e3);
+  filter: saturate(1.08) brightness(1.04);
+}
+
+.redeemBtn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98, 0.94);
+  box-shadow: var(--e0);
+}
+
+.redeemBtn:disabled {
+  box-shadow: var(--e0);
+  transform: none;
+}
+
+/* ── Confirmation sheet ─────────────────────────────────────────────────────
+   The scrim has to be strong enough to isolate the sheet; a weak one leaves
+   the catalogue behind it visually competing with the amount being spent. */
+.sheetBackdrop {
+  background: rgba(6, 9, 16, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.sheet {
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  box-shadow: var(--e5);
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.sheetGrip {
+  border-radius: var(--r-pill);
+  box-shadow: var(--inset-well);
+}
+
+.sheetSummary {
+  border-radius: var(--r-md);
+  background: var(--bg-sunken);
+  box-shadow: var(--inset-well);
+}
+
+.sheetCancel,
+.sheetConfirm {
+  min-height: 48px;
+  border-radius: var(--r-sm);
+  transition:
+    transform var(--t-fast) var(--ease-squish),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.sheetConfirm { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+.sheetCancel  { box-shadow: var(--e1); }
+
+.sheetCancel:active:not(:disabled),
+.sheetConfirm:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98, 0.95);
+  box-shadow: var(--e0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover,
+  .redeemBtn:hover:not(:disabled),
+  .redeemBtn:active:not(:disabled),
+  .sheetCancel:active:not(:disabled),
+  .sheetConfirm:active:not(:disabled) { transform: none; }
 }
