@@ -6,6 +6,7 @@ import styles from './signup.module.css';
 import { postSignup } from '@/lib/api';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -111,6 +112,12 @@ export default function SignupPage() {
           </form>
 
           <div className={styles.divider}><span>or</span></div>
+
+          {/* Google creates the account on first use, or signs in the
+              existing one with the same email — never a duplicate. */}
+          <div style={{ marginBottom: '0.75rem' }}>
+            <GoogleSignInButton onError={setError} />
+          </div>
 
           <Button variant="ghost" size="lg" fullWidth icon="login" onClick={() => router.push('/login')}>
             Already have an account? Sign In

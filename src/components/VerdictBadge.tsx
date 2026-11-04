@@ -2,12 +2,15 @@
 
 import React from 'react';
 import styles from './VerdictBadge.module.css';
-import { VERDICT_LABEL, type BadgeVerdict } from '@/lib/verdictCopy';
+import { VERDICT_LABEL, type BadgeVerdict, type BilingualPhrase } from '@/lib/verdictCopy';
 import { useLanguage } from './LanguageContext';
 
 interface VerdictBadgeProps {
   verdict: BadgeVerdict;
   size?: 'sm' | 'md' | 'lg';
+  /** Replaces the verdict's words but keeps its colour and icon — e.g. a
+   *  medicine's "No problems found", which must never read "Genuine". */
+  label?: BilingualPhrase;
 }
 
 const verdictIcon: Record<BadgeVerdict, string> = {
@@ -18,9 +21,9 @@ const verdictIcon: Record<BadgeVerdict, string> = {
   processing: 'radar',
 };
 
-export default function VerdictBadge({ verdict, size = 'md' }: VerdictBadgeProps) {
+export default function VerdictBadge({ verdict, size = 'md', label: labelOverride }: VerdictBadgeProps) {
   const { lang } = useLanguage();
-  const label = VERDICT_LABEL[verdict];
+  const label = labelOverride ?? VERDICT_LABEL[verdict];
   const urduLeads = lang === 'ur';
 
   // Both languages always render; the toggle only decides which one leads.

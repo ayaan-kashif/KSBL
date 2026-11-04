@@ -146,6 +146,31 @@
   margin-bottom: 1.5rem;
 }
 
+/* Google sign-in, forgot/reset password — same tokens as the error banner and
+   admin link, so these read as part of the existing card. */
+.successBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--verdict-genuine-bg);
+  border: 1px solid var(--verdict-genuine-border);
+  color: var(--verdict-genuine);
+  padding: 0.75rem 1rem;
+  border-radius: var(--r-sm, 0.5rem);
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+}
+
+.forgotRow {
+  text-align: right;
+  font-size: 13px;
+  margin: -0.75rem 0 0;
+}
+
+.altActions {
+  margin-bottom: 0.75rem;
+}
+
 .divider {
   display: flex;
   align-items: center;

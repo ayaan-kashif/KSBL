@@ -52,6 +52,44 @@ export const VERDICT_LABEL: Record<BadgeVerdict, BilingualPhrase> = {
   processing: { en: "Processing…", ur: "جاری ہے…" },
 };
 
+/**
+ * Medicine results. Mirrors MEDICINE_VERDICT_TEXT in lib/translate.ts — keep
+ * in sync. A medicine is never labelled "Genuine": the positive outcome is
+ * "No problems found", pending DRAP's official verification.
+ */
+export const MEDICINE_COPY = {
+  noProblemsLabel: { en: "No problems found", ur: "کوئی مسئلہ نہیں ملا" },
+  officialPending: { en: "Official DRAP verification pending", ur: "ڈریپ کی سرکاری تصدیق زیر التوا" },
+  expired: { en: "Expired — do not use", ur: "میعاد ختم — استعمال نہ کریں" },
+  safety: {
+    en: "This is a packaging and code check, not a lab test. If in doubt, ask your pharmacist or report to DRAP.",
+    ur: "یہ پیکنگ اور کوڈ کی جانچ ہے، لیبارٹری ٹیسٹ نہیں۔ شک ہو تو اپنے فارماسسٹ سے پوچھیں یا ڈریپ کو اطلاع دیں۔",
+  },
+  sourcesChecked: { en: "Sources checked", ur: "جانچے گئے ذرائع" },
+  notVisible: { en: "Not visible", ur: "نظر نہیں آیا" },
+} as const satisfies Record<string, BilingualPhrase>;
+
+/** Medicine detail rows, in the existing result-card style. */
+export const MEDICINE_FIELD_LABELS = {
+  name: { en: "Medicine", ur: "دوا" },
+  generic: { en: "Generic name", ur: "عام نام" },
+  strength: { en: "Strength", ur: "طاقت" },
+  dosageForm: { en: "Dosage form", ur: "شکل" },
+  manufacturer: { en: "Manufacturer", ur: "کارخانہ دار" },
+  regNo: { en: "DRAP Reg. No.", ur: "ڈریپ رجسٹریشن نمبر" },
+  batch: { en: "Batch", ur: "بیچ" },
+  mfgDate: { en: "Mfg date", ur: "تاریخ تیاری" },
+  expiry: { en: "Expiry", ur: "میعاد" },
+  serial: { en: "Serial", ur: "سیریل" },
+  gtin: { en: "GTIN", ur: "GTIN" },
+} as const satisfies Record<string, BilingualPhrase>;
+
+/** "FIXTURE-0759-1" -> "••••••••••59-1": only the last 4 characters are shown. */
+export function maskSerial(serial: string | null | undefined): string | null {
+  if (!serial) return null;
+  return serial.length <= 4 ? serial : `${"•".repeat(Math.min(serial.length - 4, 10))}${serial.slice(-4)}`;
+}
+
 /** UI chrome on verdict screens. */
 export const UI_COPY = {
   scanAnother: { en: "Scan another", ur: "دوبارہ اسکین کریں" },

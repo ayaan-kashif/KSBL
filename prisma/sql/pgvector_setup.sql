@@ -26,11 +26,17 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- Returns product columns + a "similarity" column (1 - cosine_distance, so
 -- higher = more similar, matching VECTOR_MATCH_THRESHOLD's "higher = stricter"
 -- semantics).
+-- Drop the 4-argument version first; see migration 20261103130000.
+DROP FUNCTION IF EXISTS match_products(vector, float, text, int);
+
 CREATE OR REPLACE FUNCTION match_products(
   query_embedding vector(512),
   match_threshold float DEFAULT 0.85,
   brand_filter text DEFAULT NULL,
-  match_count int DEFAULT 1
+  match_count int DEFAULT 1,
+  -- Added by migration 20261103130000_vector_search_category: medicine rows
+  -- never match food scans. Defaults to the category of every food row.
+  category_filter text DEFAULT 'fmcg'
 )
 RETURNS TABLE (
   id text,
@@ -56,6 +62,7 @@ AS $$
   FROM "Product" p
   WHERE p.embedding IS NOT NULL
     AND (brand_filter IS NULL OR p.brand_name = brand_filter)
+    AND (category_filter IS NULL OR p.category = category_filter)
     AND 1 - (p.embedding <=> query_embedding) >= match_threshold
   ORDER BY p.embedding <=> query_embedding
   LIMIT match_count;

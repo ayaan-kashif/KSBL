@@ -9,7 +9,8 @@ import BilingualText from '@/components/BilingualText';
 import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
 import { useScanResult } from '@/lib/useScanResult';
-import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
+import { VERDICT_PHRASE, UI_COPY, MEDICINE_COPY, pick } from '@/lib/verdictCopy';
+import { medicineDetailRows, medicineSourcesLine } from '@/lib/medicineView';
 
 export default function UnverifiedResultPage() {
   const result = useScanResult();
@@ -42,6 +43,9 @@ export default function UnverifiedResultPage() {
   const barcode = result.extracted_batch || 'Unknown Batch';
   const productName = result.product_name || 'Unregistered Product';
   const brandName = result.brand_name || 'Unknown Brand';
+  // Medicines bring their own phrase, per-check lines and detail rows.
+  const medicine = result.medicine ?? null;
+  const medicineSources = medicine ? medicineSourcesLine(medicine) : null;
 
   return (
     <div className={styles.page}>
@@ -65,8 +69,8 @@ export default function UnverifiedResultPage() {
         <VerdictBadge verdict="unverified" size="lg" />
         <div className={styles.verdictSub}>
           <BilingualText
-            en={VERDICT_PHRASE.unverified.en}
-            ur={VERDICT_PHRASE.unverified.ur}
+            en={medicine ? result?.english_text ?? VERDICT_PHRASE.unverified.en : VERDICT_PHRASE.unverified.en}
+            ur={medicine ? result?.urdu_text ?? VERDICT_PHRASE.unverified.ur : VERDICT_PHRASE.unverified.ur}
             size="sm"
           />
         </div>
@@ -78,6 +82,14 @@ export default function UnverifiedResultPage() {
             ur={result?.reason_ur ?? 'یہ مصنوع ہمارے ڈیٹا بیس میں نہیں مل سکی۔'}
             size="sm"
           />
+          {medicine?.checks?.map((check) => (
+            <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
+          ))}
+          {result?.barcode_check && (
+            <BilingualText en={result.barcode_check.en} ur={result.barcode_check.ur} size="sm" />
+          )}
+          {medicineSources && <BilingualText en={medicineSources.en} ur={medicineSources.ur} size="sm" />}
+          {medicine && <BilingualText en={MEDICINE_COPY.safety.en} ur={MEDICINE_COPY.safety.ur} size="sm" />}
         </div>
 
         {/* Confidence */}
@@ -96,13 +108,15 @@ export default function UnverifiedResultPage() {
         <div className={styles.detailsCard}>
           <p className={styles.sectionLabel}>Scanned Product</p>
           <div className={styles.detailsGrid}>
-            {[
+            {(medicine
+              ? medicineDetailRows(medicine).map((row) => ({ label: pick(row.label, lang), value: pick(row.value, lang) }))
+              : [
               { label: 'Product Name', value: productName },
               { label: 'Brand', value: brandName },
               { label: 'Batch/Barcode', value: barcode },
               ...(result?.extracted_mfg_date ? [{ label: 'Mfg Date', value: result.extracted_mfg_date }] : []),
               ...(result?.extracted_mrp ? [{ label: 'MRP', value: `Rs. ${result.extracted_mrp}` }] : []),
-            ].map((d, i) => (
+            ]).map((d, i) => (
               <div key={i} className={styles.detailItem}>
                 <p className={styles.detailLabel}>{d.label}</p>
                 <p className={styles.detailValue}>{d.value}</p>

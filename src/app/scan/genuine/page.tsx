@@ -7,7 +7,8 @@ import BilingualText from '@/components/BilingualText';
 import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
 import { useScanResult } from '@/lib/useScanResult';
-import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
+import { VERDICT_PHRASE, UI_COPY, MEDICINE_COPY, pick } from '@/lib/verdictCopy';
+import { medicineDetailRows, medicineSourcesLine, isMedicineNoProblems } from '@/lib/medicineView';
 
 export default function GenuineResultPage() {
   const result = useScanResult();
@@ -28,6 +29,12 @@ export default function GenuineResultPage() {
   const batch = result.extracted_batch ?? 'Not detected';
   const product = result.product_name ?? 'Unidentified product';
   const brand = result.brand_name ?? 'Unknown brand';
+  // Medicines: never "Genuine" — "No problems found", pending DRAP's official
+  // verification — and their own phrases, checks and detail rows.
+  const medicine = result.medicine ?? null;
+  const medicineNoProblems = isMedicineNoProblems(medicine);
+  const medicineSources = medicine ? medicineSourcesLine(medicine) : null;
+  const phrase = medicine ? { en: result.english_text, ur: result.urdu_text } : VERDICT_PHRASE[verdict];
 
   return (
     <div className={styles.page}>
@@ -53,22 +60,33 @@ export default function GenuineResultPage() {
           </div>
         </div>
 
-        <VerdictBadge verdict={verdict} size="lg" />
+        <VerdictBadge verdict={verdict} size="lg" label={medicineNoProblems ? MEDICINE_COPY.noProblemsLabel : undefined} />
         <div className={styles.verdictSub}>
           <BilingualText
-            en={VERDICT_PHRASE[verdict].en}
-            ur={VERDICT_PHRASE[verdict].ur}
+            en={phrase.en}
+            ur={phrase.ur}
             size="sm"
           />
         </div>
 
         {/* Reason — bilingual, from the scan payload when present. */}
         <div className={styles.verdictSub}>
+          {medicine?.expiry?.expired && (
+            <BilingualText en={MEDICINE_COPY.expired.en} ur={MEDICINE_COPY.expired.ur} size="md" />
+          )}
           <BilingualText
             en={result.reason}
             ur={result.reason_ur ?? result.reason}
             size="sm"
           />
+          {medicine?.checks?.map((check) => (
+            <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
+          ))}
+          {result.barcode_check && (
+            <BilingualText en={result.barcode_check.en} ur={result.barcode_check.ur} size="sm" />
+          )}
+          {medicineSources && <BilingualText en={medicineSources.en} ur={medicineSources.ur} size="sm" />}
+          {medicine && <BilingualText en={MEDICINE_COPY.safety.en} ur={MEDICINE_COPY.safety.ur} size="sm" />}
         </div>
 
         {/* Confidence meter */}
@@ -87,13 +105,15 @@ export default function GenuineResultPage() {
         <div className={styles.detailsCard}>
           <p className={styles.sectionLabel}>Product Information</p>
           <div className={styles.detailsGrid}>
-            {[
+            {(medicine
+              ? medicineDetailRows(medicine).map((row) => ({ label: pick(row.label, lang), value: pick(row.value, lang) }))
+              : [
               { label: 'Product', value: product },
               { label: 'Brand', value: brand },
               { label: 'Batch No.', value: batch },
               ...(result.extracted_mfg_date ? [{ label: 'Mfg Date', value: result.extracted_mfg_date }] : []),
               ...(result.extracted_mrp ? [{ label: 'MRP', value: `Rs. ${result.extracted_mrp}` }] : []),
-            ].map((d, i) => (
+            ]).map((d, i) => (
               <div key={i} className={styles.detailItem}>
                 <p className={styles.detailLabel}>{d.label}</p>
                 <p className={styles.detailValue}>{d.value}</p>
@@ -109,7 +129,11 @@ export default function GenuineResultPage() {
         {isGenuine && (
           <div className={styles.successNote}>
             <span className="material-symbols-outlined" style={{ fontSize: '20px', flexShrink: 0 }}>check_circle</span>
-            <p>Checked against ShelfWatch&apos;s reference catalogue and packaging analysis.</p>
+            <p>
+              {medicineNoProblems
+                ? `${pick(MEDICINE_COPY.noProblemsLabel, lang)} — ${pick(MEDICINE_COPY.officialPending, lang)}`
+                : <>Checked against ShelfWatch&apos;s reference catalogue and packaging analysis.</>}
+            </p>
           </div>
         )}
 

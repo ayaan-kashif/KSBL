@@ -26,7 +26,8 @@
  *                            Default "national,national foods,nfl,نیشنل".
  */
 
-import { detectBrandFromImage } from "./geminiVision";
+import { detectBrandFromImage, type ProductCategory } from "./geminiVision";
+import type { BarcodeSource } from "./barcodeScanner";
 
 export type BrandSource = "local_catalog" | "sku_prefix" | "vision" | "unknown";
 
@@ -51,6 +52,13 @@ export interface BrandContext {
   wordmarkStatus: WordmarkStatus;
   /** The canonical brand a near-miss wordmark is imitating. */
   imitatedBrand: string | null;
+  /**
+   * The wordmark transcribed off the packaging, independent of the barcode —
+   * barcode evidence compares the two. Null when vision didn't run.
+   */
+  packagingBrand: string | null;
+  /** Product category read with the wordmark; null when vision didn't run. */
+  category: ProductCategory | null;
 }
 
 const DEFAULT_ALIASES = "national,national foods,nfl,نیشنل";
@@ -163,8 +171,15 @@ export function classifyWordmark(brand: string | null | undefined): {
 // changes as the catalog grows. Cached in module scope for the process
 // lifetime — this is a serverless-warm cache, not a correctness guarantee.
 
-let prefixCache: Set<string> | null = null;
-let prefixCachePromise: Promise<Set<string>> | null = null;
+interface PrefixIndex {
+  /** Prefixes that belong to National Foods and to nobody else. */
+  national: Set<string>;
+  /** Prefix → the one brand that uses it, or null when brands share it. */
+  owners: Map<string, string | null>;
+}
+
+let prefixCache: PrefixIndex | null = null;
+let prefixCachePromise: Promise<PrefixIndex> | null = null;
 
 async function fetchProductSkus(): Promise<Array<{ sku: string; brand_name: string }>> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -202,7 +217,7 @@ async function fetchProductSkus(): Promise<Array<{ sku: string; brand_name: stri
  * exactly the false positive this router exists to prevent. With real scraped
  * data no prefix is shared and nothing gets excluded.
  */
-async function nationalSkuPrefixes(): Promise<Set<string>> {
+async function skuPrefixIndex(): Promise<PrefixIndex> {
   if (prefixCache) return prefixCache;
   if (prefixCachePromise) return prefixCachePromise;
 
@@ -210,24 +225,48 @@ async function nationalSkuPrefixes(): Promise<Set<string>> {
     const rows = await fetchProductSkus();
     const national = new Set<string>();
     const others = new Set<string>();
+    const owners = new Map<string, string | null>();
 
     for (const row of rows) {
       const digits = (row.sku ?? "").replace(/\D/g, "");
       if (digits.length < PREFIX_LENGTH) continue;
       const prefix = digits.slice(0, PREFIX_LENGTH);
       (isNationalBrand(row.brand_name) ? national : others).add(prefix);
+
+      // Same exclusivity rule as the National set, for every brand: a prefix
+      // used by two brands identifies neither.
+      const brand = row.brand_name?.trim() || null;
+      if (!owners.has(prefix)) owners.set(prefix, brand);
+      else if (owners.get(prefix)?.toLowerCase() !== brand?.toLowerCase()) owners.set(prefix, null);
     }
 
     for (const shared of others) national.delete(shared);
 
+    const index = { national, owners };
     // Don't cache an empty result from a failed/empty fetch — a later call
     // (or a populated catalog) should get a real answer.
-    if (national.size > 0) prefixCache = national;
+    if (owners.size > 0) prefixCache = index;
     prefixCachePromise = null;
-    return national;
+    return index;
   })();
 
   return prefixCachePromise;
+}
+
+async function nationalSkuPrefixes(): Promise<Set<string>> {
+  return (await skuPrefixIndex()).national;
+}
+
+/**
+ * The brand whose catalog SKUs exclusively use this barcode's GS1 company
+ * prefix, or null when the prefix is unknown or shared between brands.
+ * Used as barcode evidence — "this barcode is registered to brand X" — not
+ * for routing, which keeps using the National-only set above.
+ */
+export async function prefixOwner(barcode: string | null | undefined): Promise<string | null> {
+  const digits = (barcode ?? "").replace(/\D/g, "");
+  if (digits.length < PREFIX_LENGTH) return null;
+  return (await skuPrefixIndex()).owners.get(digits.slice(0, PREFIX_LENGTH)) ?? null;
 }
 
 /** Test/ops hook — drop the memoised prefix set. */
@@ -243,9 +282,14 @@ export interface ResolveBrandInput {
   localCatalogBrand?: string | null;
   /** Scanned/detected barcode, if any. */
   barcode?: string | null;
+  /** How the barcode was obtained — see BarcodeSource in barcodeScanner.ts. */
+  barcodeSource?: BarcodeSource | null;
   /** Front photo, for the vision fallback. */
   imageBase64?: string | null;
   mimeType?: string | null;
+  /** Optional back photo — helps classify medicines ("Reg. No.", "Rx" on the back). */
+  backImageBase64?: string | null;
+  backMimeType?: string | null;
 }
 
 /**
@@ -253,6 +297,18 @@ export interface ResolveBrandInput {
  * an answer; never throws.
  */
 export async function resolveBrandContext(input: ResolveBrandInput): Promise<BrandContext> {
+  // A barcode-derived answer (steps 1–2) normally skips vision entirely. For a
+  // DECODED barcode the wordmark is still read, so the two can be compared: a
+  // genuine pack carries its own manufacturer's barcode. Routing is unchanged.
+  const readPackaging = async (): Promise<{ packagingBrand: string | null; category: ProductCategory | null }> => {
+    if (input.barcodeSource !== "decoded" || !input.imageBase64) return { packagingBrand: null, category: null };
+    const detected = await detectBrandFromImage(input.imageBase64, input.mimeType ?? "image/jpeg", {
+      data: input.backImageBase64 ?? null,
+      mimeType: input.backMimeType ?? null,
+    });
+    return { packagingBrand: detected?.brand || null, category: detected?.category ?? null };
+  };
+
   // 1. Local catalog — the barcode already matched one of our own rows, so the
   //    brand is recorded fact rather than inference.
   if (input.localCatalogBrand) {
@@ -264,6 +320,7 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
       // Our own catalog row — the spelling is authoritative by definition.
       wordmarkStatus: "exact",
       imitatedBrand: null,
+      ...(await readPackaging()),
     };
   }
 
@@ -278,16 +335,22 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
         source: "sku_prefix",
         // Not 1.0: a GS1 company prefix identifies the barcode's registrant,
         // which is strong evidence but still an inference about this packet.
-        confidence: 0.9,
+        // Lower again when Gemini read the digits rather than ZXing decoding
+        // the bars — a compensating misread can still pass the checksum.
+        confidence: input.barcodeSource === "ai_read" ? 0.75 : 0.9,
         wordmarkStatus: "exact",
         imitatedBrand: null,
+        ...(await readPackaging()),
       };
     }
   }
 
   // 3. Vision — one short Gemini call reading the wordmark off the packaging.
   if (input.imageBase64) {
-    const detected = await detectBrandFromImage(input.imageBase64, input.mimeType ?? "image/jpeg");
+    const detected = await detectBrandFromImage(input.imageBase64, input.mimeType ?? "image/jpeg", {
+      data: input.backImageBase64 ?? null,
+      mimeType: input.backMimeType ?? null,
+    });
     if (detected) {
       const { status, imitated } = classifyWordmark(detected.brand);
       return {
@@ -296,11 +359,15 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
         // counterfeit in the dataset down the lenient external-database path,
         // where the worst it can be called is "unverified".
         isNationalFoods: status === "exact" || status === "near_miss",
-        detectedBrand: detected.brand,
+        // Empty only for a medicine whose wordmark wasn't legible — kept so
+        // its category still routes it (see detectBrandFromImage).
+        detectedBrand: detected.brand || null,
         source: "vision",
         confidence: detected.confidence,
         wordmarkStatus: status,
         imitatedBrand: imitated,
+        packagingBrand: detected.brand || null,
+        category: detected.category,
       };
     }
   }
@@ -316,7 +383,64 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
     confidence: 0,
     wordmarkStatus: "unrelated",
     imitatedBrand: null,
+    packagingBrand: null,
+    category: null,
   };
+}
+
+// ─── Medicine routing ───────────────────────────────────────────────────────
+
+export interface MedicineSignals {
+  /** The decoded code is a GS1 DataMatrix/QR/128 with (01) plus (10)/(17)/(21). */
+  gs1Medicine: boolean;
+  /** The barcode/GTIN matched a catalog row whose category is "medicine". */
+  catalogMedicine: boolean;
+  /** Packaging classified as a medicine (Gemini category or OCR text cues). */
+  packagingMedicine: boolean;
+  /** The barcode matched a catalog row that is NOT a medicine. */
+  catalogNonMedicine?: boolean;
+  /** The scan is on the National Foods path (wordmark, prefix or catalog). */
+  nationalFoods?: boolean;
+}
+
+/**
+ * Does this scan belong on the medicine path? A medicine GS1 code or a
+ * medicine catalog row decides it outright. A packaging classification alone
+ * is weaker evidence and yields to two guards, so food routing can't be moved
+ * by a misread photo: a barcode that matched a non-medicine catalog row, and
+ * a National Foods pack (the brand makes no medicines, and its near-miss
+ * counterfeit rule must keep running).
+ */
+export function isMedicineScan(signals: MedicineSignals): boolean {
+  if (signals.gs1Medicine || signals.catalogMedicine) return true;
+  if (signals.catalogNonMedicine || signals.nationalFoods) return false;
+  return signals.packagingMedicine;
+}
+
+/**
+ * Medicine cues in OCR text, for the WhatsApp / /api/scan pipeline, which has
+ * OCR but no wordmark call, and the web pipeline's fallback when that call
+ * doesn't answer.
+ *
+ *  - A registration number, "DRAP" or "Rx" is enough on its own.
+ *  - A pharmaceutical dosage form (tablet, capsule, effervescent, injection,
+ *    inhaler, ointment, suspension) is enough on its own — many packs print
+ *    no strength on the front ("CaC-1000 PLUS Effervescent Tablet") — unless
+ *    the text is clearly household ("dishwasher tablets").
+ *  - Forms that food shares (syrup, lozenges) need a drug strength beside
+ *    them: "Rooh Afza syrup 800 ml" is food. A strength alone isn't enough
+ *    either — food labels print "Sodium 48 mg". Grams and millilitres are
+ *    never drug strengths here.
+ */
+export function textLooksLikeMedicine(text: string | null | undefined): boolean {
+  if (!text) return false;
+  if (/\bDRAP\b|\bReg(?:istration)?\.?\s*No\b|\bRx\b/i.test(text)) return true;
+  const pharmaForm = /\b(tablets?|capsules?|caplets?|effervescent|injection|infusion|inhaler|ointment|suspension)\b/i.test(text);
+  const household = /\b(dishwasher|toilet|cleaning|detergent|washing\s+machine|chlorine|pool)\b/i.test(text);
+  if (pharmaForm && !household) return true;
+  const sharedForm = /\b(syrup|lozenges?)\b/i.test(text);
+  const strength = /\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|iu)\b/i.test(text);
+  return sharedForm && strength;
 }
 
 // ─── Catalog coverage guard ─────────────────────────────────────────────────

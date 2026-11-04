@@ -1,0 +1,103 @@
+{
+  "user_agent": "ShelfWatchBot/1.0 (+https://shelfwatch.pk)",
+  "request_delay_ms": 2000,
+  "max_products_per_run": 25,
+  "companies": [
+    {
+      "id": "getz",
+      "name": "Getz Pharma",
+      "website": "https://getzpharma.com",
+      "adapter": "getz",
+      "catalogUrls": ["https://getzpharma.com/product-sitemap.xml"],
+      "productUrlPattern": "^https://getzpharma\\.com/product/[^/]+/?$",
+      "selectors": { "name": "title", "generic": ".sp_generic", "form": "select option", "strength": "ul li" },
+      "enabled": true,
+      "lastFetched": null,
+      "notes": "Checked 2026-11-03: robots.txt allows all; 564 product pages in product-sitemap.xml with brand, generic name, dosage form and strength. Product pages carry no pack images in their HTML, so Getz rows can't be image-matched."
+    },
+    {
+      "id": "agp",
+      "name": "AGP Limited",
+      "website": "https://agp.com.pk",
+      "adapter": "agp",
+      "catalogUrls": ["https://agp.com.pk/wp-sitemap-posts-agp_products-1.xml"],
+      "productUrlPattern": "^https://agp\\.com\\.pk/agp_products/[^/]+/?$",
+      "selectors": { "name": "title", "info": ".product-info", "image": "img[src*='/wp-content/uploads/20']" },
+      "enabled": true,
+      "lastFetched": null,
+      "notes": "Checked 2026-11-03: robots.txt disallows only /wp-admin/; 93 product pages with generic name, composition/strength and 1–2 pack images each."
+    },
+    {
+      "id": "sami",
+      "name": "SAMI Pharmaceuticals",
+      "website": "https://samipharma.com",
+      "adapter": "sami",
+      "catalogUrls": ["https://samipharma.com/products-sitemap.xml"],
+      "productUrlPattern": "^https://samipharma\\.com/Products/[^/]+/?$",
+      "selectors": { "name": "h1", "image": "img[src*='/wp-content/uploads/']" },
+      "enabled": true,
+      "lastFetched": null,
+      "notes": "Checked 2026-11-03: samipharma.com.pk redirects here; robots.txt disallows only /wp-admin/; 177 product pages. The heading gives brand and generic (\"Minrova (Mirogabalin)\"); strength isn't in the page HTML."
+    },
+    {
+      "id": "gsk",
+      "name": "GSK Pakistan",
+      "website": "https://pk.gsk.com",
+      "adapter": "gsk",
+      "catalogUrls": ["https://pk.gsk.com/en-pk/products/products-a-z/"],
+      "productUrlPattern": null,
+      "selectors": { "row": "table tr" },
+      "enabled": true,
+      "lastFetched": null,
+      "notes": "Checked 2026-11-03: robots.txt allows all; one A–Z table (trademark, generic + strength, product area). Text only — no pack images, and GSK says fuller product information is for healthcare professionals only."
+    },
+    {
+      "id": "hilton",
+      "name": "Hilton Pharma",
+      "website": "https://hiltonpharma.com",
+      "adapter": null,
+      "catalogUrls": [],
+      "productUrlPattern": null,
+      "selectors": {},
+      "enabled": false,
+      "lastFetched": null,
+      "notes": "Disabled: hiltonpharma.com did not resolve in DNS when checked on 2026-11-03 (domain attested by third-party listings). Re-check before enabling; no catalog URL has been verified."
+    },
+    {
+      "id": "ferozsons",
+      "name": "Ferozsons Laboratories",
+      "website": "https://ferozsons-labs.com",
+      "adapter": null,
+      "catalogUrls": [],
+      "productUrlPattern": null,
+      "selectors": {},
+      "enabled": false,
+      "lastFetched": null,
+      "notes": "Disabled: ferozsons-labs.com (named in a PSX filing) did not resolve in DNS on 2026-11-03. Re-check before enabling."
+    },
+    {
+      "id": "abbott",
+      "name": "Abbott Pakistan",
+      "website": "https://www.pk.abbott",
+      "adapter": null,
+      "catalogUrls": [],
+      "productUrlPattern": null,
+      "selectors": {},
+      "enabled": false,
+      "lastFetched": null,
+      "notes": "Disabled: abbott.com.pk redirects to pk.abbott, which did not resolve in DNS on 2026-11-03. Re-check before enabling."
+    },
+    {
+      "id": "searle",
+      "name": "The Searle Company",
+      "website": "https://searlecompany.com",
+      "adapter": null,
+      "catalogUrls": [],
+      "productUrlPattern": null,
+      "selectors": {},
+      "enabled": false,
+      "lastFetched": null,
+      "notes": "Disabled: searlecompany.com failed the TLS handshake on 2026-11-03, so no page could be read. Re-check before enabling."
+    }
+  ]
+}

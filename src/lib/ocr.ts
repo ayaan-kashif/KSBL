@@ -151,3 +151,80 @@ export async function runOcr(imageUrl: string): Promise<OcrResult> {
     return { batch: null, mfg_date: null, mrp: null, raw: { error: String(err) } };
   }
 }
+
+// ─── Packaging text for medicine detection ────────────────────────────────────
+
+// OCR.space answers in ~1s normally but sometimes takes well over 8s.
+const PACKAGING_TEXT_TIMEOUT_MS = 15000;
+/** OCR.space's free tier rejects images over 1 MB; phone photos are larger. */
+const OCR_MAX_EDGE = 1600;
+
+/**
+ * Plain text read off one or more packaging photos (base64), for one job
+ * only: deciding whether a scan is a medicine when the Gemini classification
+ * didn't answer (see textLooksLikeMedicine in services/brandRouter.ts).
+ *
+ * Deliberately separate from runOcr(): runOcr's OCR.space call posts to an
+ * endpoint that returns 404, so today it reads nothing — and its batch/MRP
+ * output feeds the food verdict on WhatsApp. Repairing it would change food
+ * results, so that stays a separate decision. This function uses the same
+ * providers and keys, called correctly (Google Vision with inline content, or
+ * OCR.space's POST /parse/image with base64Image).
+ *
+ * Images are read in parallel; never throws; returns null when nothing could
+ * be read.
+ */
+export async function readPackagingText(
+  images: { data: string | null; mimeType: string | null }[]
+): Promise<string | null> {
+  const usable = images.filter((img): img is { data: string; mimeType: string } => !!img.data && !!img.mimeType);
+  if (!usable.length) return null;
+  const texts = await Promise.all(usable.map((img) => readOne(img.data)));
+  const joined = texts.filter(Boolean).join("\n").trim();
+  return joined || null;
+}
+
+async function readOne(base64: string): Promise<string | null> {
+  try {
+    const { default: sharp } = await import("sharp");
+    const jpeg = await sharp(Buffer.from(base64, "base64"))
+      .rotate()
+      .resize({ width: OCR_MAX_EDGE, height: OCR_MAX_EDGE, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    const content = jpeg.toString("base64");
+
+    if (process.env.GOOGLE_VISION_API_KEY) {
+      const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requests: [{ image: { content }, features: [{ type: "TEXT_DETECTION", maxResults: 1 }] }] }),
+        signal: AbortSignal.timeout(PACKAGING_TEXT_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`Google Vision ${res.status}`);
+      const data = (await res.json()) as { responses?: Array<{ fullTextAnnotation?: { text: string } }> };
+      return data.responses?.[0]?.fullTextAnnotation?.text ?? null;
+    }
+
+    const apiKey = process.env.OCR_SPACE_API_KEY;
+    if (!apiKey) return null;
+    const form = new FormData();
+    form.append("base64Image", `data:image/jpeg;base64,${content}`);
+    form.append("language", "eng");
+    form.append("OCREngine", "2");
+    form.append("scale", "true");
+    const res = await fetch("https://api.ocr.space/parse/image", {
+      method: "POST",
+      headers: { apikey: apiKey },
+      body: form,
+      signal: AbortSignal.timeout(PACKAGING_TEXT_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`OCR.space ${res.status}`);
+    const data = (await res.json()) as { IsErroredOnProcessing?: boolean; ParsedResults?: Array<{ ParsedText: string }> };
+    if (data.IsErroredOnProcessing) throw new Error("OCR.space processing error");
+    return data.ParsedResults?.[0]?.ParsedText ?? null;
+  } catch (err) {
+    console.warn("[OCR] readPackagingText failed:", err);
+    return null;
+  }
+}

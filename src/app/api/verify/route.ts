@@ -28,15 +28,19 @@ function parseScannedByRole(value: FormDataEntryValue | null): ScannedByRole {
   return value === "shopkeeper" ? "shopkeeper" : "consumer";
 }
 
-import { scanBarcodeFromImage } from "@/services/barcodeScanner";
+import { scanBarcodeFromImage, manualBarcodeRead, type BarcodeRead } from "@/services/barcodeScanner";
 import { UnifiedProduct } from "@/services/cacheService";
 import { uploadImage } from "@/lib/blob";
 import { getCustomerIdFromRequest, incrementCustomerScore } from "@/lib/customer";
 import { getVerdictTextSync } from "@/lib/translate";
-import { resolveBrandContext } from "@/services/brandRouter";
+import { resolveBrandContext, isMedicineScan, textLooksLikeMedicine } from "@/services/brandRouter";
+import { readPackagingText } from "@/lib/ocr";
+import { isMedicineGs1 } from "@/services/gs1Parser";
+import { customerReporterKey } from "@/services/medicineChecks";
 import {
   runNationalRagPath,
   runExternalDbPath,
+  runMedicinePath,
   type VerificationPath,
 } from "@/services/verificationPaths";
 /** Maps a row from our own local "Product" table (sku, brand_name, product_name,
@@ -124,7 +128,7 @@ export async function POST(req: NextRequest) {
     // passed to Gemini alongside the front photo for a fuller comparison.
     const imageFile = formData.get("capturedImage") || formData.get("image");
     const backImageFile = formData.get("capturedImageBack");
-    let barcode = formData.get("barcode") as string | null;
+    const typedBarcode = formData.get("barcode") as string | null;
 
     if (!imageFile || typeof imageFile === "string") {
       return NextResponse.json(
@@ -149,16 +153,22 @@ export async function POST(req: NextRequest) {
 
     // 2. Barcode Scanning Fallback (if not passed directly) — try the front
     // photo first, then the back photo if the front didn't have a readable one.
-    if (!barcode || barcode.trim() === "") {
+    // Each photo goes ZXing decode -> Gemini digit read (barcodeScanner.ts).
+    let barcodeRead: BarcodeRead | null =
+      typedBarcode && typedBarcode.trim() !== "" ? manualBarcodeRead(typedBarcode) : null;
+    if (!barcodeRead) {
       console.log("[VerifyAPI] No barcode provided in request. Running visual scanner...");
-      barcode = await scanBarcodeFromImage(imageBase64, mimeType);
-      console.log(`[VerifyAPI] Visual scanner result (front): ${barcode}`);
+      barcodeRead = await scanBarcodeFromImage(imageBase64, mimeType);
+      console.log(`[VerifyAPI] Visual scanner result (front): ${barcodeRead?.value ?? null} via ${barcodeRead?.source ?? "-"}`);
 
-      if (!barcode && backImageBase64 && backMimeType) {
-        barcode = await scanBarcodeFromImage(backImageBase64, backMimeType);
-        console.log(`[VerifyAPI] Visual scanner result (back): ${barcode}`);
+      if (!barcodeRead && backImageBase64 && backMimeType) {
+        barcodeRead = await scanBarcodeFromImage(backImageBase64, backMimeType);
+        console.log(`[VerifyAPI] Visual scanner result (back): ${barcodeRead?.value ?? null} via ${barcodeRead?.source ?? "-"}`);
       }
     }
+    // Only a product code is looked up — a QR code holding a plain URL still
+    // counts as "barcode detected" but has no SKU to match.
+    const barcode = barcodeRead?.productCode ?? null;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -180,7 +190,7 @@ export async function POST(req: NextRequest) {
     // result screen should display, so this single lookup feeds everything
     // downstream instead of leaving the UI showing "Unregistered/Unknown"
     // for a scan that was actually identified.
-    let localProductRow: { id: string; product_name: string; brand_name: string; sku: string; pack_size?: string | null; reference_image_url?: string | null } | null = null;
+    let localProductRow: { id: string; product_name: string; brand_name: string; sku: string; pack_size?: string | null; reference_image_url?: string | null; category?: string | null } | null = null;
     let dbProductId: string | null = null;
 
     if (barcode && supabaseUrl && anonKey) {
@@ -208,17 +218,57 @@ export async function POST(req: NextRequest) {
     const brandContext = await resolveBrandContext({
       localCatalogBrand: localProductRow?.brand_name ?? null,
       barcode,
+      barcodeSource: barcodeRead?.source ?? null,
       imageBase64,
       mimeType,
+      backImageBase64,
+      backMimeType,
     });
 
-    const verificationPath: VerificationPath = brandContext.isNationalFoods
-      ? "national_rag"
-      : "external_db";
+    // Medicines get their own path; food/FMCG routing below is unchanged.
+    const gs1Medicine = !!barcodeRead?.gs1 && isMedicineGs1(barcodeRead.gs1);
+    // Fallback when Gemini's classification didn't answer (it times out when
+    // Gemini is slow): read the pack's text — front and back — and look for
+    // medicine cues. Only runs when nothing stronger has decided the route.
+    const packagingText =
+      brandContext.category === null && !gs1Medicine && !localProductRow && !brandContext.isNationalFoods
+        ? await readPackagingText([
+            { data: imageBase64, mimeType },
+            { data: backImageBase64, mimeType: backMimeType },
+          ])
+        : null;
+    const isMedicine = isMedicineScan({
+      gs1Medicine,
+      catalogMedicine: localProductRow?.category === "medicine",
+      catalogNonMedicine: !!localProductRow && localProductRow.category !== "medicine",
+      packagingMedicine: brandContext.category === "medicine" || textLooksLikeMedicine(packagingText),
+      nationalFoods: brandContext.isNationalFoods,
+    });
+
+    const verificationPath: VerificationPath = isMedicine
+      ? "medicine"
+      : brandContext.isNationalFoods
+        ? "national_rag"
+        : "external_db";
 
     console.log(
-      `[VerifyAPI] path=${verificationPath} brand=${brandContext.detectedBrand ?? "unknown"} via=${brandContext.source}`
+      `[VerifyAPI] path=${verificationPath} brand=${brandContext.detectedBrand ?? "unknown"} via=${brandContext.source} category=${brandContext.category ?? "-"}` +
+        (packagingText !== null ? ` text-fallback=${textLooksLikeMedicine(packagingText) ? "medicine" : "no cues"}` : "")
     );
+
+    // Use the device's real GPS coordinates only — never fabricate a location.
+    // Resolved before the path runs: the medicine duplicate-serial check
+    // counts distinct areas.
+    const rawLat = formData.get("latitude") as string | null;
+    const rawLng = formData.get("longitude") as string | null;
+    const scanLat = rawLat ? parseFloat(rawLat) : null;
+    const scanLng = rawLng ? parseFloat(rawLng) : null;
+    let scanArea = formData.get("area_name") as string | null;
+    if (!scanArea) {
+      scanArea = scanLat != null && scanLng != null
+        ? await reverseGeocode(scanLat, scanLng)
+        : "Location unavailable";
+    }
 
     const pathInput = {
       imageUrl,
@@ -232,14 +282,21 @@ export async function POST(req: NextRequest) {
       wordmarkStatus: brandContext.wordmarkStatus,
       detectedBrand: brandContext.detectedBrand,
       imitatedBrand: brandContext.imitatedBrand,
+      barcodeRead,
+      packagingBrand: brandContext.packagingBrand,
+      reporterKey: customerReporterKey(customerId),
+      area: scanArea,
     };
 
     const outcome =
-      verificationPath === "national_rag"
-        ? await runNationalRagPath(pathInput)
-        : await runExternalDbPath(pathInput);
+      verificationPath === "medicine"
+        ? await runMedicinePath(pathInput)
+        : verificationPath === "national_rag"
+          ? await runNationalRagPath(pathInput)
+          : await runExternalDbPath(pathInput);
 
     const { gemini } = outcome;
+    const medicine = outcome.medicine ?? null;
     const product = outcome.product;
     const apiSource = outcome.apiSource;
     const finalScore = outcome.score;
@@ -257,19 +314,11 @@ export async function POST(req: NextRequest) {
           : "Needs Manual Review";
 
     // Fixed-glossary verdict phrase, looked up synchronously — no API call.
-    const verdictPhrase = getVerdictTextSync(dbVerdict);
-
-    // Use the device's real GPS coordinates only — never fabricate a location.
-    const rawLat = formData.get("latitude") as string | null;
-    const rawLng = formData.get("longitude") as string | null;
-    const scanLat = rawLat ? parseFloat(rawLat) : null;
-    const scanLng = rawLng ? parseFloat(rawLng) : null;
-    let scanArea = formData.get("area_name") as string | null;
-    if (!scanArea) {
-      scanArea = scanLat != null && scanLng != null
-        ? await reverseGeocode(scanLat, scanLng)
-        : "Location unavailable";
-    }
+    // Medicines use their own fixed phrases: the food glossary's "genuine"
+    // line says "verified as authentic", which a medicine must never show.
+    const verdictPhrase = medicine?.verdict
+      ? { urdu_text: medicine.verdict.phrase.ur, english_text: medicine.verdict.phrase.en }
+      : getVerdictTextSync(dbVerdict);
 
     let scanId = "scan-" + Date.now();
     if (supabaseUrl && anonKey) {
@@ -287,16 +336,20 @@ export async function POST(req: NextRequest) {
             // `product` already incorporates local catalog / scraper-match
             // data (see the identification block above), so this alone
             // covers all three source paths, not just external DB lookups.
-            product_name: product?.name || null,
+            product_name: product?.name || medicine?.printed?.brandName || null,
             brand_name: product?.brand || null,
-            category: product?.category || null,
+            category: isMedicine ? "Medicine" : product?.category || null,
             barcode: barcode?.trim() || product?.barcode || null,
             // Validated against the enum rather than blind-cast: a client
             // sending role=admin would otherwise be written straight into the
             // column and rejected by Postgres (or worse, accepted).
             scanned_by_role: parseScannedByRole(formData.get("role")),
             image_url: imageUrl,
-            extracted_batch: gemini.tampering ? "Tampered" : "Standard Batch",
+            // Medicines record the real batch (DataMatrix, else as printed);
+            // food rows keep their existing value.
+            extracted_batch: medicine
+              ? medicine.gs1?.batch ?? medicine.printed?.batch ?? null
+              : gemini.tampering ? "Tampered" : "Standard Batch",
             extracted_mfg_date: new Date().toLocaleDateString(),
             extracted_mrp: null,
             // Per-check Gemini signals, kept so the dashboard can render real
@@ -309,7 +362,19 @@ export async function POST(req: NextRequest) {
               designMatch: gemini.designMatch,
               tampering: gemini.tampering,
               reason: gemini.reason,
+              // Barcode provenance lives here rather than in new columns.
+              barcodeSource: outcome.barcodeCheck.source,
+              barcodeFormat: outcome.barcodeCheck.format,
+              barcodeCheck: outcome.barcodeCheck.status,
+              // What the wordmark call classified the pack as.
+              category: brandContext.category,
+              ...(medicine ? { medicineChecks: medicine.checks, medicinePrinted: medicine.printed } : {}),
             },
+            // GS1 / printed medicine codes (null for food).
+            gtin: medicine?.gs1?.gtin ?? null,
+            serial: medicine?.gs1?.serial ?? null,
+            expiry_date: medicine?.expiry.date ?? null,
+            drap_reg_no: medicine?.printed?.drapRegNo ?? null,
             cv_anomaly_score: (100 - gemini.packagingMatch) / 100,
             verdict: dbVerdict,
             confidence: finalScore / 100,
@@ -394,7 +459,13 @@ export async function POST(req: NextRequest) {
       reason_ur: outcome.reasonUr,
       urdu_text: verdictPhrase.urdu_text,
       english_text: verdictPhrase.english_text,
-      barcodeDetected: !!barcode,
+      barcodeDetected: !!barcodeRead,
+      // One bilingual line shown beside the reason — status, source and format
+      // so a decoded barcode can be told apart from an AI-read one.
+      barcodeCheck: outcome.barcodeCheck,
+      // Medicine scans only: printed fields, GS1 data and per-check results.
+      // Not rendered yet — the result pages pick it up in phase 4.
+      medicine,
 
       // ── Routing transparency ────────────────────────────────────────────
       verificationPath,

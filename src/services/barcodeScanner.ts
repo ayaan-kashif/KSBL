@@ -1,8 +1,43 @@
 /**
  * services/barcodeScanner.ts
  *
- * Extracts/reads a barcode from a captured image using Gemini Vision API.
+ * Extracts a barcode from a captured image. The ZXing decoder
+ * (barcodeDecoder.ts) runs first and decodes the actual bar pattern; only if
+ * it finds nothing does Gemini Vision try to READ the printed digits, which is
+ * less reliable. The result records which of the two produced it, so callers
+ * can trust a decoded barcode more than an AI-read one.
  */
+
+import { decodeBarcode } from "./barcodeDecoder";
+import { parseGs1, type Gs1Data } from "./gs1Parser";
+
+/**
+ *  decoded — ZXing decoded the symbol itself; the value is real data.
+ *  ai_read — Gemini read the printed digits; checksum-validated, but a
+ *            compensating misread is still possible.
+ *  manual  — typed in by the user.
+ */
+export type BarcodeSource = "decoded" | "ai_read" | "manual";
+
+export interface BarcodeRead {
+  /** Raw payload — digits for retail codes, possibly a URL for a QR code. */
+  value: string;
+  /** ZXing format name ("EAN13", "QRCode"…), or null when not known. */
+  format: string | null;
+  source: BarcodeSource;
+  checksumValid: boolean;
+  /**
+   * The product code to look up in the catalog / external databases, or null
+   * when the payload isn't one (a plain URL or text in a QR/Code 128). Stray
+   * digits in a URL would otherwise be read as a GS1 company prefix.
+   */
+  productCode: string | null;
+  /**
+   * GS1 element strings in the payload (DataMatrix / GS1 QR / GS1-128) —
+   * GTIN, batch, expiry, serial. Null for a plain retail barcode or an AI read.
+   */
+  gs1: Gs1Data | null;
+}
 
 /**
  * Validates the EAN-13/UPC-A check digit (standard GS1 algorithm). A vision
@@ -25,9 +60,72 @@ function isValidEanChecksum(digits: string): boolean {
   return computed === checkDigit;
 }
 
+/**
+ * Pull a GTIN out of a decoded payload. Retail and ITF codes are already bare
+ * digits; QR / Data Matrix codes on packaging can carry a GS1 element string
+ * ("(01)08901030873874…") or a GS1 Digital Link URL (".../01/08901030873874").
+ * A GTIN-14 with a leading 0 is the GTIN-13 printed as EAN-13 — the form the
+ * catalog stores.
+ */
+export function extractProductCode(text: string, gs1?: Gs1Data | null): string | null {
+  const trimmed = text.trim();
+  let gtin: string | null = null;
+
+  if (/^\d{8,14}$/.test(trimmed)) {
+    gtin = trimmed;
+  } else if (gs1?.gtin) {
+    gtin = gs1.gtin;
+  } else {
+    const elementString = trimmed.match(/^(?:\][A-Za-z]\d)?\(?01\)?(\d{14})/);
+    const digitalLink = trimmed.match(/\/01\/(\d{14})(?:[/?#]|$)/);
+    gtin = elementString?.[1] ?? digitalLink?.[1] ?? null;
+  }
+
+  if (gtin && gtin.length === 14 && gtin.startsWith("0")) gtin = gtin.slice(1);
+  return gtin;
+}
+
+/** A barcode typed in by the user — looked up exactly as typed, as before. */
+export function manualBarcodeRead(value: string): BarcodeRead {
+  const trimmed = value.trim();
+  // A pasted GS1 string ("(01)…(21)…") is still recognised as one.
+  const gs1 = parseGs1(trimmed);
+  return {
+    value: trimmed,
+    format: null,
+    source: "manual",
+    checksumValid: isValidEanChecksum(trimmed),
+    productCode: trimmed,
+    gs1: gs1.isGs1 ? gs1 : null,
+  };
+}
+
 export async function scanBarcodeFromImage(
   imageBase64: string,
   mimeType = "image/jpeg"
+): Promise<BarcodeRead | null> {
+  const decoded = await decodeBarcode(Buffer.from(imageBase64, "base64"));
+  if (decoded) {
+    const gs1 = parseGs1(decoded.text, decoded.symbologyIdentifier);
+    return {
+      value: decoded.text,
+      format: decoded.format,
+      source: "decoded",
+      checksumValid: decoded.checksumValid,
+      productCode: extractProductCode(decoded.text, gs1),
+      gs1: gs1.isGs1 ? gs1 : null,
+    };
+  }
+
+  const aiDigits = await readBarcodeWithGemini(imageBase64, mimeType);
+  if (!aiDigits) return null;
+  return { value: aiDigits, format: null, source: "ai_read", checksumValid: true, productCode: aiDigits, gs1: null };
+}
+
+/** Fallback when ZXing finds nothing: ask Gemini to read the printed digits. */
+async function readBarcodeWithGemini(
+  imageBase64: string,
+  mimeType: string
 ): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {

@@ -19,6 +19,41 @@ export interface GeminiComparisonResult {
    *  follow-up translation request — the scan is already multi-second, and a
    *  second round-trip just to translate one sentence would be felt. */
   reasonUr: string;
+  /** Text transcribed off a medicine pack — only when asked for (medicine
+   *  path), in the same call. Null fields were not clearly visible. */
+  printed?: MedicinePrinted | null;
+}
+
+/** Fields printed on a medicine pack. Never inferred: null = not visible. */
+export interface MedicinePrinted {
+  brandName: string | null;
+  genericName: string | null;
+  strength: string | null;
+  dosageForm: string | null;
+  packSize: string | null;
+  manufacturer: string | null;
+  drapRegNo: string | null;
+  batch: string | null;
+  mfgDate: string | null;
+  expiryDate: string | null;
+  mrp: string | null;
+}
+
+const MEDICINE_PRINTED_KEYS: (keyof MedicinePrinted)[] = [
+  "brandName", "genericName", "strength", "dosageForm", "packSize", "manufacturer",
+  "drapRegNo", "batch", "mfgDate", "expiryDate", "mrp",
+];
+
+/** Keep only real transcriptions: the model's "not visible" spellings become null. */
+function parseMedicinePrinted(value: unknown): MedicinePrinted | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const printed = {} as MedicinePrinted;
+  for (const key of MEDICINE_PRINTED_KEYS) {
+    const raw = typeof source[key] === "string" ? (source[key] as string).trim() : "";
+    printed[key] = !raw || /^(null|n\/?a|none|not visible|unknown|-)$/i.test(raw) ? null : raw;
+  }
+  return printed;
 }
 
 const DEFAULT_FALLBACK_RESULT: GeminiComparisonResult = {
@@ -33,24 +68,48 @@ const DEFAULT_FALLBACK_RESULT: GeminiComparisonResult = {
   reasonUr: "پیکنگ کی ظاہری تفصیلات کی محفوظ تصدیق نہیں ہو سکی۔ معیاری تجزیے پر انحصار کیا جا رہا ہے۔",
 };
 
+export type ProductCategory = "medicine" | "food" | "other";
+
+/** True when the comparison call failed and returned the safe default
+ *  instead of a real inspection — its scores are not evidence either way. */
+export function isGeminiFallback(result: GeminiComparisonResult): boolean {
+  return result === DEFAULT_FALLBACK_RESULT;
+}
+
 export interface BrandDetection {
   brand: string;
   confidence: number; // 0–1
+  /** What kind of product the pack is — routes medicines to their own path.
+   *  Read in this same call so classification adds no extra round-trip. */
+  category: ProductCategory | null;
 }
+
+/** Wordmark/category call budget: the first attempt, and one retry. */
+const WORDMARK_TIMEOUT_MS = 10000;
+const WORDMARK_RETRY_TIMEOUT_MS = 6000;
+/** Transient Gemini failures worth one retry ("high demand" is a 503). */
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 
 /**
  * Read the brand wordmark off a packaging photo. Deliberately narrow: no
  * comparison, no scoring, no authenticity judgement — it exists only so
  * brandRouter can decide WHICH verification path a scan belongs on, before
- * any of the heavy work runs. Kept to one short call with a 4s ceiling so it
- * doesn't add meaningful latency to the scan.
+ * any of the heavy work runs.
+ *
+ * Its answer routes the whole scan — a medicine with no DataMatrix is only
+ * recognised here — so it gets WORDMARK_TIMEOUT_MS and one quick retry on a
+ * transient failure (a 4s ceiling used to drop it whenever Gemini was slow,
+ * sending medicines down the food path).
  *
  * Never throws — returns null on any failure so the router falls through to
  * its "unknown" branch and defaults to the external path.
  */
 export async function detectBrandFromImage(
   imageBase64: string,
-  mimeType = "image/jpeg"
+  mimeType = "image/jpeg",
+  /** Optional back/label photo, used for the category only: "Reg. No.", "Rx"
+   *  and the strength usually sit on the back of a medicine pack. */
+  backImage?: { data: string | null; mimeType: string | null }
 ): Promise<BrandDetection | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
@@ -80,32 +139,62 @@ Rules:
 - confidence is how clearly you could READ the characters, 0.0 to 1.0 — not how
   confident you are about which company it is.
 
+Separately, classify the item in "category" (this does not change the brand rules above):
+- "medicine": a pharmaceutical product — tablets, capsules, syrup, suspension,
+  drops, injection, inhaler, or a cream/ointment sold as a drug — or a pack
+  showing a drug registration number ("Reg. No."), "DRAP", "Rx", or a strength
+  such as "500 mg" next to a dosage form.
+- "food": food, drinks, sauces, spices, condiments.
+- "other": anything else (detergent, soap, cosmetics, household goods).
+
 Return ONE raw JSON object and nothing else — no markdown code fences, no commentary:
-{"brand": "...", "confidence": 0.0}`;
+{"brand": "...", "confidence": 0.0, "category": "food"}`;
+
+  const hasBack = !!(backImage?.data && backImage?.mimeType);
+  const fullPrompt = hasBack
+    ? `${prompt}
+
+A second photo shows the BACK of the same pack. Transcribe the wordmark from the FIRST photo only; use both photos to decide "category".`
+    : prompt;
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
     const model = process.env.GEMINI_VISION_MODEL ?? "gemini-3.1-flash-lite";
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            { parts: [{ inlineData: { mimeType, data: imageBase64 } }, { text: prompt }] },
+    const body = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { inlineData: { mimeType, data: imageBase64 } },
+            ...(hasBack ? [{ inlineData: { mimeType: backImage!.mimeType!, data: backImage!.data! } }] : []),
+            { text: fullPrompt },
           ],
-          // temperature 0: transcription has one right answer, and a verdict
-          // that flips between runs on the same photo is not demonstrable.
-          generationConfig: { responseMimeType: "application/json", temperature: 0 },
-        }),
-        signal: controller.signal,
-      }
-    );
-    clearTimeout(timeoutId);
+        },
+      ],
+      // temperature 0: transcription has one right answer, and a verdict
+      // that flips between runs on the same photo is not demonstrable.
+      generationConfig: { responseMimeType: "application/json", temperature: 0 },
+    });
 
+    let res: Response | null = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          signal: AbortSignal.timeout(attempt === 1 ? WORDMARK_TIMEOUT_MS : WORDMARK_RETRY_TIMEOUT_MS),
+        });
+      } catch (err) {
+        // A timeout means Gemini is slow, not refusing: retrying would only
+        // double the wait. A dropped connection is worth one more try.
+        if ((err as Error)?.name === "TimeoutError" || attempt === 2) throw err;
+        console.warn("[GeminiVision] detectBrandFromImage connection failed — retrying once");
+        continue;
+      }
+      if (res.ok || !RETRYABLE_STATUSES.has(res.status) || attempt === 2) break;
+      console.warn(`[GeminiVision] detectBrandFromImage returned ${res.status} — retrying once`);
+    }
+
+    if (!res) return null;
     if (!res.ok) {
       console.warn(`[GeminiVision] detectBrandFromImage returned ${res.status}`);
       return null;
@@ -126,11 +215,17 @@ Return ONE raw JSON object and nothing else — no markdown code fences, no comm
 
     const parsed = JSON.parse(text);
     const brand = typeof parsed?.brand === "string" ? parsed.brand.trim() : "";
-    if (!brand) return null;
+    const category: ProductCategory | null =
+      parsed?.category === "medicine" || parsed?.category === "food" || parsed?.category === "other"
+        ? parsed.category
+        : null;
+    // An illegible wordmark returns null as before — except on a medicine,
+    // where the category alone is still needed to route the scan.
+    if (!brand && category !== "medicine") return null;
 
     const raw = Number(parsed?.confidence);
     const confidence = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0.5;
-    return { brand, confidence };
+    return { brand, confidence, category };
   } catch (err) {
     console.error("[GeminiVision] detectBrandFromImage failed:", err);
     return null;
@@ -168,7 +263,12 @@ export async function compareImagesWithGemini(
   /** Optional second (back/label) photo of the same product — improves
    * accuracy since barcodes, batch codes, and ingredient lists are commonly
    * printed on the back panel rather than the front-facing brand side. */
-  backImage?: { data: string | null; mimeType: string | null }
+  backImage?: { data: string | null; mimeType: string | null },
+  /** Barcode ZXing decoded from the pack (barcodeDecoder.ts), if any — real
+   * data, so Gemini compares it instead of reading the digits itself. */
+  decodedBarcode?: string | null,
+  /** medicine: also transcribe the pack's printed fields into `printed`. */
+  options: { medicine?: boolean } = {}
 ): Promise<GeminiComparisonResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -210,7 +310,9 @@ ${hasBackImage
 Inspect the captured image(s) and evaluate the following:
 1. Logo Match: Check if the logo matches the official brand design (shapes, colors, details).
 2. Packaging Match: Check if the packaging colors, warnings, fonts, and materials match.
-3. Barcode Match: Check if the barcode visible in either photo matches the reference barcode (${productBarcode}).
+3. Barcode Match: Check if the barcode visible in either photo matches the reference barcode (${productBarcode}).${decodedBarcode
+  ? ` The barcode on the pack was machine-decoded as ${decodedBarcode}; use that value instead of reading the printed digits yourself.`
+  : ""}
 4. Brand Match: Check if the brand name and trademarks are spelled correctly and placed accurately.
 5. Design Match: Check if print alignments, labels, seals, and overall packaging design elements are correct.
 6. Tampering: Look for signs of tampering, broken seals, cuts, or fake glue, on either photo.
@@ -253,7 +355,19 @@ you have nothing to compare against, you cannot score a match highly, and
 "confidence" should reflect that uncertainty rather than your impression of the
 print.
 
-Normalise all numeric scores to a scale of 0 to 100.`;
+Normalise all numeric scores to a scale of 0 to 100.${options.medicine ? `
+
+This item is a MEDICINE. Also add a "printed" object to the JSON, transcribing
+what is printed on the pack (either photo). Copy the characters exactly as
+printed. Use null for anything not clearly legible. NEVER guess, infer or fill
+in a value from your own knowledge of the product — a wrong batch or expiry is
+worse than a missing one.
+"printed": {
+  "brandName": "...", "genericName": "...", "strength": "e.g. 500 mg",
+  "dosageForm": "e.g. Tablet", "packSize": "e.g. 10 x 10", "manufacturer": "...",
+  "drapRegNo": "registration number only, e.g. 012345", "batch": "...",
+  "mfgDate": "as printed", "expiryDate": "as printed", "mrp": "as printed"
+}` : ""}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
 
@@ -332,14 +446,28 @@ Normalise all numeric scores to a scale of 0 to 100.`;
     if (cleanJsonStr.startsWith("```")) {
       cleanJsonStr = cleanJsonStr.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
     }
+    // The model sometimes trails a stray "``" after a valid object, which
+    // throws the whole answer away. Medicine scans take the outermost braces,
+    // as detectBrandFromImage does. Not yet applied to food scans: it would
+    // change their scores, so it waits for an explicit go-ahead.
+    if (options.medicine) {
+      const first = cleanJsonStr.indexOf("{");
+      const last = cleanJsonStr.lastIndexOf("}");
+      if (first !== -1 && last > first) cleanJsonStr = cleanJsonStr.slice(first, last + 1);
+    }
 
     try {
       const parsed = JSON.parse(cleanJsonStr);
+      // A decoded barcode equal to the reference is a fact, not an opinion.
+      // A difference is left to Gemini: scraped catalog SKUs are often not
+      // real barcodes, so "not equal" proves nothing on its own.
+      const decodedMatchesReference =
+        !!decodedBarcode && !!productInfo?.barcode && decodedBarcode.trim() === productInfo.barcode.trim();
       // Validate structure and map fields
       return {
         logoMatch: Number(parsed.logoMatch) ?? 50,
         packagingMatch: Number(parsed.packagingMatch) ?? 50,
-        barcodeMatch: Number(parsed.barcodeMatch) ?? 50,
+        barcodeMatch: decodedMatchesReference ? 100 : Number(parsed.barcodeMatch) ?? 50,
         brandMatch: Number(parsed.brandMatch) ?? 50,
         designMatch: Number(parsed.designMatch) ?? 50,
         tampering: Boolean(parsed.tampering) ?? false,
@@ -351,6 +479,7 @@ Normalise all numeric scores to a scale of 0 to 100.`;
           typeof parsed.reasonUr === "string" && parsed.reasonUr.trim()
             ? parsed.reasonUr.trim()
             : "تصدیق مکمل ہو گئی۔",
+        ...(options.medicine ? { printed: parseMedicinePrinted(parsed.printed) } : {}),
       };
     } catch (parseErr) {
       console.error("[GeminiVision] Failed to parse response text as JSON:", cleanJsonStr, parseErr);

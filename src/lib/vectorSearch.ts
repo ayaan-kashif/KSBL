@@ -55,7 +55,12 @@ export async function findProductByImage(
    * catalogued product without matching it is the signature of a copy, and
    * discarding it at the RPC would throw that evidence away.
    */
-  matchThreshold?: number
+  matchThreshold?: number,
+  /**
+   * Catalog category to search: "fmcg" (food/household — every pre-existing
+   * row) or "medicine" (pharma scraper rows). The two never match each other.
+   */
+  category: "fmcg" | "medicine" = "fmcg"
 ): Promise<VectorMatch | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -92,6 +97,7 @@ export async function findProductByImage(
         match_threshold: threshold,
         brand_filter: brandFilter ?? null,
         match_count: 1,
+        category_filter: category,
       }),
       signal: controller.signal,
     });

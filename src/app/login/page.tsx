@@ -7,6 +7,14 @@ import styles from './login.module.css';
 import { postLogin } from '@/lib/api';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
+
+/** Messages for the ?error= codes /auth/callback and /reset-password send back. */
+const AUTH_ERRORS: Record<string, string> = {
+  google_cancelled: 'Google sign-in was cancelled.',
+  google_failed: "Google sign-in didn't complete. Please try again.",
+  auth_unavailable: 'Sign-in is temporarily unavailable. Please try again shortly.',
+};
 
 export default function LoginPage() {
   return (
@@ -22,7 +30,8 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => AUTH_ERRORS[searchParams.get('error') ?? ''] ?? '');
+  const passwordReset = searchParams.get('reset') === '1';
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,6 +89,12 @@ function LoginForm() {
               {error}
             </div>
           )}
+          {passwordReset && !error && (
+            <div className={styles.successBanner}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+              Password updated. Sign in with your new password.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <Input
@@ -98,6 +113,11 @@ function LoginForm() {
               onChange={e => setPassword(e.target.value)}
               required
             />
+            <p className={styles.forgotRow}>
+              <Link href="/forgot-password" className={styles.adminLink}>
+                Forgot password?
+              </Link>
+            </p>
 
             <Button type="submit" variant="primary" size="lg" fullWidth loading={loading} icon={loading ? undefined : 'login'}>
               {loading ? 'Signing in...' : 'Sign In'}
@@ -105,6 +125,10 @@ function LoginForm() {
           </form>
 
           <div className={styles.divider}><span>or</span></div>
+
+          <div className={styles.altActions}>
+            <GoogleSignInButton redirect={searchParams.get('redirect') ?? undefined} onError={setError} />
+          </div>
 
           <Button variant="ghost" size="lg" fullWidth icon="person_add" onClick={() => router.push('/signup')}>
             Create an Account

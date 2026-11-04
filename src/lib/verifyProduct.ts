@@ -7,7 +7,8 @@
  *
  * Pipeline:
  *  1. Upload image to Vercel Blob → public URL
- *  2. Race OCR + CV + vector image search (RAG match) with a timeout guard
+ *  2. Race OCR + CV + vector image search (RAG match) with a timeout guard,
+ *     alongside a barcode read from the photo (ZXing decode -> Gemini read)
  *  3. Lookup product by barcode/SKU → vector image match → batch pattern
  *  4. Rule-based verdict (genuine | suspicious | unverified)
  *  5. Translate verdict — Gemini image comparison when identified via RAG match
@@ -17,12 +18,20 @@
  */
 
 import { uploadImage } from "./blob";
-import { runOcr } from "./ocr";
+import { runOcr, readPackagingText } from "./ocr";
 import { scorePackaging } from "./cv";
 import { getVerdictText, getVerdictTextSync, compareProductImages } from "./translate";
 import { findProductByImage, type VectorMatch } from "./vectorSearch";
 import { comparePixelWise, GENUINE_THRESHOLD, type PixelCompareResult } from "./pixelCompare";
 import { incrementCustomerScore } from "./customer";
+import { scanBarcodeFromImage, manualBarcodeRead, type BarcodeRead } from "@/services/barcodeScanner";
+import { assessBarcode, barcodeMismatchReason, type BarcodeCheck } from "@/services/barcodeEvidence";
+import { prefixOwner, isMedicineScan, textLooksLikeMedicine } from "@/services/brandRouter";
+import { isMedicineGs1 } from "@/services/gs1Parser";
+import { compareImagesWithGemini } from "@/services/geminiVision";
+import { assessMedicine, customerReporterKey, type MedicineAssessment } from "@/services/medicineChecks";
+import { identifyByCodeOrImage, catalogMedicineToUnified } from "@/services/medicineCatalog";
+import { decideMedicineVerdict, packagingCheck, sortChecks } from "@/services/medicineVerdict";
 import type { Verdict, ScannedByRole } from "@prisma/client";
 
 // ─── Thresholds ───────────────────────────────────────────────────────────────
@@ -99,6 +108,9 @@ export interface VerifyInput {
   scanned_by_role?: ScannedByRole;
   /** Logged-in customer id (from the customer_session cookie), if any. */
   customer_id?: string | null;
+  /** Opaque reporter key for the duplicate-serial check — phoneReporterKey()
+   *  for WhatsApp. Defaults to the customer id. Never a raw phone number. */
+  reporter_key?: string | null;
 }
 
 export interface VerifyResult {
@@ -124,6 +136,10 @@ export interface VerifyResult {
     similarity: number | null;
     note?: string;
   };
+  /** One-line barcode result shown beside the reason — see services/barcodeEvidence.ts. */
+  barcode_check: BarcodeCheck;
+  /** Medicine scans only: printed fields, GS1 data and per-check results. */
+  medicine?: MedicineAssessment | null;
 }
 
 // ─── Timeout helper ───────────────────────────────────────────────────────────
@@ -378,6 +394,19 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   let cvScore: number | null = null;
   let vectorMatch: VectorMatch | null = null;
 
+  // Barcode read (ZXing decode -> Gemini digit read) alongside the rest.
+  // WhatsApp sends only a photo, so before this the barcode check was skipped
+  // entirely for every WhatsApp scan. A barcode passed in is used as typed.
+  const barcodeReadPromise: Promise<BarcodeRead | null> = input.barcode
+    ? Promise.resolve(manualBarcodeRead(input.barcode))
+    : input.imageFile
+        .arrayBuffer()
+        .then((buf) => scanBarcodeFromImage(Buffer.from(buf).toString("base64"), input.imageFile.type || "image/jpeg"))
+        .catch((err) => {
+          console.warn("[verifyProduct] Barcode read failed:", err);
+          return null;
+        });
+
   const [ocrSettled, cvSettled, vectorSettled] = await Promise.allSettled([
     withTimeout(runOcr(imageUrl), API_TIMEOUT_MS),
     withTimeout(scorePackaging(imageUrl), API_TIMEOUT_MS),
@@ -409,12 +438,17 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   // ── Step 3: Product lookup ────────────────────────────────────────────────
   // Precedence: exact barcode/SKU (strongest) → vector image match → batch
   // pattern regex scan → external OFF/UPCitemdb metadata (barcode-only).
+  const barcodeRead = await barcodeReadPromise;
+  // Only a product code is looked up — a QR code holding a URL has no SKU.
+  const barcode = barcodeRead?.productCode ?? null;
+
   let product: VectorMatch["product"] | null = null;
   let identifiedViaImage = false;
 
-  if (input.barcode) {
-    product = await findProductByBarcode(input.barcode);
+  if (barcode) {
+    product = await findProductByBarcode(barcode);
   }
+  const identifiedViaBarcode = !!product;
 
   if (!product && vectorMatch) {
     product = vectorMatch.product;
@@ -427,18 +461,99 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
 
   // Fallback metadata lookup from Open Food Facts / UPCitemdb if local DB has no record
   let offProduct: { product_name: string | null; brand_name: string | null } | null = null;
-  if (!product && input.barcode) {
-    offProduct = await fetchOpenFoodFacts(input.barcode);
+  if (!product && barcode) {
+    offProduct = await fetchOpenFoodFacts(barcode);
     if (!offProduct) {
-      offProduct = await fetchUPCItemDB(input.barcode);
+      offProduct = await fetchUPCItemDB(barcode);
     }
   }
+
+  // ── Barcode evidence ──────────────────────────────────────────────────────
+  // Which company a DECODED barcode belongs to, compared with what the image
+  // match says the pack is. Only a decoded barcode can raise a mismatch (see
+  // services/barcodeEvidence.ts), so the extra lookups run only for one.
+  let barcodeBrand: string | null = null;
+  if (barcode && barcodeRead?.source === "decoded") {
+    barcodeBrand =
+      (identifiedViaBarcode ? product?.brand_name : null) ??
+      (await prefixOwner(barcode)) ??
+      offProduct?.brand_name ??
+      (product
+        ? (
+            await withTimeout(
+              fetchOpenFoodFacts(barcode).then((r) => r ?? fetchUPCItemDB(barcode)),
+              API_TIMEOUT_MS
+            ).catch(() => null)
+          )?.brand_name ?? null
+        : null);
+  }
+  const packagingBrand = vectorMatch?.product.brand_name ?? null;
+  // The barcode only "verifies" the product when the image doesn't point at a
+  // different catalogue product.
+  const barcodeMatchesProduct =
+    (identifiedViaBarcode && (!vectorMatch || vectorMatch.product.id === product?.id)) ||
+    (!product && !!offProduct);
+  const barcodeCheck = assessBarcode({
+    read: barcodeRead,
+    matched: barcodeMatchesProduct,
+    barcodeBrand,
+    packagingBrand,
+    // This pipeline has no Gemini tampering flag to draw on.
+    tampering: false,
+  });
+
+  // A barcode read from the photo that lands on the SAME catalogue product the
+  // image match found: judge it on the existing image-identified branch rather
+  // than the barcode branch, whose OCR batch-pattern requirement a scraped
+  // catalogue row can't meet. A typed barcode keeps its previous behaviour.
+  const imageCorroboration =
+    vectorMatch &&
+    (identifiedViaImage ||
+      (identifiedViaBarcode && barcodeRead?.source !== "manual" && vectorMatch.product.id === product?.id))
+      ? { similarity: vectorMatch.similarity }
+      : undefined;
 
   const imageMatch = {
     matched: identifiedViaImage,
     similarity: vectorMatch?.similarity ?? null,
     ...(identifiedViaImage ? {} : { note: "Unrecognized product / low confidence" }),
   };
+
+  // ── Medicine routing ──────────────────────────────────────────────────────
+  // Same decision as /api/verify (isMedicineScan). This pipeline has no
+  // wordmark call, so the packaging signal comes from text on the pack — no
+  // extra AI request. runOcr above reads nothing today (see readPackagingText
+  // in lib/ocr.ts), so when its text has no cues and nothing stronger decided
+  // the route, the packaging text is read for medicine detection only.
+  const catalogCategory = (product as { category?: string | null } | null)?.category ?? null;
+  const gs1Medicine = !!barcodeRead?.gs1 && isMedicineGs1(barcodeRead.gs1);
+  const catalogNonMedicine = (identifiedViaBarcode || identifiedViaImage) && catalogCategory !== "medicine";
+  const ocrText = typeof ocrRaw.fullText === "string" ? ocrRaw.fullText : null;
+  let packagingMedicine = textLooksLikeMedicine(ocrText);
+  if (!packagingMedicine && !gs1Medicine && !catalogNonMedicine && catalogCategory !== "medicine") {
+    const packagingText = await readPackagingText([
+      { data: Buffer.from(await input.imageFile.arrayBuffer()).toString("base64"), mimeType: input.imageFile.type || "image/jpeg" },
+    ]);
+    packagingMedicine = textLooksLikeMedicine(packagingText);
+  }
+  const isMedicine = isMedicineScan({
+    gs1Medicine,
+    catalogMedicine: catalogCategory === "medicine",
+    catalogNonMedicine,
+    packagingMedicine,
+  });
+
+  // Resolved before the verdict: the medicine duplicate-serial check counts
+  // distinct areas.
+  // Use the device's real GPS coordinates only — never fabricate a location.
+  const scanLat = input.latitude ?? null;
+  const scanLng = input.longitude ?? null;
+  let scanArea = input.area_name;
+  if (!scanArea) {
+    scanArea = scanLat != null && scanLng != null
+      ? await reverseGeocode(scanLat, scanLng)
+      : "Location unavailable";
+  }
 
   // ── Step 4: Verdict ───────────────────────────────────────────────────────
   // Brands in PIXEL_COMPARE_BRANDS are judged against their own catalogue
@@ -451,7 +566,39 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   /** Non-null only when a strict comparison actually produced a usable score. */
   let pixelResult: PixelCompareResult | null = null;
 
-  if (product && brandForPixelCheck && PIXEL_COMPARE_BRANDS.has(brandForPixelCheck)) {
+  let medicine: MedicineAssessment | null = null;
+  if (isMedicine) {
+    // The same packaging call /api/verify makes, transcribing the printed
+    // medicine fields, then the shared medicine checks and verdict
+    // (services/medicineVerdict.ts). A medicine is never judged by the food
+    // rules, and its positive outcome is "no problems found", not genuine.
+    const imageBase64 = Buffer.from(await input.imageFile.arrayBuffer()).toString("base64");
+    const productCode = barcodeRead?.gs1?.gtin ?? barcodeRead?.productCode ?? null;
+    const identity = await identifyByCodeOrImage(productCode, imageUrl);
+    const gemini = await compareImagesWithGemini(
+      imageBase64,
+      catalogMedicineToUnified(identity.product),
+      input.imageFile.type || "image/jpeg",
+      undefined,
+      barcodeRead?.source === "decoded" ? barcodeRead.productCode : null,
+      { medicine: true }
+    );
+    medicine = await assessMedicine({
+      gs1: barcodeRead?.gs1 ?? null,
+      productCode: barcodeRead?.productCode ?? null,
+      identity,
+      printed: gemini.printed ?? null,
+      reporterKey: input.reporter_key ?? customerReporterKey(input.customer_id),
+      area: scanArea,
+    });
+    medicine.checks = sortChecks([
+      ...medicine.checks,
+      packagingCheck(gemini, !!identity.product?.reference_image_url),
+    ]);
+    medicine.verdict = decideMedicineVerdict(medicine);
+    verdict = medicine.verdict.dbVerdict;
+    confidence = medicine.verdict.score / 100;
+  } else if (product && brandForPixelCheck && PIXEL_COMPARE_BRANDS.has(brandForPixelCheck)) {
     const result = await comparePixelWise(imageUrl, product.reference_image_url);
 
     if (result.error) {
@@ -462,7 +609,7 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
         product,
         ocrBatch,
         cvScore ?? 0.5,
-        identifiedViaImage && vectorMatch ? { similarity: vectorMatch.similarity } : undefined
+        imageCorroboration
       ));
     } else {
       pixelResult = result;
@@ -474,9 +621,15 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
       product,
       ocrBatch,
       cvScore ?? 0.5,
-      identifiedViaImage && vectorMatch ? { similarity: vectorMatch.similarity } : undefined
+      imageCorroboration
     ));
   }
+
+  // A decoded barcode registered to a different company than the pack it's
+  // printed on is a counterfeit signal — never genuine. "suspicious" is this
+  // pipeline's strongest verdict; confidence stays as computed above.
+  const barcodeMismatch = !isMedicine && barcodeCheck.status === "mismatch";
+  if (barcodeMismatch) verdict = "suspicious";
 
   // ── Step 5: Translate verdict ─────────────────────────────────────────────
   // When the product was identified via image match and has a reference
@@ -489,7 +642,25 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
     reason: string;
     reason_ur: string;
   };
-  if (pixelResult) {
+  if (medicine?.verdict) {
+    // Medicine phrases, not the food glossary (whose genuine line reads
+    // "verified as authentic").
+    verdictText = {
+      urdu_text: medicine.verdict.phrase.ur,
+      english_text: medicine.verdict.phrase.en,
+      reason: medicine.verdict.reasonEn,
+      reason_ur: medicine.verdict.reasonUr,
+    };
+  } else if (barcodeMismatch && barcode && barcodeBrand && packagingBrand) {
+    const packagingDefects =
+      (cvScore ?? 0) >= SUSPICIOUS_THRESHOLD || !!pixelResult?.suspicious;
+    const mismatchReason = barcodeMismatchReason(barcode, barcodeBrand, packagingBrand, packagingDefects);
+    verdictText = {
+      ...getVerdictTextSync(verdict),
+      reason: mismatchReason.en,
+      reason_ur: mismatchReason.ur,
+    };
+  } else if (pixelResult) {
     // Strict comparison already produced the numbers this verdict rests on —
     // report them rather than paying for a second, vaguer Gemini opinion.
     const pixelReason = pixelCompareReason(
@@ -522,15 +693,6 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   }
 
   // ── Step 6: Write Scan row ────────────────────────────────────────────────
-  // Use the device's real GPS coordinates only — never fabricate a location.
-  const scanLat = input.latitude ?? null;
-  const scanLng = input.longitude ?? null;
-  let scanArea = input.area_name;
-  if (!scanArea) {
-    scanArea = scanLat != null && scanLng != null
-      ? await reverseGeocode(scanLat, scanLng)
-      : "Location unavailable";
-  }
 
   let scanId = "scan-" + Date.now();
   if (supabaseUrl && anonKey) {
@@ -545,14 +707,30 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
         },
         body: JSON.stringify({
           product_id: product?.id ?? null,
-          product_name: product?.product_name ?? offProduct?.product_name ?? null,
+          product_name: product?.product_name ?? offProduct?.product_name ?? medicine?.printed?.brandName ?? null,
           brand_name: product?.brand_name ?? offProduct?.brand_name ?? null,
+          barcode: barcode ?? null,
+          ...(medicine
+            ? {
+                product_id: product?.id ?? medicine.identity.product?.id ?? null,
+                category: "Medicine",
+                gtin: medicine.gs1?.gtin ?? null,
+                serial: medicine.gs1?.serial ?? null,
+                expiry_date: medicine.expiry.date,
+                drap_reg_no: medicine.printed?.drapRegNo ?? null,
+              }
+            : {}),
           scanned_by_role: input.scanned_by_role ?? "consumer",
           image_url: imageUrl,
-          extracted_batch: ocrBatch,
+          extracted_batch: medicine ? medicine.gs1?.batch ?? medicine.printed?.batch ?? ocrBatch : ocrBatch,
           extracted_mfg_date: ocrMfgDate,
           extracted_mrp: ocrMrp,
-          ocr_raw_json: ocrRaw,
+          // Barcode provenance rides along in the JSON rather than new columns.
+          ocr_raw_json: {
+            ...ocrRaw,
+            barcode_check: { status: barcodeCheck.status, source: barcodeCheck.source, format: barcodeCheck.format },
+            ...(medicine ? { medicine_checks: medicine.checks, medicine_printed: medicine.printed } : {}),
+          },
           cv_anomaly_score: cvScore,
           verdict,
           confidence,
@@ -619,12 +797,15 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
     urdu_text: verdictText.urdu_text,
     english_text: verdictText.english_text,
     image_url: imageUrl,
-    extracted_batch: ocrBatch,
+    // Medicines report the same batch and name the Scan row stores.
+    extracted_batch: medicine ? medicine.gs1?.batch ?? medicine.printed?.batch ?? ocrBatch : ocrBatch,
     extracted_mfg_date: ocrMfgDate,
     extracted_mrp: ocrMrp,
     cv_anomaly_score: cvScore,
-    product_name: product?.product_name ?? offProduct?.product_name ?? null,
+    product_name: product?.product_name ?? offProduct?.product_name ?? medicine?.printed?.brandName ?? null,
     brand_name: product?.brand_name ?? offProduct?.brand_name ?? null,
     image_match: imageMatch,
+    barcode_check: barcodeCheck,
+    medicine,
   };
 }

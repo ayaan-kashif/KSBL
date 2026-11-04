@@ -7,7 +7,8 @@ import BilingualText from '@/components/BilingualText';
 import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
 import { useScanResult } from '@/lib/useScanResult';
-import { VERDICT_PHRASE, UI_COPY, pick } from '@/lib/verdictCopy';
+import { VERDICT_PHRASE, UI_COPY, MEDICINE_COPY, pick } from '@/lib/verdictCopy';
+import { medicineSourcesLine, isMedicineNoProblems } from '@/lib/medicineView';
 
 export default function SimplifiedVerdictPage() {
   const result = useScanResult();
@@ -27,6 +28,12 @@ export default function SimplifiedVerdictPage() {
   const verdictIcon = isGenuine ? 'verified' : verdict === 'suspicious' ? 'gpp_maybe' : 'help_outline';
   const product = result.product_name || 'Unidentified product';
   const brand = result.brand_name || 'Unknown brand';
+  // Medicines: never "Genuine" — "No problems found", pending DRAP's official
+  // verification — with their own phrase, checks and expiry.
+  const medicine = result.medicine ?? null;
+  const medicineNoProblems = isMedicineNoProblems(medicine);
+  const medicineSources = medicine ? medicineSourcesLine(medicine) : null;
+  const phrase = medicine ? { en: result.english_text, ur: result.urdu_text } : VERDICT_PHRASE[verdict];
 
   return (
     <div className={styles.page}>
@@ -51,11 +58,11 @@ export default function SimplifiedVerdictPage() {
           </div>
         </div>
 
-        <VerdictBadge verdict={verdict} size="lg" />
+        <VerdictBadge verdict={verdict} size="lg" label={medicineNoProblems ? MEDICINE_COPY.noProblemsLabel : undefined} />
         <div className={styles.verdictCopy}>
           <BilingualText
-            en={VERDICT_PHRASE[verdict].en}
-            ur={VERDICT_PHRASE[verdict].ur}
+            en={phrase.en}
+            ur={phrase.ur}
             size="sm"
           />
         </div>
@@ -80,7 +87,11 @@ export default function SimplifiedVerdictPage() {
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Expiry</span>
             <span className={styles.detailValue} style={{ color: 'var(--color-primary)' }}>
-              {result.extracted_mfg_date ? `${result.extracted_mfg_date} ✓` : 'Not detected'}
+              {medicine
+                ? medicine.expiry.date
+                  ? `${medicine.expiry.date}${medicine.expiry.expired ? ` — ${pick(MEDICINE_COPY.expired, lang)}` : ' ✓'}`
+                  : pick(MEDICINE_COPY.notVisible, lang)
+                : result.extracted_mfg_date ? `${result.extracted_mfg_date} ✓` : 'Not detected'}
             </span>
           </div>
         </div>
@@ -91,6 +102,14 @@ export default function SimplifiedVerdictPage() {
             ur={result.reason_ur ?? result.reason}
             size="sm"
           />
+          {medicine?.checks?.map((check) => (
+            <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
+          ))}
+          {result.barcode_check && (
+            <BilingualText en={result.barcode_check.en} ur={result.barcode_check.ur} size="sm" />
+          )}
+          {medicineSources && <BilingualText en={medicineSources.en} ur={medicineSources.ur} size="sm" />}
+          {medicine && <BilingualText en={MEDICINE_COPY.safety.en} ur={MEDICINE_COPY.safety.ur} size="sm" />}
         </div>
 
         <div className={styles.actions}>

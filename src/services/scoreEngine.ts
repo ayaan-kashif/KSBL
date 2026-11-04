@@ -22,7 +22,13 @@ export function calculateAuthenticityScore(payload: VerificationPayload): ScoreO
   // have limited coverage for local-market products, so an unmatched (but
   // present) barcode is still positive evidence, not equivalent to no
   // barcode being visible on the packaging at all.
-  const barcodeScore = payload.barcodeMatched ? 100 : payload.barcodeDetected ? 50 : 0;
+  // No credit at all when the barcode itself is evidence against the product:
+  // a decoded barcode registered to another company, or a barcode on packaging
+  // Gemini flagged as tampered. The weight is unchanged — only the input.
+  const barcodeScore =
+    payload.barcodeMismatch || payload.barcodeTampered
+      ? 0
+      : payload.barcodeMatched ? 100 : payload.barcodeDetected ? 50 : 0;
 
   // 2. Brand Match (25% weight)
   // Extract normalized value from Gemini evaluation (0 - 100)

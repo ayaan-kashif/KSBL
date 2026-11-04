@@ -23,6 +23,8 @@
     "@huggingface/transformers": "^4.2.0",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.118.0",
     "@types/dotenv": "^6.1.1",
     "@types/qrcode": "^1.5.6",
     "@vercel/blob": "^2.6.1",
@@ -36,9 +38,10 @@
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "sharp": "^0.35.3",
+    "sharp": "^0.34.5",
     "ssim.js": "^3.5.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zxing-wasm": "^3.1.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

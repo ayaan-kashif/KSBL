@@ -20,7 +20,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { verifyProduct } from "@/lib/verifyProduct";
-import { getVerdictTextSync } from "@/lib/translate";
+import { getVerdictTextSync, MEDICINE_VERDICT_TEXT } from "@/lib/translate";
+import type { MedicineAssessment } from "@/services/medicineChecks";
+import { phoneReporterKey } from "@/services/medicineChecks";
 
 // ─── Meta Webhook Verification (GET) ─────────────────────────────────────────
 
@@ -160,6 +162,8 @@ async function handleWhatsAppPayload(payload: WhatsAppPayload) {
       result = await verifyProduct({
         imageFile: imageBlob,
         scanned_by_role: "consumer",
+        // Hashed sender, for the medicine duplicate-serial check only.
+        reporter_key: phoneReporterKey(senderPhone),
       });
     } catch (err) {
       console.error("[WhatsApp] Verification pipeline failed:", err);
@@ -172,15 +176,21 @@ async function handleWhatsAppPayload(payload: WhatsAppPayload) {
       return NextResponse.json({ status: "ok" }, { status: 200 });
     }
 
-    // Step 3: Reply with verdict
+    // Step 3: Reply with verdict. Medicines add a few compact lines inside the
+    // same message; food replies are unchanged.
     const replyText =
       `*ShelfWatch Verification Result*\n\n` +
       `${result.urdu_text}\n\n` +
       `${result.english_text}\n\n` +
+      medicineHeadLines(result.medicine) +
       `📊 Confidence: ${Math.round(result.confidence * 100)}%\n` +
-      `📝 ${result.reason}\n\n` +
+      `📝 ${result.reason}\n` +
+      `🔖 ${result.barcode_check.ur} / ${result.barcode_check.en}\n` +
+      medicineCheckLines(result.medicine) +
+      `\n` +
       (result.brand_name ? `🏷️ Brand: ${result.brand_name}\n` : "") +
       (result.extracted_batch ? `🔢 Batch: ${result.extracted_batch}\n` : "") +
+      (result.medicine ? `\nℹ️ ${MEDICINE_VERDICT_TEXT.safety.ur}\n${MEDICINE_VERDICT_TEXT.safety.en}\n` : "") +
       `\n_Scan ID: ${result.scan_id}_`;
 
     await sendWhatsAppText(phoneNumberId, senderPhone, replyText);
@@ -189,6 +199,34 @@ async function handleWhatsAppPayload(payload: WhatsAppPayload) {
 
   // Other message types — acknowledge but don't process
   return NextResponse.json({ status: "ok" }, { status: 200 });
+}
+
+// ─── Medicine reply lines ─────────────────────────────────────────────────────
+
+/** "💊 Panadol 500 mg" and the expiry — or a do-not-use warning if expired. */
+function medicineHeadLines(medicine: MedicineAssessment | null | undefined): string {
+  if (!medicine) return "";
+  const name = [medicine.printed?.brandName ?? medicine.identity.product?.product_name, medicine.printed?.strength ?? medicine.identity.product?.strength]
+    .filter(Boolean)
+    .join(" ");
+  const expiry = medicine.expiry.date
+    ? medicine.expiry.expired
+      ? `⛔ ${MEDICINE_VERDICT_TEXT.expired.ur} / ${MEDICINE_VERDICT_TEXT.expired.en} (${medicine.expiry.date})\n`
+      : `📅 Expiry: ${medicine.expiry.date}\n`
+    : "";
+  return (name ? `💊 ${name}\n` : "") + expiry + "\n";
+}
+
+/** The top 1–3 check results, problems first. */
+function medicineCheckLines(medicine: MedicineAssessment | null | undefined): string {
+  if (!medicine) return "";
+  const rank = { fail: 0, warning: 1, pass: 2, not_checked: 3 } as const;
+  return [...medicine.checks]
+    .filter((c) => c.status !== "not_checked" && c.id !== "expiry")
+    .sort((a, b) => rank[a.status] - rank[b.status])
+    .slice(0, 3)
+    .map((c) => `• ${c.ur} / ${c.en}\n`)
+    .join("");
 }
 
 // ─── WhatsApp Cloud API helpers ───────────────────────────────────────────────

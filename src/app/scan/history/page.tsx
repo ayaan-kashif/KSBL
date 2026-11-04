@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import styles from './history.module.css';
 import { getMyScanHistory, getMe, postLogout, ScanHistoryItem, CustomerProfile, verdictIcon } from '@/lib/api';
 import { useLanguage } from '@/components/LanguageContext';
-import { VERDICT_LABEL } from '@/lib/verdictCopy';
+import { VERDICT_LABEL, MEDICINE_COPY } from '@/lib/verdictCopy';
 import BottomNav from '@/components/BottomNav';
 import { useNow, formatRelativeTime } from '@/lib/useNow';
 
@@ -151,6 +151,10 @@ export default function ScanHistoryPage() {
           <div className={styles.scanList}>
             {filtered.map(scan => {
               const hex = VERDICT_HEX[scan.verdict] ?? VERDICT_HEX.unverified;
+              // A medicine is never labelled "Genuine" — see MEDICINE_COPY.
+              const label = scan.category === 'Medicine' && scan.verdict === 'genuine'
+                ? MEDICINE_COPY.noProblemsLabel
+                : VERDICT_LABEL[scan.verdict];
               return (
                 <div key={scan.id} className={styles.scanCard} style={{ borderLeft: `3px solid ${hex}` }}>
                   <div className={styles.statusDot} style={{ color: hex, background: tint(hex, 10), borderColor: tint(hex, 20) }}>
@@ -172,17 +176,17 @@ export default function ScanHistoryPage() {
                       {urduLeads ? (
                         <>
                           <span lang="ur" dir="rtl" className={styles.badgeUrdu}>
-                            {VERDICT_LABEL[scan.verdict].ur}
+                            {label.ur}
                           </span>
                           <span lang="en" dir="ltr" className={styles.badgeSecondary}>
-                            {VERDICT_LABEL[scan.verdict].en}
+                            {label.en}
                           </span>
                         </>
                       ) : (
                         <>
-                          <span lang="en" dir="ltr">{VERDICT_LABEL[scan.verdict].en}</span>
+                          <span lang="en" dir="ltr">{label.en}</span>
                           <span lang="ur" dir="rtl" className={`${styles.badgeUrdu} ${styles.badgeSecondary}`}>
-                            {VERDICT_LABEL[scan.verdict].ur}
+                            {label.ur}
                           </span>
                         </>
                       )}

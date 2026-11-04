@@ -50,10 +50,15 @@ async function handleBackfill(req: NextRequest) {
     return NextResponse.json({ error: "Supabase service-role configuration missing" }, { status: 500 });
   }
 
+  // Optional ?category=medicine|fmcg limits the backfill to one catalog, e.g.
+  // embedding newly scraped medicines without touching food rows.
+  const category = req.nextUrl.searchParams.get("category");
+  const categoryFilter = category ? `&category=eq.${encodeURIComponent(category)}` : "";
+
   let products: Array<{ id: string; reference_image_url: string | null; product_name: string }>;
   try {
     const res = await fetch(
-      `${supabaseUrl}/rest/v1/Product?embedding=is.null&select=id,reference_image_url,product_name`,
+      `${supabaseUrl}/rest/v1/Product?embedding=is.null${categoryFilter}&select=id,reference_image_url,product_name`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
     );
     if (!res.ok) {

@@ -7,7 +7,9 @@ import BilingualText from '@/components/BilingualText';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useLanguage } from '@/components/LanguageContext';
 import { useSessionJson } from '@/lib/useScanResult';
-import { UI_COPY, pick } from '@/lib/verdictCopy';
+import { UI_COPY, MEDICINE_COPY, VERDICT_LABEL, pick } from '@/lib/verdictCopy';
+import type { BarcodeCheckLine, MedicineResult } from '@/lib/api';
+import { medicineDetailRows, medicineSourcesLine, isMedicineNoProblems } from '@/lib/medicineView';
 
 interface ProductData {
   name: string;
@@ -45,9 +47,13 @@ interface VerificationResult {
   urdu_text?: string;
   english_text?: string;
   barcodeDetected: boolean;
+  /** Optional for the same reason as the bilingual fields. */
+  barcodeCheck?: BarcodeCheckLine;
   /** Routing metadata. Optional for the same reason as the bilingual fields —
    *  a result cached before this change still renders. */
-  verificationPath?: "national_rag" | "external_db";
+  verificationPath?: "national_rag" | "external_db" | "medicine";
+  /** Medicine scans only: printed fields, codes and per-check results. */
+  medicine?: MedicineResult | null;
   brandContext?: {
     isNationalFoods: boolean;
     detectedBrand: string | null;
@@ -167,13 +173,31 @@ export default function ResultPage() {
     statusSubUrdu = "کوئی حوالہ جاتی ریکارڈ دستیاب نہیں تھا، اس لیے اصل ہونے کی تصدیق ممکن نہیں۔";
   }
 
+  // Medicines are never shown as "original": the positive outcome is "no
+  // problems found", pending DRAP's official verification. Same colours and
+  // layout; only the words change.
+  const medicine = result?.medicine ?? null;
+  const medicineNoProblems = isMedicineNoProblems(medicine);
+  if (medicineNoProblems) {
+    statusHeadline = MEDICINE_COPY.noProblemsLabel.en.toUpperCase();
+    statusUrdu = MEDICINE_COPY.noProblemsLabel.ur;
+    statusSub = MEDICINE_COPY.officialPending.en;
+    statusSubUrdu = MEDICINE_COPY.officialPending.ur;
+  } else if (medicine && result?.english_text && result?.urdu_text) {
+    statusSub = result.english_text;
+    statusSubUrdu = result.urdu_text;
+  }
+  const medicineSources = medicine ? medicineSourcesLine(medicine) : null;
+
   // Provenance line — makes the routing decision visible on screen.
   const pathLabel =
     result?.verificationPath === "national_rag"
       ? { en: "Verified against National Foods catalogue", ur: "نیشنل فوڈز کیٹلاگ کے مقابلے میں تصدیق شدہ" }
       : result?.verificationPath === "external_db"
         ? { en: "Verified against global product databases", ur: "عالمی پروڈکٹ ڈیٹا بیس کے مقابلے میں تصدیق شدہ" }
-        : null;
+        : result?.verificationPath === "medicine"
+          ? { en: "Checked as a medicine", ur: "دوا کے طور پر جانچا گیا" }
+          : null;
 
   // Both languages stay on screen; `lang` only decides which one leads.
   const urduLeads = lang === 'ur';
@@ -235,7 +259,9 @@ export default function ResultPage() {
             {pathLabel && (
               <p className={styles.pathLabel}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                  {result?.verificationPath === 'national_rag' ? 'inventory_2' : 'public'}
+                  {result?.verificationPath === 'national_rag'
+                    ? 'inventory_2'
+                    : result?.verificationPath === 'medicine' ? 'medication' : 'public'}
                 </span>
                 <span {...(urduLeads ? { lang: 'ur', dir: 'rtl' as const } : { lang: 'en', dir: 'ltr' as const })}>
                   {urduLeads ? pathLabel.ur : pathLabel.en}
@@ -251,6 +277,25 @@ export default function ResultPage() {
           </div>
         </div>
 
+        {/* Expired medicine — always shown, whatever the authenticity result.
+            Same warning-box style as the notices further down. */}
+        {medicine?.expiry?.expired && (
+          <div
+            className={styles.urgentWarning}
+            style={{
+              background: `${tint('var(--verdict-counterfeit)', 12)}`,
+              border: `1px solid ${tint('var(--verdict-counterfeit)', 30)}`
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ color: 'var(--verdict-counterfeit)', marginTop: '2px', fontVariationSettings: "'FILL' 1" }}>
+              event_busy
+            </span>
+            <div>
+              <BilingualText en={MEDICINE_COPY.expired.en} ur={MEDICINE_COPY.expired.ur} size="md" />
+            </div>
+          </div>
+        )}
+
         {/* Confidence & Score Section */}
         <div className={`liquid-glass-gradient-border ${styles.confidenceSection}`}>
           <div className={styles.flexBetween}>
@@ -264,7 +309,9 @@ export default function ResultPage() {
           </div>
           <div className={styles.flexBetween}>
             <span className={styles.labelCaps}>{pick(UI_COPY.batchCode, lang)}</span>
-            <span className={styles.batchValue}>{product.barcode || '—'}</span>
+            <span className={styles.batchValue}>
+              {medicine ? medicine.gs1?.batch ?? medicine.printed?.batch ?? '—' : product.barcode || '—'}
+            </span>
           </div>
           <div className={styles.progressBarTrack}>
             <div
@@ -278,6 +325,15 @@ export default function ResultPage() {
           </div>
           <div className={styles.analysisNote}>
             <BilingualText en={reasonEn} ur={reasonUr} size="sm" />
+            {/* Medicine: one line per check, in the same style as the reason. */}
+            {medicine?.checks?.map((check) => (
+              <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
+            ))}
+            {result?.barcodeCheck && (
+              <BilingualText en={result.barcodeCheck.en} ur={result.barcodeCheck.ur} size="sm" />
+            )}
+            {medicineSources && <BilingualText en={medicineSources.en} ur={medicineSources.ur} size="sm" />}
+            {medicine && <BilingualText en={MEDICINE_COPY.safety.en} ur={MEDICINE_COPY.safety.ur} size="sm" />}
           </div>
         </div>
 
@@ -315,6 +371,23 @@ export default function ResultPage() {
               style={{ backgroundImage: `url('${product.referenceImage}')`, height: '12rem' }}
             ></div>
           )}
+          {medicine ? (
+            // Medicine details as rows in the same card style. Values the pack
+            // doesn't show read "Not visible" — nothing is filled in.
+            <div className={styles.snapshotDetails}>
+              {medicineDetailRows(medicine).map((row) => (
+                <div key={row.label.en}>
+                  <p className={styles.labelCaps}>{pick(row.label, lang)}</p>
+                  <p
+                    className={`${styles.detailValue} ${row.mono ? styles.mono : ''}`}
+                    {...(lang === 'ur' && !row.mono ? { lang: 'ur', dir: 'rtl' as const } : {})}
+                  >
+                    {pick(row.value, lang)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div className={styles.snapshotDetails}>
             <div>
               <p className={styles.labelCaps}>Product</p>
@@ -347,6 +420,7 @@ export default function ResultPage() {
               </p>
             </div>
           </div>
+          )}
         </div>
 
         {/* Action Warning Notice */}
@@ -363,13 +437,21 @@ export default function ResultPage() {
             </span>
             <div>
               <p className={styles.warningTitle} style={{ color: themeColor }}>
-                {status === "Likely Counterfeit" ? "Critical Counterfeit Warning" : "Suspicious Anomaly Alert"}
+                {medicine && displayVerdict === "unverified"
+                  ? pick(VERDICT_LABEL.unverified, lang) // inconclusive, not an alert
+                  : status === "Likely Counterfeit" ? "Critical Counterfeit Warning" : "Suspicious Anomaly Alert"}
               </p>
+              {medicine ? (
+                // The food wording ("packaging fonts and logo coordinates…")
+                // doesn't describe a medicine result; the checks above do.
+                <BilingualText en={statusSub} ur={statusSubUrdu} size="sm" />
+              ) : (
               <p className={styles.warningBody}>
-                {status === "Likely Counterfeit" 
-                  ? "This product shows high discrepancy indicators. Do not consume or sell. Isolate the packaging immediately." 
+                {status === "Likely Counterfeit"
+                  ? "This product shows high discrepancy indicators. Do not consume or sell. Isolate the packaging immediately."
                   : "Some packaging fonts and logo coordinates deviate from official specs. Manual verification is advised."}
               </p>
+              )}
             </div>
           </div>
         ) : (
@@ -384,8 +466,18 @@ export default function ResultPage() {
               verified_user
             </span>
             <div>
-              <p className={styles.warningTitle} style={{ color: themeColor }}>Product Authenticated</p>
-              <p className={styles.warningBody}>The visual profile, packaging design, and barcode verify cleanly against manufacturer reference metrics.</p>
+              {medicineNoProblems ? (
+                // Never "authenticated" for a medicine — see MEDICINE_COPY.
+                <>
+                  <p className={styles.warningTitle} style={{ color: themeColor }}>{pick(MEDICINE_COPY.noProblemsLabel, lang)}</p>
+                  <BilingualText en={MEDICINE_COPY.officialPending.en} ur={MEDICINE_COPY.officialPending.ur} size="sm" />
+                </>
+              ) : (
+                <>
+                  <p className={styles.warningTitle} style={{ color: themeColor }}>Product Authenticated</p>
+                  <p className={styles.warningBody}>The visual profile, packaging design, and barcode verify cleanly against manufacturer reference metrics.</p>
+                </>
+              )}
             </div>
           </div>
         )}

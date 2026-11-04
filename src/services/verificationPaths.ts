@@ -1,7 +1,7 @@
 /**
  * services/verificationPaths.ts
  *
- * The two verification strategies /api/verify switches between. Routing lives
+ * The verification strategies /api/verify switches between. Routing lives
  * in brandRouter.ts; this module only executes whichever path was chosen.
  *
  *  Path A "national_rag"  — RAG against our own scraped catalog via CLIP
@@ -13,6 +13,8 @@
  *                           catalog only holds National Foods rows, so a cosine
  *                           match for a non-National product is meaningless at
  *                           best and a false positive at worst.
+ *  Path C "medicine"      — medicines, detected from a GS1 DataMatrix, the
+ *                           catalog or the packaging (see isMedicineScan).
  *
  * calculateAuthenticityScore and runComparisonEngine are used unchanged — only
  * which inputs reach them differs per path.
@@ -27,7 +29,12 @@ import { calculateAuthenticityScore } from "./scoreEngine";
 import { getCachedProduct, setCachedProduct, type UnifiedProduct } from "./cacheService";
 import { findProductByImage } from "@/lib/vectorSearch";
 import { compareProductImages } from "@/lib/translate";
-import { nationalCatalogEmbeddingCount, type WordmarkStatus } from "./brandRouter";
+import { nationalCatalogEmbeddingCount, prefixOwner, type WordmarkStatus } from "./brandRouter";
+import type { BarcodeRead } from "./barcodeScanner";
+import { assessMedicine, type MedicineAssessment } from "./medicineChecks";
+import { identifyByCodeOrImage, catalogMedicineToUnified, printedMedicineToUnified } from "./medicineCatalog";
+import { decideMedicineVerdict, packagingCheck, sortChecks } from "./medicineVerdict";
+import { assessBarcode, barcodeMismatchReason, isBarcodeMismatch, type BarcodeCheck } from "./barcodeEvidence";
 
 export type ApiSource =
   | "LocalCatalog"
@@ -43,7 +50,7 @@ export type DbVerdict = "genuine" | "suspicious" | "unverified";
  *  every dashboard/analytics/history/leaderboard filter. Store `suspicious`,
  *  show `counterfeit`. */
 export type DisplayVerdict = DbVerdict | "counterfeit";
-export type VerificationPath = "national_rag" | "external_db";
+export type VerificationPath = "national_rag" | "external_db" | "medicine";
 
 export interface PathOutcome {
   product: UnifiedProduct | null;
@@ -56,6 +63,10 @@ export interface PathOutcome {
   gemini: GeminiComparisonResult;
   reasonEn: string;
   reasonUr: string;
+  /** One-line barcode result shown beside the reason — see barcodeEvidence.ts. */
+  barcodeCheck: BarcodeCheck;
+  /** Medicine path only: printed fields, GS1 data and per-check results. */
+  medicine?: MedicineAssessment;
 }
 
 export interface PathInput {
@@ -72,7 +83,17 @@ export interface PathInput {
   wordmarkStatus?: WordmarkStatus;
   detectedBrand?: string | null;
   imitatedBrand?: string | null;
+  /** The full barcode read (source/format) behind `barcode`, if any. */
+  barcodeRead?: BarcodeRead | null;
+  /** Wordmark read off the packaging, independent of the barcode. */
+  packagingBrand?: string | null;
+  /** Who scanned (customerReporterKey) and where — for the duplicate-serial check. */
+  reporterKey?: string | null;
+  area?: string | null;
 }
+
+/** Path outcome before the barcode line is attached. */
+type PathVerdict = Omit<PathOutcome, "barcodeCheck">;
 
 /**
  * Authenticity score below which a scan is reported as suspicious on the
@@ -114,6 +135,113 @@ function unverifiedScore(visualScore: number): number {
   );
 }
 
+/**
+ * Ceiling on the external-database lookups Path A runs purely as barcode
+ * evidence. Path B awaits the same lookups as its primary source and keeps
+ * their own behaviour.
+ */
+const EVIDENCE_LOOKUP_TIMEOUT_MS = 4000;
+
+/** Resolve with null instead of waiting past `ms`. */
+function within<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([promise, new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))]);
+}
+
+/**
+ * Something visibly wrong with the packaging itself. The corroboration a
+ * counterfeit call needs beyond a number — see the near-miss band below.
+ */
+function packagingVisiblyWrong(gemini: GeminiComparisonResult): boolean {
+  return gemini.tampering || gemini.logoMatch < 50 || gemini.packagingMatch < 50;
+}
+
+/** A ZXing-decoded product code, for geminiVision's reference barcode. */
+function decodedProductCode(input: PathInput): string | null {
+  return input.barcodeRead?.source === "decoded" ? input.barcodeRead.productCode : null;
+}
+
+/** cache -> UPCItemDB -> Open Food Facts -> Barcode Lookup. */
+async function lookupExternalProduct(barcode: string): Promise<{ product: UnifiedProduct | null; apiSource: ApiSource }> {
+  const cached = await getCachedProduct(barcode);
+  if (cached) return { product: cached, apiSource: "UPCItemDB" };
+
+  let apiSource: ApiSource = "none";
+  let product = await lookupUPCItemDB(barcode);
+  if (product) {
+    apiSource = "UPCItemDB";
+  } else {
+    product = await lookupOpenFoodFacts(barcode);
+    if (product) {
+      apiSource = "OpenFoodFacts";
+    } else {
+      product = await lookupBarcodeLookup(barcode);
+      if (product) apiSource = "BarcodeLookup";
+    }
+  }
+  if (product) await setCachedProduct(barcode, product);
+  return { product, apiSource };
+}
+
+/**
+ * Feed the barcode result into a verdict the path has already reached.
+ *
+ *  - Mismatch: never genuine. Counterfeit only with the same corroboration a
+ *    low-similarity scan needs (visible packaging defects); otherwise
+ *    suspicious. A verdict that is already counterfeit on stronger evidence
+ *    keeps its own reason.
+ *  - Tampered (Path A only): a genuine verdict can't stand on a barcode from
+ *    tampered packaging — downgraded to suspicious. Path B's verdict comes
+ *    from scoreEngine, where the same signal already zeroes barcode credit.
+ *
+ * Scores follow the existing conventions: 0 beside a counterfeit headline,
+ * the unverified band beside a suspicious one.
+ */
+function applyBarcodeEvidence(
+  outcome: PathVerdict,
+  input: PathInput,
+  barcodeBrand: string | null,
+  packagingBrand: string | null,
+  downgradeTamperedGenuine = false
+): PathOutcome {
+  const read = input.barcodeRead ?? null;
+  const code = read?.productCode ?? null;
+  const barcodeCheck = assessBarcode({
+    read,
+    matched: !!code && !!outcome.product?.barcode && outcome.product.barcode.trim() === code,
+    barcodeBrand,
+    packagingBrand,
+    tampering: outcome.gemini.tampering,
+  });
+  const withCheck: PathOutcome = { ...outcome, barcodeCheck };
+
+  if (barcodeCheck.status === "mismatch" && code && barcodeBrand && packagingBrand) {
+    if (outcome.displayVerdict === "counterfeit") return withCheck;
+    const defects = packagingVisiblyWrong(outcome.gemini);
+    const reason = barcodeMismatchReason(code, barcodeBrand, packagingBrand, defects);
+    return {
+      ...withCheck,
+      dbVerdict: "suspicious",
+      displayVerdict: defects ? "counterfeit" : "suspicious",
+      score: defects ? 0 : unverifiedScore(outcome.score),
+      reasonEn: reason.en,
+      reasonUr: reason.ur,
+    };
+  }
+
+  if (downgradeTamperedGenuine && barcodeCheck.status === "tampered" && outcome.displayVerdict === "genuine") {
+    return {
+      ...withCheck,
+      dbVerdict: "suspicious",
+      displayVerdict: "suspicious",
+      score: unverifiedScore(outcome.score),
+      reasonEn: `${outcome.reasonEn} However, the packaging shows signs of tampering, so its barcode and seal cannot be trusted. Inspect the pack before selling or buying.`,
+      reasonUr: `${outcome.reasonUr} تاہم پیکنگ میں چھیڑ چھاڑ کے آثار ہیں، اس لیے اس کے بارکوڈ اور سیل پر اعتبار نہیں کیا جا سکتا۔ فروخت یا خریداری سے پہلے پیک کا معائنہ کریں۔`,
+    };
+  }
+
+  return withCheck;
+}
+
 function bandThresholds() {
   const high = Number(process.env.VECTOR_MATCH_HIGH);
   const low = Number(process.env.VECTOR_MATCH_LOW);
@@ -135,6 +263,32 @@ function bandThresholds() {
 // ─── Path A: National Foods ─────────────────────────────────────────────────
 
 export async function runNationalRagPath(input: PathInput): Promise<PathOutcome> {
+  // Which company the barcode belongs to — started now so the external
+  // lookups overlap the vector search and Gemini call instead of adding to
+  // them. Only for a decoded barcode: only that can raise a mismatch, and the
+  // external databases are otherwise skipped on this path (a MISS there is
+  // noise for National Foods; a HIT naming another company is evidence).
+  const code = input.barcodeRead?.productCode ?? null;
+  const barcodeBrandPromise: Promise<string | null> =
+    input.barcodeRead?.source !== "decoded" || !code
+      ? Promise.resolve(null)
+      : (async () =>
+          input.localProduct?.brand ??
+          (await prefixOwner(code)) ??
+          (await within(lookupExternalProduct(code), EVIDENCE_LOOKUP_TIMEOUT_MS))?.product?.brand ??
+          null)();
+
+  const outcome = await nationalRagVerdict(input);
+
+  // The vector search on this path is filtered to National Foods, so any
+  // similarity at all means the packaging was matched against that brand.
+  const packagingBrand =
+    input.packagingBrand ?? (outcome.vectorSimilarity !== null ? "National Foods" : null);
+
+  return applyBarcodeEvidence(outcome, input, await barcodeBrandPromise, packagingBrand, true);
+}
+
+async function nationalRagVerdict(input: PathInput): Promise<PathVerdict> {
   const { high, low, nearMiss } = bandThresholds();
 
   // ── Misspelled wordmark ────────────────────────────────────────────────────
@@ -151,7 +305,7 @@ export async function runNationalRagPath(input: PathInput): Promise<PathOutcome>
     const rawGemini = await compareImagesWithGemini(input.imageBase64, null, input.mimeType, {
       data: input.backImageBase64,
       mimeType: input.backMimeType,
-    });
+    }, decodedProductCode(input));
 
     // The result screen renders these as "BRAND FONTS", "LOGO ACCURACY" etc —
     // percentages that answer "does this match the genuine article". A
@@ -217,7 +371,7 @@ export async function runNationalRagPath(input: PathInput): Promise<PathOutcome>
   const gemini = await compareImagesWithGemini(input.imageBase64, matchedProduct, input.mimeType, {
     data: input.backImageBase64,
     mimeType: input.backMimeType,
-  });
+  }, decodedProductCode(input));
 
   const apiSource: ApiSource = input.localProduct
     ? "LocalCatalog"
@@ -250,8 +404,7 @@ export async function runNationalRagPath(input: PathInput): Promise<PathOutcome>
       // that counterfeit on the number alone is the most damaging mistake this
       // app can make, so a low score is only escalated when something visible
       // is actually wrong with the packaging.
-      const visiblyWrong =
-        gemini.tampering || gemini.logoMatch < 50 || gemini.packagingMatch < 50;
+      const visiblyWrong = packagingVisiblyWrong(gemini);
 
       if (!visiblyWrong) {
         return {
@@ -408,35 +561,44 @@ export async function runExternalDbPath(input: PathInput): Promise<PathOutcome> 
   const cleanBarcode = input.barcode?.trim() || "";
 
   if (!product && cleanBarcode) {
-    const cached = await getCachedProduct(cleanBarcode);
-    if (cached) {
-      product = cached;
-      apiSource = "UPCItemDB";
-    } else {
-      product = await lookupUPCItemDB(cleanBarcode);
-      if (product) {
-        apiSource = "UPCItemDB";
-      } else {
-        product = await lookupOpenFoodFacts(cleanBarcode);
-        if (product) {
-          apiSource = "OpenFoodFacts";
-        } else {
-          product = await lookupBarcodeLookup(cleanBarcode);
-          if (product) apiSource = "BarcodeLookup";
-        }
-      }
-      if (product) await setCachedProduct(cleanBarcode, product);
-    }
+    ({ product, apiSource } = await lookupExternalProduct(cleanBarcode));
   }
 
   const gemini = await compareImagesWithGemini(input.imageBase64, product, input.mimeType, {
     data: input.backImageBase64,
     mimeType: input.backMimeType,
-  });
+  }, decodedProductCode(input));
 
-  const comparison = runComparisonEngine(input.barcode, product, gemini);
+  // The record found here IS the barcode's record, so its brand (or the
+  // catalog row's, or an exclusive GS1 prefix's) is what the barcode says.
+  const barcodeBrand =
+    input.barcodeRead?.source === "decoded" && cleanBarcode
+      ? product?.brand ?? (await prefixOwner(cleanBarcode))
+      : null;
+  const packagingBrand = input.packagingBrand ?? null;
+
+  const comparison = runComparisonEngine(input.barcode, product, gemini, {
+    detected: !!input.barcodeRead,
+    mismatch: isBarcodeMismatch(input.barcodeRead ?? null, barcodeBrand, packagingBrand),
+    tampered: !!input.barcodeRead && gemini.tampering,
+  });
   const score = calculateAuthenticityScore(comparison).score;
 
+  return applyBarcodeEvidence(
+    externalDbVerdict(product, apiSource, input, gemini, score),
+    input,
+    barcodeBrand,
+    packagingBrand
+  );
+}
+
+function externalDbVerdict(
+  product: UnifiedProduct | null,
+  apiSource: ApiSource,
+  input: PathInput,
+  gemini: GeminiComparisonResult,
+  score: number
+): PathVerdict {
   const base = {
     product,
     apiSource,
@@ -501,4 +663,65 @@ export async function runExternalDbPath(input: PathInput): Promise<PathOutcome> 
     reasonEn: gemini.reason,
     reasonUr: gemini.reasonUr,
   };
+}
+
+// ─── Path C: medicine ───────────────────────────────────────────────────────
+
+/**
+ * Medicines are routed here by isMedicineScan() in brandRouter.ts. Identity,
+ * DRAP registration, code consistency, expiry and duplicate serial run in
+ * services/medicineChecks.ts; the packaging inspection is the same Gemini call
+ * the other paths make. services/medicineVerdict.ts combines them — a medicine
+ * is never reported as genuine, only as "no problems found". Every check
+ * result rides along in `medicine` for the screens.
+ */
+export async function runMedicinePath(input: PathInput): Promise<PathOutcome> {
+  // Catalog match by code or image first, so the one Gemini call can compare
+  // the pack against the official reference image when there is one.
+  const productCode = input.barcodeRead?.gs1?.gtin ?? input.barcodeRead?.productCode ?? null;
+  const identity = await identifyByCodeOrImage(productCode, input.imageUrl);
+
+  // Same packaging call as the other paths, also transcribing the printed
+  // medicine fields (brand, strength, batch, expiry, Reg. No. …).
+  const gemini = await compareImagesWithGemini(input.imageBase64, catalogMedicineToUnified(identity.product), input.mimeType, {
+    data: input.backImageBase64,
+    mimeType: input.backMimeType,
+  }, decodedProductCode(input), { medicine: true });
+
+  const medicine = await assessMedicine({
+    gs1: input.barcodeRead?.gs1 ?? null,
+    productCode: input.barcodeRead?.productCode ?? null,
+    identity,
+    printed: gemini.printed ?? null,
+    reporterKey: input.reporterKey ?? null,
+    area: input.area ?? null,
+  });
+  medicine.checks = sortChecks([
+    ...medicine.checks,
+    packagingCheck(gemini, !!identity.product?.reference_image_url),
+  ]);
+  const verdict = decideMedicineVerdict(medicine);
+  medicine.verdict = verdict;
+
+  const outcome = applyBarcodeEvidence(
+    {
+      // The catalogued product when identified, else what the pack prints —
+      // so a legible medicine is never shown as "Unregistered Product".
+      product: catalogMedicineToUnified(identity.product) ?? printedMedicineToUnified(medicine.printed),
+      apiSource: identity.product ? "ScraperMatch" : "none",
+      // Links the Scan row to the catalogued medicine, when identified.
+      dbProductId: identity.product?.id ?? null,
+      vectorSimilarity: identity.similarity,
+      dbVerdict: verdict.dbVerdict,
+      displayVerdict: verdict.displayVerdict,
+      score: verdict.score,
+      gemini,
+      reasonEn: verdict.reasonEn,
+      reasonUr: verdict.reasonUr,
+    },
+    input,
+    null,
+    null
+  );
+  return { ...outcome, medicine };
 }

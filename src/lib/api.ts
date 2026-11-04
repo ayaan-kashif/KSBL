@@ -29,6 +29,50 @@ export interface ScanResult {
   extracted_mfg_date: string | null;
   extracted_mrp: string | null;
   cv_anomaly_score: number | null;
+  /** Barcode check line. Optional so a result cached before it existed still renders. */
+  barcode_check?: BarcodeCheckLine;
+  /** Medicine scans only — see services/medicineChecks.ts. */
+  medicine?: MedicineResult | null;
+}
+
+/** One medicine check, already in both languages. */
+export interface MedicineCheckLine {
+  id: string;
+  status: 'pass' | 'fail' | 'warning' | 'not_checked';
+  en: string;
+  ur: string;
+}
+
+/** The medicine part of a scan payload (both /api/verify and /api/scan). */
+export interface MedicineResult {
+  verdict?: { status: 'no_problems' | 'suspicious' | 'counterfeit' | 'unverified'; expired: boolean; score: number };
+  checks: MedicineCheckLine[];
+  printed: {
+    brandName: string | null; genericName: string | null; strength: string | null; dosageForm: string | null;
+    packSize: string | null; manufacturer: string | null; drapRegNo: string | null; batch: string | null;
+    mfgDate: string | null; expiryDate: string | null; mrp: string | null;
+  } | null;
+  gs1: { gtin: string | null; batch: string | null; mfgDate: string | null; expiry: string | null; serial: string | null } | null;
+  expiry: { date: string | null; source: string | null; expired: boolean };
+  identity: {
+    product: {
+      product_name: string; generic_name: string | null; strength: string | null; dosage_form: string | null;
+      manufacturer: string | null; drap_reg_no: string | null;
+    } | null;
+  };
+  registration: { regNo: string | null; status: string; record: { brand_name: string; company: string | null } | null };
+  registrationMismatch: boolean;
+  sourcesConsulted: string[];
+}
+
+/** One-line barcode result shown beside the verdict reason (both endpoints). */
+export interface BarcodeCheckLine {
+  status: 'verified' | 'mismatch' | 'tampered' | 'unconfirmed' | 'not_visible';
+  source: 'decoded' | 'ai_read' | 'manual' | null;
+  format: string | null;
+  value: string | null;
+  en: string;
+  ur: string;
 }
 
 export interface ReportResult {
@@ -166,6 +210,38 @@ export async function postLogin(input: {
     const json = await res.json();
     if (!res.ok) return err(json.error ?? `Login failed (${res.status})`);
     return ok(json as CustomerProfile);
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
+/** Step one of "Forgot password?" — see src/app/api/auth/forgot-password/route.ts. */
+export async function postForgotPassword(email: string): Promise<ApiResult<{ ok: true }>> {
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Request failed (${res.status})`);
+    return ok({ ok: true });
+  } catch (e) {
+    return err(e instanceof Error ? e.message : 'Network error — check your connection');
+  }
+}
+
+/** Saves the new password for email/password login, authorized by the recovery session's access token. */
+export async function postResetPassword(accessToken: string, password: string): Promise<ApiResult<{ ok: true }>> {
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ password }),
+    });
+    const json = await res.json();
+    if (!res.ok) return err(json.error ?? `Request failed (${res.status})`);
+    return ok({ ok: true });
   } catch (e) {
     return err(e instanceof Error ? e.message : 'Network error — check your connection');
   }
