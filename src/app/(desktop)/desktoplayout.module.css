@@ -11,6 +11,19 @@
   min-height: 100dvh;
 }
 
+/* Logged-out shell: no TopNav or Sidebar to clear, so the login form centres in
+   the viewport instead of being offset by chrome that isn't rendered. */
+.bareLayout {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  background: transparent;
+}
+
 @media (min-width: 1024px) {
   .main {
     padding-left: 16rem; /* clears the fixed Sidebar rail */

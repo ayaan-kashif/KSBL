@@ -390,3 +390,94 @@
 }
 
 .errorBanner > span:nth-child(2) { flex: 1; }
+
+/* ── Hotspot map ─────────────────────────────────────────────────────────────
+   The map now leads this card and the ranked list sits beneath it as a
+   scrollable legend, so the list is capped rather than growing the card.
+   ========================================================================== */
+
+/* Matches HotspotMap's own .wrap height exactly, so swapping the dynamic chunk
+   in does not shift the card. */
+.mapSkeleton {
+  width: 100%;
+  height: 380px;
+  border-radius: var(--r-md);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container) 25%,
+    var(--color-surface-container-low) 50%,
+    var(--color-surface-container) 75%
+  );
+  background-size: 220% 100%;
+  animation: mapSkeletonSweep 1.5s ease-in-out infinite;
+  box-shadow: var(--inset-well);
+}
+
+@keyframes mapSkeletonSweep {
+  from { background-position: 180% 0; }
+  to   { background-position: -180% 0; }
+}
+
+@media (max-width: 900px) {
+  .mapSkeleton { height: 260px; }
+}
+
+/* Legend below the map: bounded so a long tail of areas scrolls instead of
+   stretching the card past the donut beside it. */
+.hotspotList {
+  height: auto;
+  max-height: 220px;
+  margin-top: var(--s-4);
+  gap: 8px;
+}
+
+/* Rows became <button>s (click to pan the map), so they need the button reset
+   plus a real affordance. */
+.hotspotRow {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  gap: var(--s-3);
+  transition:
+    background-color var(--t-base) var(--ease-out),
+    border-color var(--t-base) var(--ease-out),
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.hotspotRow:hover:not(:disabled) {
+  background: var(--bg-glass-hover);
+  border-color: var(--border-strong);
+  transform: translateX(3px);
+  box-shadow: var(--e1);
+}
+
+.hotspotRow:active:not(:disabled) {
+  transform: translateX(1px) scale(0.995);
+  box-shadow: var(--inset-well);
+}
+
+/* Areas the API could not geocode stay listed — they are real scans — but
+   cannot be panned to, so they read as inert rather than broken. */
+.hotspotRow:disabled {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.hotspotMeta { min-width: 0; }
+
+.hotspotStats {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.hotspotScans,
+.hotspotRate { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mapSkeleton { animation: none; }
+  .hotspotRow:hover:not(:disabled),
+  .hotspotRow:active:not(:disabled) { transform: none; }
+}
