@@ -1,0 +1,3 @@
+product_name,generic_name,batch_no,manufacturer_claimed,alert_type,alert_date,source_url
+DEMO Paracetol,Paracetamol,FAKE-001,Demo Pharma (Pvt) Ltd,falsified,2026-10-01,demo
+DEMO Amoxil-D,Amoxicillin,RC 2209,Demo Pharma (Pvt) Ltd,recall,2026-09-15,demo

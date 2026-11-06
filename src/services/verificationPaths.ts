@@ -13,8 +13,10 @@
  *                           catalog only holds National Foods rows, so a cosine
  *                           match for a non-National product is meaningless at
  *                           best and a false positive at worst.
- *  Path C "medicine"      — medicines, detected from a GS1 DataMatrix, the
- *                           catalog or the packaging (see isMedicineScan).
+ *  Path C "medicine"      — medicines, detected conservatively from a GS1
+ *                           DataMatrix, the medicine catalog or the packaging
+ *                           (see detectMedicine). Off entirely when
+ *                           MEDICINE_VERIFICATION_ENABLED=false.
  *
  * calculateAuthenticityScore and runComparisonEngine are used unchanged — only
  * which inputs reach them differs per path.
@@ -31,9 +33,10 @@ import { findProductByImage } from "@/lib/vectorSearch";
 import { compareProductImages } from "@/lib/translate";
 import { nationalCatalogEmbeddingCount, prefixOwner, type WordmarkStatus } from "./brandRouter";
 import type { BarcodeRead } from "./barcodeScanner";
-import { assessMedicine, type MedicineAssessment } from "./medicineChecks";
-import { identifyByCodeOrImage, catalogMedicineToUnified, printedMedicineToUnified } from "./medicineCatalog";
-import { decideMedicineVerdict, packagingCheck, sortChecks } from "./medicineVerdict";
+import { runMedicineChecks, type MedicineAssessment, type MedicineDataSource } from "./medicineChecks";
+import { supabaseMedicineData } from "./medicineData";
+import { combineMedicineVerdict, type MedicineVerdict } from "./scoreEngine";
+import { cloneDistanceKm, cloneMaxScans, MEDICINE_LOG } from "@/lib/medicineConfig";
 import { assessBarcode, barcodeMismatchReason, isBarcodeMismatch, type BarcodeCheck } from "./barcodeEvidence";
 
 export type ApiSource =
@@ -90,6 +93,10 @@ export interface PathInput {
   /** Who scanned (customerReporterKey) and where — for the duplicate-serial check. */
   reporterKey?: string | null;
   area?: string | null;
+  /** Medicine path only — clone-serial distance check and same-customer rule. */
+  latitude?: number | null;
+  longitude?: number | null;
+  customerId?: string | null;
 }
 
 /** Path outcome before the barcode line is attached. */
@@ -667,51 +674,121 @@ function externalDbVerdict(
 
 // ─── Path C: medicine ───────────────────────────────────────────────────────
 
+export interface MedicineScanInput {
+  imageBase64: string;
+  mimeType: string;
+  backImageBase64?: string | null;
+  backMimeType?: string | null;
+  /** The barcode read whose GS1 data the checks use (front, or the back DataMatrix). */
+  barcodeRead: BarcodeRead | null;
+  area: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  customerId?: string | null;
+  /** customerReporterKey() / phoneReporterKey(). */
+  reporterKey?: string | null;
+}
+
+export interface MedicineScanResult {
+  gemini: GeminiComparisonResult;
+  medicine: MedicineAssessment;
+  verdict: MedicineVerdict;
+}
+
 /**
- * Medicines are routed here by isMedicineScan() in brandRouter.ts. Identity,
- * DRAP registration, code consistency, expiry and duplicate serial run in
- * services/medicineChecks.ts; the packaging inspection is the same Gemini call
- * the other paths make. services/medicineVerdict.ts combines them — a medicine
- * is never reported as genuine, only as "no problems found". Every check
- * result rides along in `medicine` for the screens.
+ * The medicine assessment both pipelines share (/api/verify's medicine path
+ * and lib/verifyProduct.ts for WhatsApp / /api/scan): one Gemini call — the
+ * same packaging comparison the other paths make, plus the medicine prompt
+ * block (printed fields + pharma packaging flags) — then the checks in
+ * services/medicineChecks.ts and the verdict from combineMedicineVerdict().
+ */
+export async function assessMedicineScan(
+  input: MedicineScanInput,
+  data: MedicineDataSource = supabaseMedicineData
+): Promise<MedicineScanResult> {
+  const hasBack = !!(input.backImageBase64 && input.backMimeType);
+  const decodedCode = input.barcodeRead?.source === "decoded" ? input.barcodeRead.productCode : null;
+  const gemini = await compareImagesWithGemini(
+    input.imageBase64,
+    null,
+    input.mimeType,
+    hasBack ? { data: input.backImageBase64!, mimeType: input.backMimeType! } : undefined,
+    decodedCode,
+    { medicine: true }
+  );
+
+  const medicine = await runMedicineChecks(
+    {
+      gs1: input.barcodeRead?.gs1 ?? null,
+      productCode: input.barcodeRead?.productCode ?? null,
+      printed: gemini.printed ?? null,
+      gemini,
+      hasBackImage: hasBack,
+      current: {
+        area: input.area,
+        latitude: input.latitude ?? null,
+        longitude: input.longitude ?? null,
+        customerId: input.customerId ?? null,
+        reporter: input.reporterKey ?? null,
+      },
+      clone: { maxKm: cloneDistanceKm(), maxScans: cloneMaxScans() },
+    },
+    data
+  );
+  const verdict = combineMedicineVerdict(medicine.checks, { has2dCode: medicine.has2dCode });
+  medicine.verdict = verdict;
+  console.log(
+    `${MEDICINE_LOG} verdict=${verdict.status} score=${verdict.score} 2d=${medicine.has2dCode} ` +
+      medicine.checks.map((c) => `${c.id}:${c.status}`).join(" ")
+  );
+  return { gemini, medicine, verdict };
+}
+
+/** What the result screens show as "the product" for a medicine. */
+export function medicineToUnified(m: MedicineAssessment): UnifiedProduct | null {
+  const c = m.identity.product;
+  const p = m.printed;
+  const name = c?.product_name ?? p?.brandName ?? null;
+  if (!name) return null;
+  const strength = c?.strength ?? p?.strength ?? null;
+  return {
+    name: strength && !name.includes(strength) ? `${name} ${strength}` : name,
+    brand: name,
+    manufacturer: c?.manufacturer ?? p?.manufacturer ?? "Unknown",
+    category: "Medicine",
+    barcode: m.gs1?.gtin ?? "",
+    size: p?.packSize ?? "Standard",
+    referenceImage: "",
+  };
+}
+
+/**
+ * Medicines are routed here by detectMedicine() in brandRouter.ts. The caller
+ * wraps this in try/catch and falls back to the existing path on any error,
+ * so a medicine failure can never turn into a 500.
  */
 export async function runMedicinePath(input: PathInput): Promise<PathOutcome> {
-  // Catalog match by code or image first, so the one Gemini call can compare
-  // the pack against the official reference image when there is one.
-  const productCode = input.barcodeRead?.gs1?.gtin ?? input.barcodeRead?.productCode ?? null;
-  const identity = await identifyByCodeOrImage(productCode, input.imageUrl);
-
-  // Same packaging call as the other paths, also transcribing the printed
-  // medicine fields (brand, strength, batch, expiry, Reg. No. …).
-  const gemini = await compareImagesWithGemini(input.imageBase64, catalogMedicineToUnified(identity.product), input.mimeType, {
-    data: input.backImageBase64,
-    mimeType: input.backMimeType,
-  }, decodedProductCode(input), { medicine: true });
-
-  const medicine = await assessMedicine({
-    gs1: input.barcodeRead?.gs1 ?? null,
-    productCode: input.barcodeRead?.productCode ?? null,
-    identity,
-    printed: gemini.printed ?? null,
-    reporterKey: input.reporterKey ?? null,
+  const { gemini, medicine, verdict } = await assessMedicineScan({
+    imageBase64: input.imageBase64,
+    mimeType: input.mimeType,
+    backImageBase64: input.backImageBase64,
+    backMimeType: input.backMimeType,
+    barcodeRead: input.barcodeRead ?? null,
     area: input.area ?? null,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+    customerId: input.customerId ?? null,
+    reporterKey: input.reporterKey ?? null,
   });
-  medicine.checks = sortChecks([
-    ...medicine.checks,
-    packagingCheck(gemini, !!identity.product?.reference_image_url),
-  ]);
-  const verdict = decideMedicineVerdict(medicine);
-  medicine.verdict = verdict;
 
   const outcome = applyBarcodeEvidence(
     {
-      // The catalogued product when identified, else what the pack prints —
-      // so a legible medicine is never shown as "Unregistered Product".
-      product: catalogMedicineToUnified(identity.product) ?? printedMedicineToUnified(medicine.printed),
-      apiSource: identity.product ? "ScraperMatch" : "none",
-      // Links the Scan row to the catalogued medicine, when identified.
-      dbProductId: identity.product?.id ?? null,
-      vectorSimilarity: identity.similarity,
+      product: medicineToUnified(medicine),
+      apiSource: medicine.identity.product ? "LocalCatalog" : "none",
+      // Scan.product_id references Product, so only a Product row may go
+      // here — never a Medicine-table id.
+      dbProductId: input.localProductId ?? null,
+      vectorSimilarity: null,
       dbVerdict: verdict.dbVerdict,
       displayVerdict: verdict.displayVerdict,
       score: verdict.score,

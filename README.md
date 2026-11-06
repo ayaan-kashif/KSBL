@@ -250,6 +250,72 @@ npm run db:studio     # open Prisma Studio GUI
 
 ---
 
+## Medicine data
+
+Medicines are verified inside the normal scan — there is no separate mode.
+A scan is treated as a medicine only on strong evidence: a GS1 DataMatrix with
+a serial (21) and expiry (17), a GTIN in the medicine catalogue, or the vision
+call reporting a medicine with confidence ≥ 0.8 and at least two pharma cues.
+Everything else takes the existing path. `MEDICINE_VERIFICATION_ENABLED=false`
+turns the whole feature off.
+
+**1. Create the tables (once).** Run `prisma/sql/medicine_patch.sql` in the
+Supabase SQL Editor. It is idempotent and additive only (new nullable Scan
+columns, `Medicine` and `DrapAlert` tables, two demo rows). Do not use
+`prisma db push --accept-data-loss` or `prisma migrate reset`. Until it runs,
+medicine scans still work: the catalogue, alert and clone checks are skipped.
+
+**2. Load the medicine catalogue** from `data/medicines.csv`:
+
+```
+registration_no,brand_name,generic_name,strength,dosage_form,manufacturer,gtin
+```
+
+```bash
+npm run medicines:import                 # data/medicines.csv
+npm run medicines:import path/to/my.csv  # or another file
+```
+
+Rows are matched on `gtin`, then `registration_no`, and updated in place, so
+re-running is safe. GTINs are stored as GTIN-14 and must pass the check digit;
+registration numbers are stored as the 6-digit DRAP number.
+
+**3. Load DRAP alerts** (falsified / substandard / recall notices) from
+`data/drap-alerts.csv`:
+
+```
+product_name,generic_name,batch_no,manufacturer_claimed,alert_type,alert_date,source_url
+```
+
+```bash
+npm run alerts:import
+```
+
+`alert_type` is `falsified`, `substandard` or `recall`; `alert_date` is
+`YYYY-MM-DD`. Batches are normalised exactly as the scan-time check compares
+them (uppercase, no spaces / `-` / `/`, O→0, I→1, S→5). Use
+`source_url = demo` for test rows. Both scripts print inserted / updated /
+unchanged / skipped counts and need `SUPABASE_SERVICE_ROLE_KEY`.
+
+The bundled CSVs hold **demo rows only** (`DEMO …` names, GTINs in the 200
+restricted-circulation range, Reg. Nos. 999901–999905). Replace them with real
+DRAP data before relying on the results. No DRAP scraper runs automatically.
+
+**Checks** (`src/services/medicineChecks.ts`, one CheckResult each): GTIN
+check digit, expiry, mfg vs expiry, 2D-code batch and expiry vs the print,
+pharma packaging inspection, cloned serial (same GTIN + serial in another area
+or > `MEDICINE_CLONE_DISTANCE_KM`), DRAP registration, GTIN catalogue, DRAP
+alerts, and an optional GS1 / DRAP registry (`GS1_VERIFY_API_KEY` +
+`DRAP_TT_API_URL`). The verdict is combined in `combineMedicineVerdict`
+(`src/services/scoreEngine.ts`). A medicine is never shown as "genuine": the
+best result reads "No red flags found. Confirm with your pharmacist."
+
+```bash
+npm test   # unit tests: GS1 parser, every check, the combiner, routing
+```
+
+---
+
 ## Architecture
 
 ```

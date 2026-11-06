@@ -56,6 +56,8 @@ export async function GET(req: NextRequest) {
       extracted_batch: string | null;
       image_url: string;
       created_at: string;
+      category?: string | null;
+      expiry_date?: string | null;
       product?: { product_name: string | null; brand_name: string | null } | null;
     }
 
@@ -70,6 +72,10 @@ export async function GET(req: NextRequest) {
       extracted_batch: s.extracted_batch,
       image_url: s.image_url,
       created_at: s.created_at,
+      // Additive: lets history label a medicine "No red flags found" instead
+      // of "Genuine", and show its expiry. Both null for food scans.
+      category: s.category ?? null,
+      expiry_date: s.category === "Medicine" ? s.expiry_date ?? null : null,
     }));
 
     return NextResponse.json(result, { status: 200 });

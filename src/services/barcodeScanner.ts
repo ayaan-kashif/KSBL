@@ -122,6 +122,67 @@ export async function scanBarcodeFromImage(
   return { value: aiDigits, format: null, source: "ai_read", checksumValid: true, productCode: aiDigits, gs1: null };
 }
 
+/** Structured decode result — see decodeBarcodeDetailed(). */
+export interface DetailedBarcode {
+  /** Raw payload as decoded. */
+  raw: string;
+  /** ZXing format name ("DataMatrix", "EAN13"…). */
+  format: string | null;
+  /** GTIN-13/14 or the digits of a retail code; null for a URL/text payload. */
+  barcode: string | null;
+  /** GS1 element strings, when the payload carries them. */
+  gs1?: Gs1Data;
+}
+
+/** Hard ceiling on one detailed decode — a slow decode is dropped, never waited on. */
+const DETAILED_DECODE_TIMEOUT_MS = 2000;
+
+/**
+ * ZXing decode only (no Gemini), returning the structured result. Used by the
+ * medicine path for the back of the pack, where the DataMatrix usually sits.
+ * scanBarcodeFromImage() above is unchanged and still what every scan uses
+ * for its main barcode.
+ *
+ * Never throws: a WASM failure, a throw or the 2s timeout all return null, and
+ * the caller keeps whatever it already had.
+ */
+export async function decodeBarcodeDetailed(imageBase64: string): Promise<DetailedBarcode | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const decoded = await Promise.race([
+      decodeBarcode(Buffer.from(imageBase64, "base64")),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), DETAILED_DECODE_TIMEOUT_MS);
+      }),
+    ]);
+    if (!decoded) return null;
+    const gs1 = parseGs1(decoded.text, decoded.symbologyIdentifier);
+    return {
+      raw: decoded.text,
+      format: decoded.format,
+      barcode: extractProductCode(decoded.text, gs1),
+      ...(gs1.isGs1 ? { gs1 } : {}),
+    };
+  } catch (err) {
+    console.warn("[Medicine] Detailed barcode decode failed:", err);
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** A detailed decode as the BarcodeRead the rest of the pipeline uses. */
+export function detailedToBarcodeRead(d: DetailedBarcode): BarcodeRead {
+  return {
+    value: d.raw,
+    format: d.format,
+    source: "decoded",
+    checksumValid: d.gs1 ? d.gs1.valid : d.barcode ? isValidEanChecksum(d.barcode) : true,
+    productCode: d.barcode,
+    gs1: d.gs1 ?? null,
+  };
+}
+
 /** Fallback when ZXing finds nothing: ask Gemini to read the printed digits. */
 async function readBarcodeWithGemini(
   imageBase64: string,

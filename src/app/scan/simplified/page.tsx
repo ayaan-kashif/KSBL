@@ -8,7 +8,7 @@ import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
 import { useScanResult } from '@/lib/useScanResult';
 import { VERDICT_PHRASE, UI_COPY, MEDICINE_COPY, pick } from '@/lib/verdictCopy';
-import { medicineSourcesLine, isMedicineNoProblems } from '@/lib/medicineView';
+import { medicineSourcesLine, isMedicineNoProblems, medicineCheckLines } from '@/lib/medicineView';
 
 export default function SimplifiedVerdictPage() {
   const result = useScanResult();
@@ -102,9 +102,15 @@ export default function SimplifiedVerdictPage() {
             ur={result.reason_ur ?? result.reason}
             size="sm"
           />
-          {medicine?.checks?.map((check) => (
-            <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
-          ))}
+          {/* "Checks performed": ✓ pass, ✗ fail, ! warning — skipped checks hidden. */}
+          {medicine && medicineCheckLines(medicine).length > 0 && (
+            <>
+              <BilingualText en={MEDICINE_COPY.checksPerformed.en} ur={MEDICINE_COPY.checksPerformed.ur} size="sm" />
+              {medicineCheckLines(medicine).map((line) => (
+                <BilingualText key={line.key} en={line.en} ur={line.ur} size="sm" />
+              ))}
+            </>
+          )}
           {result.barcode_check && (
             <BilingualText en={result.barcode_check.en} ur={result.barcode_check.ur} size="sm" />
           )}

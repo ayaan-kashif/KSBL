@@ -197,6 +197,14 @@ model Scan {
   serial           String?
   expiry_date      DateTime?     @db.Date
   drap_reg_no      String?
+  // Medicine verification v2 (prisma/sql/medicine_patch.sql) — all nullable /
+  // defaulted, so existing inserts are unaffected. `barcode` holds the GTIN for
+  // medicines; (barcode, gs1_serial) is the clone-serial lookup.
+  product_type     String?       @default("fmcg") // "fmcg" | "medicine"
+  gs1_serial       String?
+  gs1_expiry       DateTime?     @db.Date
+  gs1_batch        String?
+  registration_no  String?
 
   product  Product? @relation(fields: [product_id], references: [id])
   customer User?    @relation(fields: [customer_id], references: [id])
@@ -211,11 +219,49 @@ model Scan {
   @@index([serial])
   @@index([extracted_batch])
   @@index([drap_reg_no])
+  @@index([barcode, gs1_serial])
 }
 
 // ─────────────────────────────────────────────
 // Medicine verification
 // ─────────────────────────────────────────────
+
+// Medicine catalogue — loaded from data/medicines.csv by
+// `npm run medicines:import`. gtin is stored as GTIN-14; registration_no as the
+// 6-digit DRAP number. Created by prisma/sql/medicine_patch.sql.
+model Medicine {
+  id              String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  gtin            String?  @unique
+  registration_no String?
+  brand_name      String
+  generic_name    String?
+  strength        String?
+  dosage_form     String?
+  manufacturer    String?
+  created_at      DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([registration_no])
+}
+
+// DRAP falsified / substandard / recall alerts — loaded from
+// data/drap-alerts.csv by `npm run alerts:import`. batch_norm is the batch
+// normalised as the checks compare it (normaliseBatch in medicineChecks.ts).
+// Demo rows carry source_url = "demo".
+model DrapAlert {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  product_name         String
+  generic_name         String?
+  batch_no             String
+  batch_norm           String
+  manufacturer_claimed String?
+  alert_type           String   // "falsified" | "substandard" | "recall"
+  alert_date           DateTime @db.Date
+  source_url           String
+  created_at           DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([batch_norm, product_name])
+  @@index([batch_norm])
+}
 
 // Cache of DRAP's public registration / price data, filled by the pharma
 // scraper so a scan never waits on (or breaks with) a DRAP outage.

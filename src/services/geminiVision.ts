@@ -5,6 +5,7 @@
  */
 
 import { UnifiedProduct } from "./cacheService";
+import { medicineVerificationEnabled } from "@/lib/medicineConfig";
 
 export interface GeminiComparisonResult {
   logoMatch: number;
@@ -22,6 +23,39 @@ export interface GeminiComparisonResult {
   /** Text transcribed off a medicine pack — only when asked for (medicine
    *  path), in the same call. Null fields were not clearly visible. */
   printed?: MedicinePrinted | null;
+  /** Pharma-specific packaging inspection — medicine path only, same call. */
+  pharmaPackaging?: PharmaPackagingFlags | null;
+}
+
+/**
+ * Pharma packaging defects the medicine prompt asks about. `true` = the defect
+ * is clearly visible; false/missing = not seen. The "missing…" items are only
+ * meaningful when the back of the pack was photographed.
+ */
+export interface PharmaPackagingFlags {
+  blurryPrint: boolean;
+  blisterFoilDefect: boolean;
+  sealBroken: boolean;
+  spellingErrors: boolean;
+  logoMismatch: boolean;
+  stripBoxMismatch: boolean;
+  missingRegNo: boolean;
+  missingUrduOrMrp: boolean;
+  missingKeepOutOfReach: boolean;
+}
+
+const PHARMA_PACKAGING_KEYS: (keyof PharmaPackagingFlags)[] = [
+  "blurryPrint", "blisterFoilDefect", "sealBroken", "spellingErrors", "logoMismatch",
+  "stripBoxMismatch", "missingRegNo", "missingUrduOrMrp", "missingKeepOutOfReach",
+];
+
+/** Only an explicit `true` is a defect; anything else is "not seen". */
+function parsePharmaPackaging(value: unknown): PharmaPackagingFlags | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const flags = {} as PharmaPackagingFlags;
+  for (const key of PHARMA_PACKAGING_KEYS) flags[key] = source[key] === true;
+  return flags;
 }
 
 /** Fields printed on a medicine pack. Never inferred: null = not visible. */
@@ -82,7 +116,35 @@ export interface BrandDetection {
   /** What kind of product the pack is — routes medicines to their own path.
    *  Read in this same call so classification adds no extra round-trip. */
   category: ProductCategory | null;
+  /** How sure the model is that this is a pharmaceutical product (0–1).
+   *  Only requested while medicine verification is enabled; absent otherwise. */
+  medicineConfidence?: number;
+  /** Pharma cues the model could actually see ("drap_reg_no", "dosage_form"…).
+   *  Optional for the same reason; routing treats missing as none. */
+  pharmaCues?: string[];
 }
+
+/** Cue ids the wordmark prompt may return — anything else is dropped. */
+export const PHARMA_CUE_IDS = [
+  "drap_reg_no", "rx_symbol", "dosage_form", "drug_strength", "generic_composition",
+  "blister_strip", "keep_out_of_reach", "pharma_manufacturer",
+] as const;
+
+/** Appended to the wordmark prompt only while medicine verification is on. */
+const PHARMA_CUES_PROMPT = `
+
+Also add two fields for medicines (they do not change the rules above):
+- "medicineConfidence": 0.0 to 1.0, how sure you are this is a pharmaceutical
+  product. Food, drinks, supplements sold as food, cosmetics and household
+  goods are 0.0.
+- "pharmaCues": a list of the cues you can actually SEE, from exactly these ids:
+  "drap_reg_no" (a drug registration number / "Reg. No." / "DRAP"),
+  "rx_symbol" ("Rx" or "prescription only"), "dosage_form" (tablet, capsule,
+  syrup, injection…), "drug_strength" (e.g. "500 mg" for a drug),
+  "generic_composition" ("each tablet contains…"), "blister_strip" (foil
+  blister strip), "keep_out_of_reach" ("keep out of reach of children"),
+  "pharma_manufacturer" (a pharmaceutical company name). Use [] if none.
+Example: {"brand": "...", "confidence": 0.9, "category": "medicine", "medicineConfidence": 0.95, "pharmaCues": ["drap_reg_no", "dosage_form"]}`;
 
 /** Wordmark/category call budget: the first attempt, and one retry. */
 const WORDMARK_TIMEOUT_MS = 10000;
@@ -156,6 +218,10 @@ Return ONE raw JSON object and nothing else — no markdown code fences, no comm
 
 A second photo shows the BACK of the same pack. Transcribe the wordmark from the FIRST photo only; use both photos to decide "category".`
     : prompt;
+  // Kill switch off: the prompt is exactly what it was before medicine
+  // verification existed.
+  const askPharmaCues = medicineVerificationEnabled();
+  const promptText = askPharmaCues ? `${fullPrompt}${PHARMA_CUES_PROMPT}` : fullPrompt;
 
   try {
     const model = process.env.GEMINI_VISION_MODEL ?? "gemini-3.1-flash-lite";
@@ -165,7 +231,7 @@ A second photo shows the BACK of the same pack. Transcribe the wordmark from the
           parts: [
             { inlineData: { mimeType, data: imageBase64 } },
             ...(hasBack ? [{ inlineData: { mimeType: backImage!.mimeType!, data: backImage!.data! } }] : []),
-            { text: fullPrompt },
+            { text: promptText },
           ],
         },
       ],
@@ -225,7 +291,17 @@ A second photo shows the BACK of the same pack. Transcribe the wordmark from the
 
     const raw = Number(parsed?.confidence);
     const confidence = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0.5;
-    return { brand, confidence, category };
+    if (!askPharmaCues) return { brand, confidence, category };
+
+    // Optional fields: missing or malformed simply means "no medicine signal".
+    const medRaw = Number(parsed?.medicineConfidence);
+    const medicineConfidence = Number.isFinite(medRaw) ? Math.min(1, Math.max(0, medRaw)) : 0;
+    const pharmaCues = Array.isArray(parsed?.pharmaCues)
+      ? [...new Set((parsed.pharmaCues as unknown[]).filter(
+          (c): c is string => typeof c === "string" && (PHARMA_CUE_IDS as readonly string[]).includes(c)
+        ))]
+      : [];
+    return { brand, confidence, category, medicineConfidence, pharmaCues };
   } catch (err) {
     console.error("[GeminiVision] detectBrandFromImage failed:", err);
     return null;
@@ -367,6 +443,19 @@ worse than a missing one.
   "dosageForm": "e.g. Tablet", "packSize": "e.g. 10 x 10", "manufacturer": "...",
   "drapRegNo": "registration number only, e.g. 012345", "batch": "...",
   "mfgDate": "as printed", "expiryDate": "as printed", "mrp": "as printed"
+}
+Also add a "pharmaPackaging" object of true/false flags. Set a flag to true
+ONLY when the defect is clearly visible; when unsure, use false:
+"pharmaPackaging": {
+  "blurryPrint": "text or logo printed blurry / low resolution",
+  "blisterFoilDefect": "blister or foil looks wrong: misaligned, unprinted, re-sealed",
+  "sealBroken": "seal, cap or strip is broken or tampered",
+  "spellingErrors": "misspelt words on the pack",
+  "logoMismatch": "manufacturer logo differs from the genuine one",
+  "stripBoxMismatch": "strip and box show different names, batches or dates",
+  "missingRegNo": "no DRAP registration number anywhere on the pack",
+  "missingUrduOrMrp": "no Urdu text or no retail price (MRP)",
+  "missingKeepOutOfReach": "no 'Keep out of reach of children' warning"
 }` : ""}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
@@ -479,7 +568,9 @@ worse than a missing one.
           typeof parsed.reasonUr === "string" && parsed.reasonUr.trim()
             ? parsed.reasonUr.trim()
             : "تصدیق مکمل ہو گئی۔",
-        ...(options.medicine ? { printed: parseMedicinePrinted(parsed.printed) } : {}),
+        ...(options.medicine
+          ? { printed: parseMedicinePrinted(parsed.printed), pharmaPackaging: parsePharmaPackaging(parsed.pharmaPackaging) }
+          : {}),
       };
     } catch (parseErr) {
       console.error("[GeminiVision] Failed to parse response text as JSON:", cleanJsonStr, parseErr);

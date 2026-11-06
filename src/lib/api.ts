@@ -35,18 +35,23 @@ export interface ScanResult {
   medicine?: MedicineResult | null;
 }
 
-/** One medicine check, already in both languages. */
+/** One medicine check (CheckResult in services/medicineChecks.ts), in both languages. */
 export interface MedicineCheckLine {
   id: string;
-  status: 'pass' | 'fail' | 'warning' | 'not_checked';
-  en: string;
-  ur: string;
+  status: 'pass' | 'fail' | 'warn' | 'skipped';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  reasonEn: string;
+  reasonUr: string;
 }
 
 /** The medicine part of a scan payload (both /api/verify and /api/scan). */
 export interface MedicineResult {
-  verdict?: { status: 'no_problems' | 'suspicious' | 'counterfeit' | 'unverified'; expired: boolean; score: number };
+  verdict?: { status: 'no_problems' | 'suspicious' | 'counterfeit' | 'expired' | 'unverified'; expired: boolean; score: number };
   checks: MedicineCheckLine[];
+  /** A GS1 2D code was decoded (older stock has none). */
+  has2dCode?: boolean;
+  /** DRAP alert behind a flagged batch / product, if any. */
+  drapAlert?: { product_name: string; batch_no: string; alert_type: string; alert_date: string; source_url: string; exactBatch: boolean } | null;
   printed: {
     brandName: string | null; genericName: string | null; strength: string | null; dosageForm: string | null;
     packSize: string | null; manufacturer: string | null; drapRegNo: string | null; batch: string | null;
@@ -124,6 +129,8 @@ export interface ScanHistoryItem {
   image_url: string;
   created_at: string;
   ai_flags: ScanAiFlags | null;
+  /** Medicine scans only (from /api/scans/mine). */
+  expiry_date?: string | null;
 }
 
 // ─── Result wrapper ───────────────────────────────────────────────────────────

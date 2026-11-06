@@ -59,6 +59,14 @@ export interface BrandContext {
   packagingBrand: string | null;
   /** Product category read with the wordmark; null when vision didn't run. */
   category: ProductCategory | null;
+  /** Vision's medicine confidence (0–1) — only while medicine verification is on. */
+  medicineConfidence?: number;
+  /** Pharma cues vision saw on the pack — only while medicine verification is on. */
+  pharmaCues?: string[];
+  /** Set by the caller from detectMedicine() — see "Medicine routing" below. */
+  isMedicine?: boolean;
+  medicineReason?: string | null;
+  medicineSource?: MedicineSource | null;
 }
 
 const DEFAULT_ALIASES = "national,national foods,nfl,نیشنل";
@@ -300,13 +308,15 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
   // A barcode-derived answer (steps 1–2) normally skips vision entirely. For a
   // DECODED barcode the wordmark is still read, so the two can be compared: a
   // genuine pack carries its own manufacturer's barcode. Routing is unchanged.
-  const readPackaging = async (): Promise<{ packagingBrand: string | null; category: ProductCategory | null }> => {
+  const readPackaging = async (): Promise<
+    { packagingBrand: string | null; category: ProductCategory | null } & PharmaSignal
+  > => {
     if (input.barcodeSource !== "decoded" || !input.imageBase64) return { packagingBrand: null, category: null };
     const detected = await detectBrandFromImage(input.imageBase64, input.mimeType ?? "image/jpeg", {
       data: input.backImageBase64 ?? null,
       mimeType: input.backMimeType ?? null,
     });
-    return { packagingBrand: detected?.brand || null, category: detected?.category ?? null };
+    return { packagingBrand: detected?.brand || null, category: detected?.category ?? null, ...pharmaSignal(detected) };
   };
 
   // 1. Local catalog — the barcode already matched one of our own rows, so the
@@ -368,6 +378,7 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
         imitatedBrand: imitated,
         packagingBrand: detected.brand || null,
         category: detected.category,
+        ...pharmaSignal(detected),
       };
     }
   }
@@ -389,6 +400,105 @@ export async function resolveBrandContext(input: ResolveBrandInput): Promise<Bra
 }
 
 // ─── Medicine routing ───────────────────────────────────────────────────────
+
+type PharmaSignal = { medicineConfidence?: number; pharmaCues?: string[] };
+
+/** The optional vision fields, copied only when present (kill switch on). */
+function pharmaSignal(detected: { medicineConfidence?: number; pharmaCues?: string[] } | null): PharmaSignal {
+  return detected?.pharmaCues !== undefined
+    ? { medicineConfidence: detected.medicineConfidence ?? 0, pharmaCues: detected.pharmaCues }
+    : {};
+}
+
+export type MedicineSource = "gs1_datamatrix" | "medicine_catalog" | "vision" | "packaging_text";
+
+export interface MedicineDecision {
+  isMedicine: boolean;
+  source: MedicineSource | null;
+  /** Short English log/debug line — why the scan was (or wasn't) routed. */
+  reason: string | null;
+}
+
+/** Vision must be at least this sure, with at least this many cues. */
+export const MEDICINE_VISION_MIN_CONFIDENCE = 0.8;
+export const MEDICINE_MIN_CUES = 2;
+
+export interface MedicineDetectionInput {
+  /** GS1 code with BOTH (21) serial and (17) expiry — isSerialisedMedicineGs1(). */
+  serialisedGs1: boolean;
+  /** The GTIN matched a medicine-catalog row (Medicine table, or a Product row of category "medicine"). */
+  catalogMedicine: boolean;
+  /** The barcode matched a catalog row that is NOT a medicine. */
+  catalogNonMedicine?: boolean;
+  /** National Foods pack (wordmark, prefix or catalog) — makes no medicines. */
+  nationalFoods?: boolean;
+  /** Vision category plus its optional confidence and cues. */
+  visionCategory?: ProductCategory | null;
+  visionConfidence?: number | null;
+  visionCues?: string[] | null;
+  /** WhatsApp only: cues read from OCR text (pharmaCuesInText). */
+  textCues?: string[] | null;
+}
+
+/**
+ * Conservative medicine routing. A food item sent down the medicine path is a
+ * regression, so the default is always the existing path:
+ *  (a) a decoded GS1 code with (21) serial + (17) expiry, or
+ *  (b) a medicine-catalog GTIN match, or
+ *  (c) vision says medicine with confidence ≥ 0.8 AND ≥ 2 pharma cues.
+ * (c) yields to a non-medicine catalog row and to National Foods. WhatsApp has
+ * no vision call, so it uses OCR text instead: ≥ 2 cues, one of them
+ * regulatory (Reg. No. / DRAP / Rx / "each tablet contains").
+ */
+export function detectMedicine(input: MedicineDetectionInput): MedicineDecision {
+  if (input.serialisedGs1) {
+    return { isMedicine: true, source: "gs1_datamatrix", reason: "GS1 code with serial (21) and expiry (17)" };
+  }
+  if (input.catalogMedicine) {
+    return { isMedicine: true, source: "medicine_catalog", reason: "GTIN matched the medicine catalog" };
+  }
+  if (input.catalogNonMedicine || input.nationalFoods) {
+    return { isMedicine: false, source: null, reason: null };
+  }
+  const cues = new Set(input.visionCues ?? []);
+  if (
+    input.visionCategory === "medicine" &&
+    (input.visionConfidence ?? 0) >= MEDICINE_VISION_MIN_CONFIDENCE &&
+    cues.size >= MEDICINE_MIN_CUES
+  ) {
+    return {
+      isMedicine: true,
+      source: "vision",
+      reason: `vision medicine ${(input.visionConfidence ?? 0).toFixed(2)} with cues ${[...cues].join(",")}`,
+    };
+  }
+  const textCues = new Set(input.textCues ?? []);
+  const regulatory = ["drap_reg_no", "rx_symbol", "generic_composition"].some((c) => textCues.has(c));
+  if (textCues.size >= MEDICINE_MIN_CUES && regulatory) {
+    return { isMedicine: true, source: "packaging_text", reason: `text cues ${[...textCues].join(",")}` };
+  }
+  return { isMedicine: false, source: null, reason: null };
+}
+
+/**
+ * Distinct pharma cues in OCR text, using the same ids as the vision prompt.
+ * Household "tablets" (dishwasher, toilet…) don't count as a dosage form, and
+ * grams/millilitres are never a drug strength.
+ */
+export function pharmaCuesInText(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const cues: string[] = [];
+  if (/\bDRAP\b|\bReg(?:istration)?\.?\s*No\b/i.test(text)) cues.push("drap_reg_no");
+  if (/\bRx\b|prescription only/i.test(text)) cues.push("rx_symbol");
+  const household = /\b(dishwasher|toilet|cleaning|detergent|washing\s+machine|chlorine|pool)\b/i.test(text);
+  if (!household && /\b(tablets?|capsules?|caplets?|injection|infusion|inhaler|ointment|suspension|syrup)\b/i.test(text)) {
+    cues.push("dosage_form");
+  }
+  if (/\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|iu)\b/i.test(text)) cues.push("drug_strength");
+  if (/each\s+(?:film[-\s]coated\s+)?(?:tablet|capsule|caplet|5\s?ml|ml)\s+contains/i.test(text)) cues.push("generic_composition");
+  if (/keep\s+(?:all\s+medicines\s+)?out\s+of\s+(?:the\s+)?reach\s+of\s+children/i.test(text)) cues.push("keep_out_of_reach");
+  return cues;
+}
 
 export interface MedicineSignals {
   /** The decoded code is a GS1 DataMatrix/QR/128 with (01) plus (10)/(17)/(21). */

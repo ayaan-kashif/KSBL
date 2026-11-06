@@ -8,7 +8,7 @@ import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
 import { useScanResult } from '@/lib/useScanResult';
 import { VERDICT_PHRASE, UI_COPY, MEDICINE_COPY, pick } from '@/lib/verdictCopy';
-import { medicineDetailRows, medicineSourcesLine, isMedicineNoProblems } from '@/lib/medicineView';
+import { medicineDetailRows, medicineSourcesLine, isMedicineNoProblems, medicineCheckLines } from '@/lib/medicineView';
 
 export default function GenuineResultPage() {
   const result = useScanResult();
@@ -79,9 +79,15 @@ export default function GenuineResultPage() {
             ur={result.reason_ur ?? result.reason}
             size="sm"
           />
-          {medicine?.checks?.map((check) => (
-            <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
-          ))}
+          {/* "Checks performed": ✓ pass, ✗ fail, ! warning — skipped checks hidden. */}
+          {medicine && medicineCheckLines(medicine).length > 0 && (
+            <>
+              <BilingualText en={MEDICINE_COPY.checksPerformed.en} ur={MEDICINE_COPY.checksPerformed.ur} size="sm" />
+              {medicineCheckLines(medicine).map((line) => (
+                <BilingualText key={line.key} en={line.en} ur={line.ur} size="sm" />
+              ))}
+            </>
+          )}
           {result.barcode_check && (
             <BilingualText en={result.barcode_check.en} ur={result.barcode_check.ur} size="sm" />
           )}
@@ -131,7 +137,7 @@ export default function GenuineResultPage() {
             <span className="material-symbols-outlined" style={{ fontSize: '20px', flexShrink: 0 }}>check_circle</span>
             <p>
               {medicineNoProblems
-                ? `${pick(MEDICINE_COPY.noProblemsLabel, lang)} — ${pick(MEDICINE_COPY.officialPending, lang)}`
+                ? `${pick(MEDICINE_COPY.noProblemsLabel, lang)} — ${pick(MEDICINE_COPY.confirmWithPharmacist, lang)}`
                 : <>Checked against ShelfWatch&apos;s reference catalogue and packaging analysis.</>}
             </p>
           </div>

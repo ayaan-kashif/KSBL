@@ -192,6 +192,17 @@ export function parseGs1(payload: string | null | undefined, symbologyIdentifier
  * A GS1 code that marks the pack as a medicine: a GTIN plus at least one of
  * batch, expiry or serial — the combination DRAP's DataMatrix rule mandates.
  */
+/**
+ * The conservative medicine signal: a GS1 code carrying BOTH a serial (21)
+ * and an expiry (17) — the DRAP serialisation format. Food GS1 codes carry
+ * batch and best-before, but not unit serial numbers. Used for routing; the
+ * GTIN check digit is judged separately by the checks, so a fake code with a
+ * bad check digit still reaches the medicine path and fails there.
+ */
+export function isSerialisedMedicineGs1(data: Gs1Data | null | undefined): boolean {
+  return !!data?.isGs1 && !!data.gtin && !!data.serial && !!data.expiry;
+}
+
 export function isMedicineGs1(data: Gs1Data): boolean {
   return data.isGs1 && !!data.gtin && !!(data.batch || data.expiry || data.serial);
 }

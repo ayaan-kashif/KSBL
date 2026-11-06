@@ -28,19 +28,29 @@ function parseScannedByRole(value: FormDataEntryValue | null): ScannedByRole {
   return value === "shopkeeper" ? "shopkeeper" : "consumer";
 }
 
-import { scanBarcodeFromImage, manualBarcodeRead, type BarcodeRead } from "@/services/barcodeScanner";
+import {
+  scanBarcodeFromImage,
+  manualBarcodeRead,
+  decodeBarcodeDetailed,
+  detailedToBarcodeRead,
+  type BarcodeRead,
+  type DetailedBarcode,
+} from "@/services/barcodeScanner";
 import { UnifiedProduct } from "@/services/cacheService";
 import { uploadImage } from "@/lib/blob";
 import { getCustomerIdFromRequest, incrementCustomerScore } from "@/lib/customer";
 import { getVerdictTextSync } from "@/lib/translate";
-import { resolveBrandContext, isMedicineScan, textLooksLikeMedicine } from "@/services/brandRouter";
-import { readPackagingText } from "@/lib/ocr";
-import { isMedicineGs1 } from "@/services/gs1Parser";
-import { customerReporterKey } from "@/services/medicineChecks";
+import { resolveBrandContext, detectMedicine } from "@/services/brandRouter";
+import { isSerialisedMedicineGs1 } from "@/services/gs1Parser";
+import { customerReporterKey, gtin14 } from "@/services/medicineChecks";
+import { isCatalogMedicineGtin } from "@/services/medicineData";
+import { medicineVerificationEnabled, MEDICINE_LOG } from "@/lib/medicineConfig";
+import { postScanRow } from "@/lib/scanInsert";
 import {
   runNationalRagPath,
   runExternalDbPath,
   runMedicinePath,
+  type PathOutcome,
   type VerificationPath,
 } from "@/services/verificationPaths";
 /** Maps a row from our own local "Product" table (sku, brand_name, product_name,
@@ -156,6 +166,7 @@ export async function POST(req: NextRequest) {
     // Each photo goes ZXing decode -> Gemini digit read (barcodeScanner.ts).
     let barcodeRead: BarcodeRead | null =
       typedBarcode && typedBarcode.trim() !== "" ? manualBarcodeRead(typedBarcode) : null;
+    let readFromBack = false;
     if (!barcodeRead) {
       console.log("[VerifyAPI] No barcode provided in request. Running visual scanner...");
       barcodeRead = await scanBarcodeFromImage(imageBase64, mimeType);
@@ -163,9 +174,20 @@ export async function POST(req: NextRequest) {
 
       if (!barcodeRead && backImageBase64 && backMimeType) {
         barcodeRead = await scanBarcodeFromImage(backImageBase64, backMimeType);
+        readFromBack = !!barcodeRead;
         console.log(`[VerifyAPI] Visual scanner result (back): ${barcodeRead?.value ?? null} via ${barcodeRead?.source ?? "-"}`);
       }
     }
+
+    // Medicine DataMatrix codes usually sit on the BACK of the pack. When the
+    // barcode above came from the front, the back is decoded too — ZXing only,
+    // at most 2s, running alongside the steps below. Its result is used only to
+    // route and check a medicine; it never replaces the scan's own barcode.
+    const medicineEnabled = medicineVerificationEnabled();
+    const backDecodePromise: Promise<DetailedBarcode | null> =
+      medicineEnabled && backImageBase64 && barcodeRead && !readFromBack && !isSerialisedMedicineGs1(barcodeRead.gs1)
+        ? decodeBarcodeDetailed(backImageBase64)
+        : Promise.resolve(null);
     // Only a product code is looked up — a QR code holding a plain URL still
     // counts as "barcode detected" but has no SKU to match.
     const barcode = barcodeRead?.productCode ?? null;
@@ -226,34 +248,54 @@ export async function POST(req: NextRequest) {
     });
 
     // Medicines get their own path; food/FMCG routing below is unchanged.
-    const gs1Medicine = !!barcodeRead?.gs1 && isMedicineGs1(barcodeRead.gs1);
-    // Fallback when Gemini's classification didn't answer (it times out when
-    // Gemini is slow): read the pack's text — front and back — and look for
-    // medicine cues. Only runs when nothing stronger has decided the route.
-    const packagingText =
-      brandContext.category === null && !gs1Medicine && !localProductRow && !brandContext.isNationalFoods
-        ? await readPackagingText([
-            { data: imageBase64, mimeType },
-            { data: backImageBase64, mimeType: backMimeType },
-          ])
-        : null;
-    const isMedicine = isMedicineScan({
-      gs1Medicine,
-      catalogMedicine: localProductRow?.category === "medicine",
-      catalogNonMedicine: !!localProductRow && localProductRow.category !== "medicine",
-      packagingMedicine: brandContext.category === "medicine" || textLooksLikeMedicine(packagingText),
-      nationalFoods: brandContext.isNationalFoods,
-    });
+    // Detection is deliberately conservative (detectMedicine): a food item
+    // sent down the medicine path is a regression, so any doubt — or any
+    // error here — keeps the existing path.
+    let isMedicine = false;
+    // The read the medicine checks use: the scan's own barcode, or the back
+    // DataMatrix when only the back carries the serialised GS1 code.
+    let medicineRead: BarcodeRead | null = barcodeRead;
+    if (medicineEnabled) {
+      try {
+        const backDetailed = await backDecodePromise;
+        if (!isSerialisedMedicineGs1(barcodeRead?.gs1) && backDetailed?.gs1 && isSerialisedMedicineGs1(backDetailed.gs1)) {
+          medicineRead = detailedToBarcodeRead(backDetailed);
+        }
+        const serialisedGs1 = isSerialisedMedicineGs1(medicineRead?.gs1);
+        // The Medicine table is only asked when vision already leans medicine,
+        // so a clearly non-medicine scan makes no extra request.
+        const visionLeansMedicine = brandContext.category === "medicine" || (brandContext.pharmaCues?.length ?? 0) > 0;
+        const catalogMedicine =
+          localProductRow?.category === "medicine" ||
+          (!serialisedGs1 && !localProductRow && visionLeansMedicine && (await isCatalogMedicineGtin(gtin14(medicineRead?.productCode))));
+        const decision = detectMedicine({
+          serialisedGs1,
+          catalogMedicine,
+          catalogNonMedicine: !!localProductRow && localProductRow.category !== "medicine",
+          nationalFoods: brandContext.isNationalFoods,
+          visionCategory: brandContext.category,
+          visionConfidence: brandContext.medicineConfidence ?? null,
+          visionCues: brandContext.pharmaCues ?? null,
+        });
+        isMedicine = decision.isMedicine;
+        brandContext.isMedicine = decision.isMedicine;
+        brandContext.medicineReason = decision.reason;
+        brandContext.medicineSource = decision.source;
+      } catch (err) {
+        console.warn(`${MEDICINE_LOG} detection failed — keeping the existing path:`, err);
+        isMedicine = false;
+        medicineRead = barcodeRead;
+      }
+    }
 
-    const verificationPath: VerificationPath = isMedicine
-      ? "medicine"
-      : brandContext.isNationalFoods
-        ? "national_rag"
-        : "external_db";
+    // The path this scan would take without medicine verification — also the
+    // fallback if the medicine path throws.
+    const existingPath: VerificationPath = brandContext.isNationalFoods ? "national_rag" : "external_db";
+    let verificationPath: VerificationPath = isMedicine ? "medicine" : existingPath;
 
     console.log(
       `[VerifyAPI] path=${verificationPath} brand=${brandContext.detectedBrand ?? "unknown"} via=${brandContext.source} category=${brandContext.category ?? "-"}` +
-        (packagingText !== null ? ` text-fallback=${textLooksLikeMedicine(packagingText) ? "medicine" : "no cues"}` : "")
+        (isMedicine ? ` ${MEDICINE_LOG} via=${brandContext.medicineSource} (${brandContext.medicineReason})` : "")
     );
 
     // Use the device's real GPS coordinates only — never fabricate a location.
@@ -288,12 +330,29 @@ export async function POST(req: NextRequest) {
       area: scanArea,
     };
 
-    const outcome =
-      verificationPath === "medicine"
-        ? await runMedicinePath(pathInput)
-        : verificationPath === "national_rag"
-          ? await runNationalRagPath(pathInput)
-          : await runExternalDbPath(pathInput);
+    const runExistingPath = () =>
+      existingPath === "national_rag" ? runNationalRagPath(pathInput) : runExternalDbPath(pathInput);
+
+    let outcome: PathOutcome;
+    if (verificationPath === "medicine") {
+      try {
+        outcome = await runMedicinePath({
+          ...pathInput,
+          barcodeRead: medicineRead,
+          latitude: scanLat,
+          longitude: scanLng,
+          customerId,
+        });
+      } catch (err) {
+        // Never a 500 because of medicine logic: the scan is judged exactly as
+        // it would have been without medicine verification.
+        console.error(`${MEDICINE_LOG} medicine path failed — falling back to ${existingPath}:`, err);
+        verificationPath = existingPath;
+        outcome = await runExistingPath();
+      }
+    } else {
+      outcome = await runExistingPath();
+    }
 
     const { gemini } = outcome;
     const medicine = outcome.medicine ?? null;
@@ -323,23 +382,29 @@ export async function POST(req: NextRequest) {
     let scanId = "scan-" + Date.now();
     if (supabaseUrl && anonKey) {
       try {
-        const scanRes = await fetch(`${supabaseUrl}/rest/v1/Scan`, {
-          method: "POST",
-          headers: {
-            "apikey": anonKey,
-            "Authorization": `Bearer ${anonKey}`,
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"
-          },
-          body: JSON.stringify({
+        // Medicine-only columns from prisma/sql/medicine_patch.sql. Food scans
+        // send none, so their insert is unchanged; postScanRow retries without
+        // them if the patch hasn't been run yet.
+        const medicineColumns = medicine
+          ? {
+              product_type: "medicine",
+              gs1_serial: medicine.gs1?.serial ?? null,
+              gs1_expiry: medicine.gs1?.expiry ?? null,
+              gs1_batch: medicine.gs1?.batch ?? null,
+              registration_no: medicine.registration.regNo,
+            }
+          : null;
+        const scanRes = await postScanRow(supabaseUrl, anonKey, {
             product_id: dbProductId,
             // `product` already incorporates local catalog / scraper-match
             // data (see the identification block above), so this alone
             // covers all three source paths, not just external DB lookups.
             product_name: product?.name || medicine?.printed?.brandName || null,
             brand_name: product?.brand || null,
-            category: isMedicine ? "Medicine" : product?.category || null,
-            barcode: barcode?.trim() || product?.barcode || null,
+            category: medicine ? "Medicine" : product?.category || null,
+            // Medicines store the GTIN the clone-serial check looks up (it can
+            // come from the back DataMatrix); food keeps its existing value.
+            barcode: (medicine && medicineRead?.productCode) || barcode?.trim() || product?.barcode || null,
             // Validated against the enum rather than blind-cast: a client
             // sending role=admin would otherwise be written straight into the
             // column and rejected by Postgres (or worse, accepted).
@@ -368,7 +433,16 @@ export async function POST(req: NextRequest) {
               barcodeCheck: outcome.barcodeCheck.status,
               // What the wordmark call classified the pack as.
               category: brandContext.category,
-              ...(medicine ? { medicineChecks: medicine.checks, medicinePrinted: medicine.printed } : {}),
+              // Medicine scans: every CheckResult, the printed fields, and who
+              // scanned (for the clone check's same-customer rule).
+              ...(medicine
+                ? {
+                    medicine_checks: medicine.checks,
+                    medicine_printed: medicine.printed,
+                    medicine_status: medicine.verdict?.status ?? null,
+                    medicine_reporter: customerReporterKey(customerId),
+                  }
+                : {}),
             },
             // GS1 / printed medicine codes (null for food).
             gtin: medicine?.gs1?.gtin ?? null,
@@ -382,8 +456,7 @@ export async function POST(req: NextRequest) {
             longitude: scanLng,
             area_name: scanArea,
             customer_id: customerId,
-          })
-        });
+          }, medicineColumns);
         if (scanRes.ok) {
           const scanData = await scanRes.json();
           if (scanData && scanData.length > 0) {
