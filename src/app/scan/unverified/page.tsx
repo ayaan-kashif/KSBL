@@ -10,7 +10,7 @@ import NoScanResult from '@/components/NoScanResult';
 import { useLanguage } from '@/components/LanguageContext';
 import { useScanResult } from '@/lib/useScanResult';
 import { VERDICT_PHRASE, UI_COPY, MEDICINE_COPY, pick } from '@/lib/verdictCopy';
-import { medicineDetailRows, medicineSourcesLine } from '@/lib/medicineView';
+import { medicineDetailRows, medicineSourcesLine, medicineCheckLines } from '@/lib/medicineView';
 
 export default function UnverifiedResultPage() {
   const result = useScanResult();
@@ -82,9 +82,15 @@ export default function UnverifiedResultPage() {
             ur={result?.reason_ur ?? 'یہ مصنوع ہمارے ڈیٹا بیس میں نہیں مل سکی۔'}
             size="sm"
           />
-          {medicine?.checks?.map((check) => (
-            <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
-          ))}
+          {/* "Checks performed": ✓ pass, ✗ fail, ! warning — skipped checks hidden. */}
+          {medicine && medicineCheckLines(medicine).length > 0 && (
+            <>
+              <BilingualText en={MEDICINE_COPY.checksPerformed.en} ur={MEDICINE_COPY.checksPerformed.ur} size="sm" />
+              {medicineCheckLines(medicine).map((line) => (
+                <BilingualText key={line.key} en={line.en} ur={line.ur} size="sm" />
+              ))}
+            </>
+          )}
           {result?.barcode_check && (
             <BilingualText en={result.barcode_check.en} ur={result.barcode_check.ur} size="sm" />
           )}

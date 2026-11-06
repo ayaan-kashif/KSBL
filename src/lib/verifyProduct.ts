@@ -26,12 +26,14 @@ import { comparePixelWise, GENUINE_THRESHOLD, type PixelCompareResult } from "./
 import { incrementCustomerScore } from "./customer";
 import { scanBarcodeFromImage, manualBarcodeRead, type BarcodeRead } from "@/services/barcodeScanner";
 import { assessBarcode, barcodeMismatchReason, type BarcodeCheck } from "@/services/barcodeEvidence";
-import { prefixOwner, isMedicineScan, textLooksLikeMedicine } from "@/services/brandRouter";
-import { isMedicineGs1 } from "@/services/gs1Parser";
-import { compareImagesWithGemini } from "@/services/geminiVision";
-import { assessMedicine, customerReporterKey, type MedicineAssessment } from "@/services/medicineChecks";
-import { identifyByCodeOrImage, catalogMedicineToUnified } from "@/services/medicineCatalog";
-import { decideMedicineVerdict, packagingCheck, sortChecks } from "@/services/medicineVerdict";
+import { prefixOwner, detectMedicine, pharmaCuesInText } from "@/services/brandRouter";
+import { isSerialisedMedicineGs1 } from "@/services/gs1Parser";
+import { customerReporterKey, gtin14, type MedicineAssessment } from "@/services/medicineChecks";
+import { isCatalogMedicineGtin } from "@/services/medicineData";
+import type { MedicineVerdict } from "@/services/scoreEngine";
+import { assessMedicineScan } from "@/services/verificationPaths";
+import { medicineVerificationEnabled, MEDICINE_LOG } from "./medicineConfig";
+import { postScanRow } from "./scanInsert";
 import type { Verdict, ScannedByRole } from "@prisma/client";
 
 // ─── Thresholds ───────────────────────────────────────────────────────────────
@@ -520,28 +522,38 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   };
 
   // ── Medicine routing ──────────────────────────────────────────────────────
-  // Same decision as /api/verify (isMedicineScan). This pipeline has no
-  // wordmark call, so the packaging signal comes from text on the pack — no
-  // extra AI request. runOcr above reads nothing today (see readPackagingText
-  // in lib/ocr.ts), so when its text has no cues and nothing stronger decided
-  // the route, the packaging text is read for medicine detection only.
-  const catalogCategory = (product as { category?: string | null } | null)?.category ?? null;
-  const gs1Medicine = !!barcodeRead?.gs1 && isMedicineGs1(barcodeRead.gs1);
-  const catalogNonMedicine = (identifiedViaBarcode || identifiedViaImage) && catalogCategory !== "medicine";
-  const ocrText = typeof ocrRaw.fullText === "string" ? ocrRaw.fullText : null;
-  let packagingMedicine = textLooksLikeMedicine(ocrText);
-  if (!packagingMedicine && !gs1Medicine && !catalogNonMedicine && catalogCategory !== "medicine") {
-    const packagingText = await readPackagingText([
-      { data: Buffer.from(await input.imageFile.arrayBuffer()).toString("base64"), mimeType: input.imageFile.type || "image/jpeg" },
-    ]);
-    packagingMedicine = textLooksLikeMedicine(packagingText);
+  // Same conservative rules as /api/verify (detectMedicine). This pipeline has
+  // no wordmark call, so the packaging signal comes from text on the pack: at
+  // least two pharma cues, one of them regulatory. runOcr above reads nothing
+  // today (see readPackagingText in lib/ocr.ts), so when its text has too few
+  // cues and nothing stronger decided the route, the packaging text is read.
+  // Any error keeps the existing path; the kill switch skips all of it.
+  let isMedicine = false;
+  if (medicineVerificationEnabled()) {
+    try {
+      const catalogCategory = (product as { category?: string | null } | null)?.category ?? null;
+      const serialisedGs1 = isSerialisedMedicineGs1(barcodeRead?.gs1);
+      const catalogNonMedicine = (identifiedViaBarcode || identifiedViaImage) && catalogCategory !== "medicine";
+      const ocrText = typeof ocrRaw.fullText === "string" ? ocrRaw.fullText : null;
+      let textCues = pharmaCuesInText(ocrText);
+      if (textCues.length < 2 && !serialisedGs1 && !catalogNonMedicine && catalogCategory !== "medicine") {
+        const packagingText = await readPackagingText([
+          { data: Buffer.from(await input.imageFile.arrayBuffer()).toString("base64"), mimeType: input.imageFile.type || "image/jpeg" },
+        ]);
+        textCues = pharmaCuesInText(packagingText);
+      }
+      // The Medicine table is only asked when the text already shows a cue.
+      const catalogMedicine =
+        catalogCategory === "medicine" ||
+        (!serialisedGs1 && !catalogNonMedicine && textCues.length > 0 && (await isCatalogMedicineGtin(gtin14(barcode))));
+      const decision = detectMedicine({ serialisedGs1, catalogMedicine, catalogNonMedicine, textCues });
+      isMedicine = decision.isMedicine;
+      if (isMedicine) console.log(`${MEDICINE_LOG} routed via=${decision.source} (${decision.reason})`);
+    } catch (err) {
+      console.warn(`${MEDICINE_LOG} detection failed — keeping the existing path:`, err);
+      isMedicine = false;
+    }
   }
-  const isMedicine = isMedicineScan({
-    gs1Medicine,
-    catalogMedicine: catalogCategory === "medicine",
-    catalogNonMedicine,
-    packagingMedicine,
-  });
 
   // Resolved before the verdict: the medicine duplicate-serial check counts
   // distinct areas.
@@ -567,37 +579,37 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   let pixelResult: PixelCompareResult | null = null;
 
   let medicine: MedicineAssessment | null = null;
+  let medicineVerdict: MedicineVerdict | null = null;
+  const medicineReporter = input.reporter_key ?? customerReporterKey(input.customer_id);
   if (isMedicine) {
-    // The same packaging call /api/verify makes, transcribing the printed
-    // medicine fields, then the shared medicine checks and verdict
-    // (services/medicineVerdict.ts). A medicine is never judged by the food
-    // rules, and its positive outcome is "no problems found", not genuine.
-    const imageBase64 = Buffer.from(await input.imageFile.arrayBuffer()).toString("base64");
-    const productCode = barcodeRead?.gs1?.gtin ?? barcodeRead?.productCode ?? null;
-    const identity = await identifyByCodeOrImage(productCode, imageUrl);
-    const gemini = await compareImagesWithGemini(
-      imageBase64,
-      catalogMedicineToUnified(identity.product),
-      input.imageFile.type || "image/jpeg",
-      undefined,
-      barcodeRead?.source === "decoded" ? barcodeRead.productCode : null,
-      { medicine: true }
-    );
-    medicine = await assessMedicine({
-      gs1: barcodeRead?.gs1 ?? null,
-      productCode: barcodeRead?.productCode ?? null,
-      identity,
-      printed: gemini.printed ?? null,
-      reporterKey: input.reporter_key ?? customerReporterKey(input.customer_id),
-      area: scanArea,
-    });
-    medicine.checks = sortChecks([
-      ...medicine.checks,
-      packagingCheck(gemini, !!identity.product?.reference_image_url),
-    ]);
-    medicine.verdict = decideMedicineVerdict(medicine);
-    verdict = medicine.verdict.dbVerdict;
-    confidence = medicine.verdict.score / 100;
+    // The shared medicine assessment (services/verificationPaths.ts): the
+    // same packaging call /api/verify makes plus the medicine checks and
+    // verdict. A medicine is never judged by the food rules, and its positive
+    // outcome is "no red flags found", never genuine. If it fails, the scan
+    // falls through to the existing branches below exactly as before.
+    try {
+      const assessed = await assessMedicineScan({
+        imageBase64: Buffer.from(await input.imageFile.arrayBuffer()).toString("base64"),
+        mimeType: input.imageFile.type || "image/jpeg",
+        barcodeRead,
+        area: scanArea,
+        latitude: scanLat,
+        longitude: scanLng,
+        customerId: input.customer_id ?? null,
+        reporterKey: medicineReporter,
+      });
+      medicine = assessed.medicine;
+      medicineVerdict = assessed.verdict;
+    } catch (err) {
+      console.error(`${MEDICINE_LOG} medicine assessment failed — using the existing verdict:`, err);
+      medicine = null;
+      medicineVerdict = null;
+    }
+  }
+
+  if (medicine && medicineVerdict) {
+    verdict = medicineVerdict.dbVerdict;
+    confidence = medicineVerdict.score / 100;
   } else if (product && brandForPixelCheck && PIXEL_COMPARE_BRANDS.has(brandForPixelCheck)) {
     const result = await comparePixelWise(imageUrl, product.reference_image_url);
 
@@ -628,7 +640,7 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   // A decoded barcode registered to a different company than the pack it's
   // printed on is a counterfeit signal — never genuine. "suspicious" is this
   // pipeline's strongest verdict; confidence stays as computed above.
-  const barcodeMismatch = !isMedicine && barcodeCheck.status === "mismatch";
+  const barcodeMismatch = !medicine && barcodeCheck.status === "mismatch";
   if (barcodeMismatch) verdict = "suspicious";
 
   // ── Step 5: Translate verdict ─────────────────────────────────────────────
@@ -642,14 +654,14 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
     reason: string;
     reason_ur: string;
   };
-  if (medicine?.verdict) {
+  if (medicineVerdict) {
     // Medicine phrases, not the food glossary (whose genuine line reads
     // "verified as authentic").
     verdictText = {
-      urdu_text: medicine.verdict.phrase.ur,
-      english_text: medicine.verdict.phrase.en,
-      reason: medicine.verdict.reasonEn,
-      reason_ur: medicine.verdict.reasonUr,
+      urdu_text: medicineVerdict.phrase.ur,
+      english_text: medicineVerdict.phrase.en,
+      reason: medicineVerdict.reasonEn,
+      reason_ur: medicineVerdict.reasonUr,
     };
   } else if (barcodeMismatch && barcode && barcodeBrand && packagingBrand) {
     const packagingDefects =
@@ -697,22 +709,24 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
   let scanId = "scan-" + Date.now();
   if (supabaseUrl && anonKey) {
     try {
-      const scanRes = await fetch(`${supabaseUrl}/rest/v1/Scan`, {
-        method: "POST",
-        headers: {
-          "apikey": anonKey,
-          "Authorization": `Bearer ${anonKey}`,
-          "Content-Type": "application/json",
-          "Prefer": "return=representation"
-        },
-        body: JSON.stringify({
+      // Medicine-only columns (prisma/sql/medicine_patch.sql); none for food,
+      // and postScanRow retries without them if the patch hasn't run.
+      const medicineColumns = medicine
+        ? {
+            product_type: "medicine",
+            gs1_serial: medicine.gs1?.serial ?? null,
+            gs1_expiry: medicine.gs1?.expiry ?? null,
+            gs1_batch: medicine.gs1?.batch ?? null,
+            registration_no: medicine.registration.regNo,
+          }
+        : null;
+      const scanRes = await postScanRow(supabaseUrl, anonKey, {
           product_id: product?.id ?? null,
           product_name: product?.product_name ?? offProduct?.product_name ?? medicine?.printed?.brandName ?? null,
           brand_name: product?.brand_name ?? offProduct?.brand_name ?? null,
           barcode: barcode ?? null,
           ...(medicine
             ? {
-                product_id: product?.id ?? medicine.identity.product?.id ?? null,
                 category: "Medicine",
                 gtin: medicine.gs1?.gtin ?? null,
                 serial: medicine.gs1?.serial ?? null,
@@ -729,7 +743,14 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
           ocr_raw_json: {
             ...ocrRaw,
             barcode_check: { status: barcodeCheck.status, source: barcodeCheck.source, format: barcodeCheck.format },
-            ...(medicine ? { medicine_checks: medicine.checks, medicine_printed: medicine.printed } : {}),
+            ...(medicine
+              ? {
+                  medicine_checks: medicine.checks,
+                  medicine_printed: medicine.printed,
+                  medicine_status: medicine.verdict?.status ?? null,
+                  medicine_reporter: medicineReporter,
+                }
+              : {}),
           },
           cv_anomaly_score: cvScore,
           verdict,
@@ -738,8 +759,7 @@ export async function verifyProduct(input: VerifyInput): Promise<VerifyResult> {
           longitude: scanLng,
           area_name: scanArea,
           customer_id: input.customer_id ?? null,
-        }),
-      });
+        }, medicineColumns);
 
       if (scanRes.ok) {
         const scanData = await scanRes.json();

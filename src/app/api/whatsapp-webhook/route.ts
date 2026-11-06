@@ -190,8 +190,9 @@ async function handleWhatsAppPayload(payload: WhatsAppPayload) {
       `\n` +
       (result.brand_name ? `🏷️ Brand: ${result.brand_name}\n` : "") +
       (result.extracted_batch ? `🔢 Batch: ${result.extracted_batch}\n` : "") +
-      (result.medicine ? `\nℹ️ ${MEDICINE_VERDICT_TEXT.safety.ur}\n${MEDICINE_VERDICT_TEXT.safety.en}\n` : "") +
-      `\n_Scan ID: ${result.scan_id}_`;
+      `\n_Scan ID: ${result.scan_id}_` +
+      // Every medicine reply ends with the same instruction.
+      (result.medicine ? `\n\n${MEDICINE_VERDICT_TEXT.footer.ur}\n${MEDICINE_VERDICT_TEXT.footer.en}` : "");
 
     await sendWhatsAppText(phoneNumberId, senderPhone, replyText);
     return NextResponse.json({ status: "ok" }, { status: 200 });
@@ -203,7 +204,7 @@ async function handleWhatsAppPayload(payload: WhatsAppPayload) {
 
 // ─── Medicine reply lines ─────────────────────────────────────────────────────
 
-/** "💊 Panadol 500 mg" and the expiry — or a do-not-use warning if expired. */
+/** "💊 Panadol 500 mg", the expiry and the Reg. No. — each only when present. */
 function medicineHeadLines(medicine: MedicineAssessment | null | undefined): string {
   if (!medicine) return "";
   const name = [medicine.printed?.brandName ?? medicine.identity.product?.product_name, medicine.printed?.strength ?? medicine.identity.product?.strength]
@@ -212,21 +213,28 @@ function medicineHeadLines(medicine: MedicineAssessment | null | undefined): str
   const expiry = medicine.expiry.date
     ? medicine.expiry.expired
       ? `⛔ ${MEDICINE_VERDICT_TEXT.expired.ur} / ${MEDICINE_VERDICT_TEXT.expired.en} (${medicine.expiry.date})\n`
-      : `📅 Expiry: ${medicine.expiry.date}\n`
+      : `💊 Expiry: ${medicine.expiry.date}\n`
     : "";
-  return (name ? `💊 ${name}\n` : "") + expiry + "\n";
+  const regNo = medicine.registration.regNo ? `Reg. No.: ${medicine.registration.regNo}\n` : "";
+  return (name ? `💊 ${name}\n` : "") + expiry + regNo + "\n";
 }
 
-/** The top 1–3 check results, problems first. */
+/** Up to 3 failed / warned checks, most serious first, and the DRAP alert link. */
 function medicineCheckLines(medicine: MedicineAssessment | null | undefined): string {
   if (!medicine) return "";
-  const rank = { fail: 0, warning: 1, pass: 2, not_checked: 3 } as const;
-  return [...medicine.checks]
-    .filter((c) => c.status !== "not_checked" && c.id !== "expiry")
-    .sort((a, b) => rank[a.status] - rank[b.status])
+  const severity = { critical: 0, high: 1, medium: 2, low: 3 } as const;
+  const lines = medicine.checks
+    .filter((c) => c.status === "fail" || c.status === "warn")
+    .sort((a, b) => severity[a.severity] - severity[b.severity] || (a.status === b.status ? 0 : a.status === "fail" ? -1 : 1))
     .slice(0, 3)
-    .map((c) => `• ${c.ur} / ${c.en}\n`)
+    .map((c) => `${c.status === "fail" ? "✗" : "!"} ${c.reasonUr} / ${c.reasonEn}\n`)
     .join("");
+  const alert = medicine.drapAlert;
+  // Demo rows carry source_url "demo" — no link to show for those.
+  const alertLine = alert
+    ? `🚨 DRAP ${alert.alert_type} alert, ${alert.alert_date}${alert.source_url && alert.source_url !== "demo" ? `: ${alert.source_url}` : ""}\n`
+    : "";
+  return lines + alertLine;
 }
 
 // ─── WhatsApp Cloud API helpers ───────────────────────────────────────────────

@@ -9,7 +9,7 @@ import { useLanguage } from '@/components/LanguageContext';
 import { useSessionJson } from '@/lib/useScanResult';
 import { UI_COPY, MEDICINE_COPY, VERDICT_LABEL, pick } from '@/lib/verdictCopy';
 import type { BarcodeCheckLine, MedicineResult } from '@/lib/api';
-import { medicineDetailRows, medicineSourcesLine, isMedicineNoProblems } from '@/lib/medicineView';
+import { medicineDetailRows, medicineSourcesLine, isMedicineNoProblems, medicineCheckLines } from '@/lib/medicineView';
 
 interface ProductData {
   name: string;
@@ -181,8 +181,8 @@ export default function ResultPage() {
   if (medicineNoProblems) {
     statusHeadline = MEDICINE_COPY.noProblemsLabel.en.toUpperCase();
     statusUrdu = MEDICINE_COPY.noProblemsLabel.ur;
-    statusSub = MEDICINE_COPY.officialPending.en;
-    statusSubUrdu = MEDICINE_COPY.officialPending.ur;
+    statusSub = MEDICINE_COPY.confirmWithPharmacist.en;
+    statusSubUrdu = MEDICINE_COPY.confirmWithPharmacist.ur;
   } else if (medicine && result?.english_text && result?.urdu_text) {
     statusSub = result.english_text;
     statusSubUrdu = result.urdu_text;
@@ -325,10 +325,15 @@ export default function ResultPage() {
           </div>
           <div className={styles.analysisNote}>
             <BilingualText en={reasonEn} ur={reasonUr} size="sm" />
-            {/* Medicine: one line per check, in the same style as the reason. */}
-            {medicine?.checks?.map((check) => (
-              <BilingualText key={check.id} en={check.en} ur={check.ur} size="sm" />
-            ))}
+            {/* "Checks performed": ✓ pass, ✗ fail, ! warning — skipped checks hidden. */}
+            {medicine && medicineCheckLines(medicine).length > 0 && (
+              <>
+                <BilingualText en={MEDICINE_COPY.checksPerformed.en} ur={MEDICINE_COPY.checksPerformed.ur} size="sm" />
+                {medicineCheckLines(medicine).map((line) => (
+                  <BilingualText key={line.key} en={line.en} ur={line.ur} size="sm" />
+                ))}
+              </>
+            )}
             {result?.barcodeCheck && (
               <BilingualText en={result.barcodeCheck.en} ur={result.barcodeCheck.ur} size="sm" />
             )}
@@ -372,8 +377,8 @@ export default function ResultPage() {
             ></div>
           )}
           {medicine ? (
-            // Medicine details as rows in the same card style. Values the pack
-            // doesn't show read "Not visible" — nothing is filled in.
+            // Medicine details as rows in the same card style — only the
+            // values the pack (or the catalogue) actually shows.
             <div className={styles.snapshotDetails}>
               {medicineDetailRows(medicine).map((row) => (
                 <div key={row.label.en}>
@@ -470,7 +475,7 @@ export default function ResultPage() {
                 // Never "authenticated" for a medicine — see MEDICINE_COPY.
                 <>
                   <p className={styles.warningTitle} style={{ color: themeColor }}>{pick(MEDICINE_COPY.noProblemsLabel, lang)}</p>
-                  <BilingualText en={MEDICINE_COPY.officialPending.en} ur={MEDICINE_COPY.officialPending.ur} size="sm" />
+                  <BilingualText en={MEDICINE_COPY.confirmWithPharmacist.en} ur={MEDICINE_COPY.confirmWithPharmacist.ur} size="sm" />
                 </>
               ) : (
                 <>

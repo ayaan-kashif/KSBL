@@ -258,156 +258,162 @@ export function getBarcodeCheckText(status: BarcodeCheckStatus): BilingualReason
 // ─── Medicine path ────────────────────────────────────────────────────────────
 
 /**
- * One line per medicine check, fixed like GLOSSARY — only dates, codes and
- * counts are interpolated (in Latin digits in both languages).
+ * One line per medicine check (services/medicineChecks.ts), fixed like
+ * GLOSSARY — only dates, codes, names and counts are interpolated, in Latin
+ * digits in both languages.
  */
 export const MEDICINE_CHECK_TEXT = {
-  expiryValid: (date: string): BilingualReason => ({
-    en: `Expiry ${date} — not expired ✓`,
-    ur: `میعاد ${date} — ختم نہیں ہوئی ✓`,
+  gtinValid: { en: "Product code (GTIN) check digit is valid", ur: "پروڈکٹ کوڈ (GTIN) کا چیک ڈیجٹ درست ہے" } satisfies BilingualReason,
+  gtinInvalid: (gtin: string): BilingualReason => ({
+    en: `Product code ${gtin} has an invalid check digit — a genuine printing line cannot produce this`,
+    ur: `پروڈکٹ کوڈ ${gtin} کا چیک ڈیجٹ غلط ہے — اصل پرنٹنگ میں ایسا نہیں ہو سکتا`,
   }),
-  expiryExpired: (date: string): BilingualReason => ({
-    en: `Expired on ${date} — do not use ✗`,
-    ur: `میعاد ${date} کو ختم ہو چکی — استعمال نہ کریں ✗`,
+  expired: (date: string): BilingualReason => ({
+    en: `Expired on ${date} — do not use`,
+    ur: `میعاد ${date} کو ختم ہو چکی — استعمال نہ کریں`,
   }),
-  expiryUnknown: {
-    en: "Expiry date not visible",
-    ur: "میعاد کی تاریخ نظر نہیں آئی",
-  } satisfies BilingualReason,
-  codesMatch: {
-    en: "Printed batch and expiry match the DataMatrix ✓",
-    ur: "چھپا ہوا بیچ اور میعاد ڈیٹا میٹرکس سے مطابقت رکھتے ہیں ✓",
-  } satisfies BilingualReason,
-  codeMismatch: (field: "batch" | "expiry", printed: string, coded: string): BilingualReason => ({
-    en: `Printed ${field} (${printed}) does not match the DataMatrix (${coded}) ✗`,
-    ur: `چھپی ہوئی ${field === "batch" ? "بیچ" : "میعاد"} (${printed}) ڈیٹا میٹرکس (${coded}) سے مطابقت نہیں رکھتی ✗`,
+  expiringSoon: (date: string, days: number): BilingualReason => ({
+    en: `Expires on ${date} (in ${days} day${days === 1 ? "" : "s"})`,
+    ur: `میعاد ${date} کو ختم ہو رہی ہے (${days} دن باقی)`,
   }),
-  codeUnsure: (printed: string, coded: string): BilingualReason => ({
-    en: `Printed batch (${printed}) differs from the DataMatrix (${coded}) by one character — possibly a misread; check by eye`,
-    ur: `چھپا ہوا بیچ (${printed}) ڈیٹا میٹرکس (${coded}) سے ایک حرف مختلف ہے — شاید غلط پڑھا گیا؛ خود دیکھ کر تصدیق کریں`,
+  expiryFarOff: (date: string): BilingualReason => ({
+    en: `Expiry ${date} is unusually far away (more than 6 years) — check the date on the pack`,
+    ur: `میعاد ${date} غیر معمولی طور پر دور ہے (6 سال سے زیادہ) — پیک پر تاریخ دیکھیں`,
   }),
-  gtinInvalid: {
-    en: "The DataMatrix product code (GTIN) is invalid ✗",
-    ur: "ڈیٹا میٹرکس کا پروڈکٹ کوڈ (GTIN) درست نہیں ✗",
-  } satisfies BilingualReason,
-  codesNotChecked: {
-    en: "Code consistency not checked — no DataMatrix, or nothing printed to compare",
-    ur: "کوڈ کی مطابقت نہیں جانچی گئی — ڈیٹا میٹرکس نہیں یا موازنے کے لیے کچھ چھپا ہوا نہیں",
-  } satisfies BilingualReason,
-  serialOk: (scans: number): BilingualReason => ({
-    en: `Serial number seen ${scans} time(s) — no sign of a copied code ✓`,
-    ur: `یہ سیریل نمبر ${scans} بار اسکین ہوا — نقل شدہ کوڈ کی کوئی علامت نہیں ✓`,
+  expiryOk: (date: string): BilingualReason => ({
+    en: `Not expired (expires ${date})`,
+    ur: `میعاد ختم نہیں ہوئی (میعاد ${date})`,
   }),
-  // Names only what tripped the check: anonymous scans add areas but no people.
-  serialDuplicateAreas: (areas: number): BilingualReason => ({
-    en: `This serial number has already been scanned in ${areas} different areas — possible copied code ✗`,
-    ur: `یہ سیریل نمبر ${areas} مختلف علاقوں میں اسکین ہو چکا ہے — ممکنہ نقل شدہ کوڈ ✗`,
+  mfgAfterExpiry: (mfg: string, expiry: string): BilingualReason => ({
+    en: `Manufacturing date ${mfg} is not before the expiry ${expiry}`,
+    ur: `تاریخِ تیاری ${mfg} میعاد ${expiry} سے پہلے نہیں`,
   }),
-  serialDuplicatePeople: (reporters: number): BilingualReason => ({
-    en: `This serial number has already been scanned by ${reporters} different people — possible copied code ✗`,
-    ur: `یہ سیریل نمبر ${reporters} مختلف افراد اسکین کر چکے ہیں — ممکنہ نقل شدہ کوڈ ✗`,
+  mfgInFuture: (mfg: string): BilingualReason => ({
+    en: `Manufacturing date ${mfg} is in the future`,
+    ur: `تاریخِ تیاری ${mfg} مستقبل کی ہے`,
   }),
-  identityMatched: (name: string, company: string): BilingualReason => ({
-    en: `Matched to ${name} (${company}) in the medicine catalogue ✓`,
-    ur: `دواؤں کے کیٹلاگ میں ${name} (${company}) سے مطابقت ملی ✓`,
+  mfgOk: { en: "Manufacturing and expiry dates are consistent", ur: "تاریخِ تیاری اور میعاد میں مطابقت ہے" } satisfies BilingualReason,
+  batchMismatch: (printed: string, coded: string): BilingualReason => ({
+    en: `Batch printed on the pack (${printed}) does not match the 2D code (${coded})`,
+    ur: `پیک پر چھپا بیچ (${printed}) 2D کوڈ (${coded}) سے مختلف ہے`,
   }),
-  identityNotFound: {
-    en: "Not in our medicine catalogue yet — this alone doesn't mean it's fake",
-    ur: "یہ دوا ابھی ہمارے کیٹلاگ میں نہیں — صرف اس سے یہ جعلی ثابت نہیں ہوتی",
-  } satisfies BilingualReason,
-  registrationFound: (regNo: string, name: string, company: string | null): BilingualReason => ({
-    en: `DRAP Reg. No. ${regNo} is listed for ${name}${company ? ` (${company})` : ""} ✓`,
-    ur: `ڈریپ رجسٹریشن نمبر ${regNo} ${name}${company ? ` (${company})` : ""} کے لیے درج ہے ✓`,
+  batchMatch: { en: "Batch on the pack matches the 2D code", ur: "پیک پر بیچ 2D کوڈ کے مطابق ہے" } satisfies BilingualReason,
+  expiryMismatch: (printed: string, coded: string): BilingualReason => ({
+    en: `Expiry printed on the pack (${printed}) does not match the 2D code (${coded})`,
+    ur: `پیک پر چھپی میعاد (${printed}) 2D کوڈ (${coded}) سے مختلف ہے`,
   }),
-  registrationMismatch: (regNo: string, name: string, company: string | null): BilingualReason => ({
-    en: `DRAP Reg. No. ${regNo} belongs to ${name}${company ? ` (${company})` : ""}, not to this product ✗`,
-    ur: `ڈریپ رجسٹریشن نمبر ${regNo} ${name}${company ? ` (${company})` : ""} کا ہے، اس مصنوع کا نہیں ✗`,
+  expiryMatch: { en: "Expiry on the pack matches the 2D code", ur: "پیک پر میعاد 2D کوڈ کے مطابق ہے" } satisfies BilingualReason,
+  packagingOk: { en: "No packaging defects seen", ur: "پیکنگ میں کوئی خرابی نظر نہیں آئی" } satisfies BilingualReason,
+  packagingIssues: (en: string, ur: string): BilingualReason => ({
+    en: `Packaging problems: ${en}`,
+    ur: `پیکنگ کے مسائل: ${ur}`,
   }),
-  registrationNotFound: (regNo: string): BilingualReason => ({
-    en: `DRAP Reg. No. ${regNo} was not found in DRAP's registry ✗`,
-    ur: `ڈریپ رجسٹریشن نمبر ${regNo} ڈریپ کے ریکارڈ میں نہیں ملا ✗`,
+  cloned: (area: string): BilingualReason => ({
+    en: `This serial was already scanned in ${area}, so the code is likely copied`,
+    ur: `یہ سیریل پہلے ہی ${area} میں اسکین ہو چکا ہے، اس لیے کوڈ غالباً نقل شدہ ہے`,
   }),
-  registrationNotInPriceList: (regNo: string): BilingualReason => ({
-    en: `DRAP Reg. No. ${regNo} isn't in DRAP's public price list, which doesn't cover every medicine — not checked`,
-    ur: `ڈریپ رجسٹریشن نمبر ${regNo} ڈریپ کی عوامی قیمتوں کی فہرست میں نہیں، جس میں ہر دوا شامل نہیں — جانچ نہیں ہو سکی`,
+  clonedFar: (km: number): BilingualReason => ({
+    en: `This serial was already scanned ${km} km away, so the code is likely copied`,
+    ur: `یہ سیریل پہلے ہی ${km} کلومیٹر دور اسکین ہو چکا ہے، اس لیے کوڈ غالباً نقل شدہ ہے`,
   }),
-  registrationUnavailable: {
-    en: "DRAP registration: not checked — source unavailable",
-    ur: "ڈریپ رجسٹریشن: جانچ نہیں ہو سکی — ذریعہ دستیاب نہیں",
-  } satisfies BilingualReason,
-  registrationNotVisible: {
-    en: "DRAP registration number not visible — not checked",
-    ur: "ڈریپ رجسٹریشن نمبر نظر نہیں آیا — جانچ نہیں ہو سکی",
-  } satisfies BilingualReason,
-  gtinPrefixMismatch: (owner: string, company: string): BilingualReason => ({
-    en: `The product code belongs to ${owner}, but the pack says ${company} ✗`,
-    ur: `پروڈکٹ کوڈ ${owner} کا ہے، مگر پیک پر ${company} لکھا ہے ✗`,
+  serialRepeated: (count: number): BilingualReason => ({
+    en: `This serial has been scanned ${count} times in this area — a single pack is rarely scanned this often`,
+    ur: `یہ سیریل اس علاقے میں ${count} بار اسکین ہو چکا ہے — ایک پیک اتنی بار کم ہی اسکین ہوتا ہے`,
   }),
-  packagingOk: {
-    en: "Packaging consistent with the official reference image ✓",
-    ur: "پیکنگ سرکاری حوالہ جاتی تصویر کے مطابق ہے ✓",
-  } satisfies BilingualReason,
-  packagingMismatch: {
-    en: "Packaging differs from the official reference (logo, name, layout or print) ✗",
-    ur: "پیکنگ سرکاری حوالے سے مختلف ہے (لوگو، نام، ترتیب یا چھپائی) ✗",
-  } satisfies BilingualReason,
-  packagingTampered: {
-    en: "Packaging shows signs of tampering ✗",
-    ur: "پیکنگ میں چھیڑ چھاڑ کے آثار ہیں ✗",
-  } satisfies BilingualReason,
-  packagingNoReference: {
-    en: "No official reference image to compare the packaging against",
-    ur: "پیکنگ کے موازنے کے لیے کوئی سرکاری حوالہ جاتی تصویر نہیں",
-  } satisfies BilingualReason,
-  packagingUnavailable: {
-    en: "Packaging inspection unavailable right now",
-    ur: "پیکنگ کی جانچ اس وقت دستیاب نہیں",
-  } satisfies BilingualReason,
-  serialMissing: {
-    en: "No serial number on the code — duplicate check not possible",
-    ur: "کوڈ پر سیریل نمبر نہیں — ڈپلیکیٹ کی جانچ ممکن نہیں",
-  } satisfies BilingualReason,
-  serialUnavailable: {
-    en: "Duplicate-serial check unavailable right now",
-    ur: "ڈپلیکیٹ سیریل کی جانچ اس وقت دستیاب نہیں",
-  } satisfies BilingualReason,
+  serialFirst: { en: "First scan of this serial number", ur: "اس سیریل نمبر کا پہلا اسکین" } satisfies BilingualReason,
+  serialSeenHere: (count: number): BilingualReason => ({
+    en: `Serial seen ${count} time${count === 1 ? "" : "s"} before, only in this area`,
+    ur: `یہ سیریل پہلے ${count} بار، صرف اسی علاقے میں دیکھا گیا`,
+  }),
+  regFound: (regNo: string, brand: string): BilingualReason => ({
+    en: `DRAP Reg. No. ${regNo} matches ${brand}`,
+    ur: `ڈریپ رجسٹریشن نمبر ${regNo} ${brand} سے مطابقت رکھتا ہے`,
+  }),
+  regMismatch: (regNo: string, brand: string): BilingualReason => ({
+    en: `DRAP Reg. No. ${regNo} is registered to ${brand}, not to this product`,
+    ur: `ڈریپ رجسٹریشن نمبر ${regNo} ${brand} کا ہے، اس مصنوع کا نہیں`,
+  }),
+  regNotFound: (regNo: string): BilingualReason => ({
+    en: `Reg. No. ${regNo} is not in our DRAP list — verify with the pharmacist`,
+    ur: `رجسٹریشن نمبر ${regNo} ہماری ڈریپ فہرست میں نہیں — فارماسسٹ سے تصدیق کریں`,
+  }),
+  catalogMatch: (brand: string): BilingualReason => ({
+    en: `Product code matches ${brand} in the medicine catalogue`,
+    ur: `پروڈکٹ کوڈ دواؤں کے کیٹلاگ میں ${brand} سے مطابقت رکھتا ہے`,
+  }),
+  catalogMismatch: (brand: string): BilingualReason => ({
+    en: `Product code belongs to ${brand} in the medicine catalogue, not to this pack`,
+    ur: `پروڈکٹ کوڈ کیٹلاگ میں ${brand} کا ہے، اس پیک کا نہیں`,
+  }),
+  drapFlagged: (product: string, batch: string, type: string, date: string): BilingualReason => ({
+    en: `Flagged by DRAP: ${product} batch ${batch} (${type}, ${date})`,
+    ur: `ڈریپ کی جانب سے نشاندہی: ${product} بیچ ${batch} (${type}، ${date})`,
+  }),
+  drapProductAlert: (product: string, date: string): BilingualReason => ({
+    en: `DRAP issued an alert for other batches of ${product} (${date}) — check the batch with your pharmacist`,
+    ur: `ڈریپ نے ${product} کے دوسرے بیچوں کے لیے الرٹ جاری کیا (${date}) — فارماسسٹ سے بیچ چیک کروائیں`,
+  }),
+  drapNoAlert: { en: "No DRAP alert for this product", ur: "اس مصنوع کے لیے ڈریپ کا کوئی الرٹ نہیں" } satisfies BilingualReason,
+  registryValid: { en: "Serial confirmed by the GS1 / DRAP registry", ur: "سیریل کی GS1 / ڈریپ رجسٹری سے تصدیق ہو گئی" } satisfies BilingualReason,
+  registryInvalid: { en: "The GS1 / DRAP registry does not recognise this serial", ur: "GS1 / ڈریپ رجسٹری اس سیریل کو تسلیم نہیں کرتی" } satisfies BilingualReason,
+  /** Skipped checks are stored but never shown. */
+  skipped: (why: string): BilingualReason => ({ en: `Not checked: ${why}`, ur: `جانچ نہیں ہوئی: ${why}` }),
+  no2dCode: { en: "No 2D code (older stock?)", ur: "کوئی 2D کوڈ نہیں (پرانا اسٹاک؟)" } satisfies BilingualReason,
 };
 
-/**
- * Medicine verdict copy. A medicine is never called "genuine", "verified" or
- * "100% original": without DRAP's official serial verification the most this
- * app can honestly say is that it found no problems. Mirrored client-side in
- * lib/verdictCopy.ts (MEDICINE_COPY) — keep the two in sync.
- */
+/** Packaging defect labels for MEDICINE_CHECK_TEXT.packagingIssues. */
+export const PHARMA_PACKAGING_ISSUE_TEXT: Record<string, BilingualReason> = {
+  blurryPrint: { en: "blurry print", ur: "دھندلی چھپائی" },
+  blisterFoilDefect: { en: "blister/foil looks wrong", ur: "بلسٹر/فوائل درست نہیں" },
+  sealBroken: { en: "broken or tampered seal", ur: "ٹوٹی یا چھیڑی ہوئی سیل" },
+  spellingErrors: { en: "spelling mistakes", ur: "ہجے کی غلطیاں" },
+  logoMismatch: { en: "logo differs from the genuine one", ur: "لوگو اصل سے مختلف" },
+  stripBoxMismatch: { en: "strip and box don't match", ur: "پٹی اور ڈبہ مطابقت نہیں رکھتے" },
+  missingRegNo: { en: "no DRAP Reg. No.", ur: "ڈریپ رجسٹریشن نمبر موجود نہیں" },
+  missingUrduOrMrp: { en: "no Urdu text or MRP", ur: "اردو تحریر یا قیمت موجود نہیں" },
+  missingKeepOutOfReach: { en: "no \"Keep out of reach of children\" warning", ur: "\"بچوں کی پہنچ سے دور رکھیں\" کی ہدایت موجود نہیں" },
+  tampering: { en: "signs of tampering", ur: "چھیڑ چھاڑ کے آثار" },
+};
+
+/** Medicine headline phrases. Mirrors MEDICINE_COPY in lib/verdictCopy.ts — keep in sync. */
 export const MEDICINE_VERDICT_TEXT = {
   noProblems: {
-    en: "No problems found — official DRAP verification pending",
-    ur: "کوئی مسئلہ نہیں ملا — ڈریپ کی سرکاری تصدیق زیر التوا",
+    en: "✅ No red flags found. Confirm with your pharmacist.",
+    ur: "✅ کوئی خطرے کی علامت نہیں ملی۔ اپنے فارماسسٹ سے تصدیق کریں۔",
+  } satisfies BilingualReason,
+  counterfeit: {
+    en: "⛔ Do not use this medicine — it shows signs of a fake. Report it to DRAP.",
+    ur: "⛔ یہ دوا استعمال نہ کریں — اس میں نقلی ہونے کی علامات ہیں۔ ڈریپ کو اطلاع دیں۔",
   } satisfies BilingualReason,
   suspicious: {
-    en: "⚠️ Suspicious medicine — problems were found with this pack. Do not use it until a pharmacist has checked it.",
-    ur: "⚠️ مشکوک دوا — اس پیک میں مسائل پائے گئے۔ فارماسسٹ کی جانچ تک استعمال نہ کریں۔",
-  } satisfies BilingualReason,
-  unverified: {
-    en: "❓ Not enough could be checked — finding no problem is not the same as confirming this medicine",
-    ur: "❓ کافی جانچ ممکن نہیں ہو سکی — مسئلہ نہ ملنے کا مطلب دوا کی تصدیق نہیں",
-  } satisfies BilingualReason,
-  unverifiedReason: {
-    en: "Too few checks could be completed against official references (catalogue or DRAP registration) to judge this medicine.",
-    ur: "سرکاری حوالوں (کیٹلاگ یا ڈریپ رجسٹریشن) سے اتنی جانچ نہیں ہو سکی کہ اس دوا کے بارے میں فیصلہ کیا جا سکے۔",
+    en: "⚠️ Suspicious medicine — do not take it until a pharmacist has checked it, and report it to DRAP.",
+    ur: "⚠️ مشکوک دوا — فارماسسٹ کی جانچ تک نہ لیں، اور ڈریپ کو اطلاع دیں۔",
   } satisfies BilingualReason,
   expired: {
-    en: "Expired — do not use",
-    ur: "میعاد ختم — استعمال نہ کریں",
+    en: "⛔ Expired — do not use.",
+    ur: "⛔ میعاد ختم — استعمال نہ کریں۔",
+  } satisfies BilingualReason,
+  unverified: {
+    en: "❓ This medicine could not be fully checked. Confirm with your pharmacist.",
+    ur: "❓ اس دوا کی مکمل جانچ نہیں ہو سکی۔ اپنے فارماسسٹ سے تصدیق کریں۔",
+  } satisfies BilingualReason,
+  unverifiedReason: {
+    en: "Not enough could be checked against official records.",
+    ur: "سرکاری ریکارڈ سے کافی جانچ نہیں ہو سکی۔",
+  } satisfies BilingualReason,
+  noProblemsReason: (n: number): BilingualReason => ({
+    en: `No red flags in ${n} check${n === 1 ? "" : "s"}.`,
+    ur: `${n} جانچوں میں کوئی خطرے کی علامت نہیں ملی۔`,
+  }),
+  /** Ends every medicine reply and result. */
+  footer: {
+    en: "Confirm with your pharmacist. Report fakes to DRAP.",
+    ur: "اپنے فارماسسٹ سے تصدیق کریں۔ نقلی دوا کی اطلاع ڈریپ کو دیں۔",
   } satisfies BilingualReason,
   safety: {
     en: "This is a packaging and code check, not a lab test. If in doubt, ask your pharmacist or report to DRAP.",
     ur: "یہ پیکنگ اور کوڈ کی جانچ ہے، لیبارٹری ٹیسٹ نہیں۔ شک ہو تو اپنے فارماسسٹ سے پوچھیں یا ڈریپ کو اطلاع دیں۔",
   } satisfies BilingualReason,
-  moreProblems: (n: number): BilingualReason => ({
-    en: ` (and ${n} more problem${n === 1 ? "" : "s"})`,
-    ur: ` (اور مزید ${n} مسائل)`,
-  }),
 };
 
 // ─── Reference-image comparison (RAG vector-match follow-up) ──────────────────

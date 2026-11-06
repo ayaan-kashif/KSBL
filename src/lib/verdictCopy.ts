@@ -54,13 +54,18 @@ export const VERDICT_LABEL: Record<BadgeVerdict, BilingualPhrase> = {
 
 /**
  * Medicine results. Mirrors MEDICINE_VERDICT_TEXT in lib/translate.ts — keep
- * in sync. A medicine is never labelled "Genuine": the positive outcome is
- * "No problems found", pending DRAP's official verification.
+ * in sync. A medicine is never labelled "Genuine" or "Authentic": the
+ * positive outcome is "No red flags found. Confirm with your pharmacist".
  */
 export const MEDICINE_COPY = {
-  noProblemsLabel: { en: "No problems found", ur: "کوئی مسئلہ نہیں ملا" },
-  officialPending: { en: "Official DRAP verification pending", ur: "ڈریپ کی سرکاری تصدیق زیر التوا" },
+  noProblemsLabel: { en: "No red flags found", ur: "کوئی خطرے کی علامت نہیں ملی" },
+  confirmWithPharmacist: { en: "Confirm with your pharmacist", ur: "اپنے فارماسسٹ سے تصدیق کریں" },
   expired: { en: "Expired — do not use", ur: "میعاد ختم — استعمال نہ کریں" },
+  checksPerformed: { en: "Checks performed", ur: "کی گئی جانچ" },
+  footer: {
+    en: "Confirm with your pharmacist. Report fakes to DRAP.",
+    ur: "اپنے فارماسسٹ سے تصدیق کریں۔ نقلی دوا کی اطلاع ڈریپ کو دیں۔",
+  },
   safety: {
     en: "This is a packaging and code check, not a lab test. If in doubt, ask your pharmacist or report to DRAP.",
     ur: "یہ پیکنگ اور کوڈ کی جانچ ہے، لیبارٹری ٹیسٹ نہیں۔ شک ہو تو اپنے فارماسسٹ سے پوچھیں یا ڈریپ کو اطلاع دیں۔",

@@ -166,6 +166,8 @@ export default function ScanHistoryPage() {
                     <p className={styles.productName}>{scan.product_name || 'Unknown Product'}</p>
                     <p className={styles.batchInfo}>
                       {scan.extracted_batch || 'No Batch'} · {scan.brand_name || 'Unknown Brand'}
+                      {/* Medicines: expiry, only when known. */}
+                      {scan.expiry_date ? ` · Exp ${scan.expiry_date.slice(0, 10)}` : ''}
                     </p>
                     <p className={styles.timeInfo}>{formatRelativeTime(scan.created_at, now)}</p>
                   </div>

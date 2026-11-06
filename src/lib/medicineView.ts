@@ -4,7 +4,7 @@
  * Client-safe helpers that turn a scan's `medicine` payload into the rows the
  * EXISTING result screens already know how to draw — no new screens or
  * components. Values prefer the DataMatrix, then the print, then the
- * catalogue; anything none of them has is shown as "Not visible".
+ * catalogue. A row is only shown when it has a value: nothing is filled in.
  */
 
 import type { MedicineResult } from './api';
@@ -17,16 +17,15 @@ export interface MedicineDetailRow {
   mono?: boolean;
 }
 
-const plain = (v: string | null | undefined): BilingualPhrase =>
-  v ? { en: v, ur: v } : MEDICINE_COPY.notVisible;
+const plain = (v: string): BilingualPhrase => ({ en: v, ur: v });
 
-function registrationValue(m: MedicineResult): BilingualPhrase {
+function registrationValue(m: MedicineResult): BilingualPhrase | null {
   const reg = m.registration;
-  if (!reg.regNo) return MEDICINE_COPY.notVisible;
+  if (!reg.regNo) return null;
   if (m.registrationMismatch) return { en: `${reg.regNo} — registered to another product`, ur: `${reg.regNo} — کسی اور مصنوع کا` };
-  if (reg.status === 'found') return { en: `${reg.regNo} — listed by DRAP`, ur: `${reg.regNo} — ڈریپ میں درج` };
-  if (reg.status === 'not_found') return { en: `${reg.regNo} — not in DRAP's price list`, ur: `${reg.regNo} — ڈریپ کی قیمتوں کی فہرست میں نہیں` };
-  return { en: `${reg.regNo} — not checked`, ur: `${reg.regNo} — جانچ نہیں ہو سکی` };
+  if (reg.status === 'found') return { en: `${reg.regNo} — in our DRAP list`, ur: `${reg.regNo} — ہماری ڈریپ فہرست میں` };
+  if (reg.status === 'not_found') return { en: `${reg.regNo} — not in our DRAP list`, ur: `${reg.regNo} — ہماری ڈریپ فہرست میں نہیں` };
+  return plain(reg.regNo);
 }
 
 export function medicineDetailRows(m: MedicineResult): MedicineDetailRow[] {
@@ -36,23 +35,38 @@ export function medicineDetailRows(m: MedicineResult): MedicineDetailRow[] {
     ? m.expiry.expired
       ? { en: `${m.expiry.date} (expired)`, ur: `${m.expiry.date} (میعاد ختم)` }
       : plain(m.expiry.date)
-    : MEDICINE_COPY.notVisible;
-  return [
-    { label: MEDICINE_FIELD_LABELS.name, value: plain(p?.brandName ?? c?.product_name) },
-    { label: MEDICINE_FIELD_LABELS.generic, value: plain(p?.genericName ?? c?.generic_name) },
-    { label: MEDICINE_FIELD_LABELS.strength, value: plain(p?.strength ?? c?.strength) },
-    { label: MEDICINE_FIELD_LABELS.dosageForm, value: plain(p?.dosageForm ?? c?.dosage_form) },
-    { label: MEDICINE_FIELD_LABELS.manufacturer, value: plain(p?.manufacturer ?? c?.manufacturer) },
+    : null;
+  const text = (v: string | null | undefined) => (v ? plain(v) : null);
+  const rows: { label: BilingualPhrase; value: BilingualPhrase | null; mono?: boolean }[] = [
+    { label: MEDICINE_FIELD_LABELS.name, value: text(p?.brandName ?? c?.product_name) },
+    { label: MEDICINE_FIELD_LABELS.generic, value: text(p?.genericName ?? c?.generic_name) },
+    { label: MEDICINE_FIELD_LABELS.strength, value: text(p?.strength ?? c?.strength) },
+    { label: MEDICINE_FIELD_LABELS.dosageForm, value: text(p?.dosageForm ?? c?.dosage_form) },
+    { label: MEDICINE_FIELD_LABELS.manufacturer, value: text(p?.manufacturer ?? c?.manufacturer) },
     { label: MEDICINE_FIELD_LABELS.regNo, value: registrationValue(m), mono: true },
-    { label: MEDICINE_FIELD_LABELS.batch, value: plain(m.gs1?.batch ?? p?.batch), mono: true },
-    { label: MEDICINE_FIELD_LABELS.mfgDate, value: plain(m.gs1?.mfgDate ?? p?.mfgDate), mono: true },
+    { label: MEDICINE_FIELD_LABELS.batch, value: text(m.gs1?.batch ?? p?.batch), mono: true },
+    { label: MEDICINE_FIELD_LABELS.mfgDate, value: text(m.gs1?.mfgDate ?? p?.mfgDate), mono: true },
     { label: MEDICINE_FIELD_LABELS.expiry, value: expiry, mono: true },
-    { label: MEDICINE_FIELD_LABELS.serial, value: plain(maskSerial(m.gs1?.serial)), mono: true },
-    { label: MEDICINE_FIELD_LABELS.gtin, value: plain(m.gs1?.gtin), mono: true },
+    { label: MEDICINE_FIELD_LABELS.serial, value: text(maskSerial(m.gs1?.serial)), mono: true },
+    { label: MEDICINE_FIELD_LABELS.gtin, value: text(m.gs1?.gtin), mono: true },
   ];
+  return rows.filter((r): r is MedicineDetailRow => r.value !== null);
 }
 
-/** "Sources checked: DRAP price index, AGP Limited catalogue" — only sources that ran. */
+const STATUS_MARK: Record<string, string> = { pass: '✓', fail: '✗', warn: '!' };
+
+/**
+ * The "Checks performed" list: one line per check that ran — ✓ pass,
+ * ✗ fail, ! warning. Skipped checks are hidden. Results cached before this
+ * format (no `reasonEn`) render nothing rather than a broken line.
+ */
+export function medicineCheckLines(m: MedicineResult): { key: string; en: string; ur: string }[] {
+  return (m.checks ?? [])
+    .filter((c) => c.status !== 'skipped' && STATUS_MARK[c.status] && c.reasonEn)
+    .map((c) => ({ key: c.id, en: `${STATUS_MARK[c.status]} ${c.reasonEn}`, ur: `${STATUS_MARK[c.status]} ${c.reasonUr}` }));
+}
+
+/** "Sources checked: DRAP alerts, ShelfWatch scan history" — only sources that ran. */
 export function medicineSourcesLine(m: MedicineResult): BilingualPhrase | null {
   if (!m.sourcesConsulted?.length) return null;
   const list = m.sourcesConsulted.join(', ');

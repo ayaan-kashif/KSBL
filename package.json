@@ -15,7 +15,10 @@
     "seed:demo-photos": "ts-node -P tsconfig.scripts.json scripts/seed-demo-reference-photos.ts",
     "db:studio": "prisma studio",
     "waba:subscribe": "ts-node scripts/subscribe-waba.ts",
-    "waba:test": "ts-node scripts/test-webhook.ts"
+    "waba:test": "ts-node scripts/test-webhook.ts",
+    "medicines:import": "tsx scripts/import-medicines.ts",
+    "alerts:import": "tsx scripts/import-drap-alerts.ts",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
@@ -58,6 +61,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "ts-node": "^10.9.2",
+    "tsx": "4.23.15",
     "typescript": "^5"
   }
 }
